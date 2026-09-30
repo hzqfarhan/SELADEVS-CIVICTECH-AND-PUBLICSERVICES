@@ -2,7 +2,13 @@
 
 **Malaysian mobility, with a voice for every neighbourhood.**
 
-GERAK combines official Johor bus positions, a geographic 2D map, an animated miniature 3D city, route discovery and a shared passenger/operator civic-report workflow. It is a working CODEFEST MVP with documented production boundaries—not a claim of an audited transport service.
+GERAK combines official BAS.MY, KTMB and Prasarana transport feeds, geographic 2D/3D maps with DOSM state/district boundaries and animated vehicles, route discovery and a shared passenger/operator civic-report workflow. It is a working CODEFEST MVP with documented production boundaries—not a claim of an audited transport service.
+
+## Nationwide coverage
+
+Use the operator selector for all nine BAS.MY cities, both Seremban operators combined, KTMB, and Prasarana KL/MRT feeder/Penang/Kuantan buses. Rapid KL rail is schedules-only. The 1 October verification imported 398 routes and 15,532 stops; Rapid Kuantan returned 404 and Kangar had no usable static network. Empty/stale overnight position feeds remain labelled. See [per-feed verification](docs/FEED_VERIFICATION.md), [all URLs](docs/SOURCES.md), and `GET /api/feeds`.
+
+The follow camera now uses zoom 17.5 in 3D; the map supports zoom 3–22. Bus models are enlarged cartographic symbols anchored to real GPS, with movement-driven tyres and route colours.
 
 ## Run locally
 

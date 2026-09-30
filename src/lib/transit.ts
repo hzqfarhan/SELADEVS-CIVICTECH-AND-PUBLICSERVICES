@@ -1,7 +1,8 @@
+import campusSnapshot from "../../public/data/uthm-katsana.json";
 import type { Coordinate, Region, Stop, TransitRoute, Vehicle } from "./types";
 
 // Real place names, illustrative corridors. Never presented as published timetables.
-export const stops: Stop[] = [
+const illustrativeStops: Stop[] = [
   {
     id: "jb-sentral",
     name: "JB Sentral",
@@ -115,7 +116,7 @@ export const stops: Stop[] = [
     region: "uthm",
   },
 ];
-export const routes: TransitRoute[] = [
+const illustrativeRoutes: TransitRoute[] = [
   {
     id: "G01",
     name: "City & heritage",
@@ -249,6 +250,45 @@ export const routes: TransitRoute[] = [
       [103.0828, 1.8538],
     ],
   },
+];
+
+// Published campus geometry; duration and vehicle motion remain demo estimates.
+const campusRoutes = Object.values(campusSnapshot.campuses).flatMap(
+  (campus) => campus.routes,
+);
+export const stops: Stop[] = [
+  ...illustrativeStops.filter((stop) => stop.region !== "uthm"),
+  ...Array.from(
+    new Map(
+      campusRoutes
+        .flatMap((route) => route.checkpoints)
+        .map((stop) => [
+          stop.id,
+          {
+            id: `uthm-katsana-${stop.id}`,
+            name: stop.name,
+            coordinate: [stop.longitude, stop.latitude] as Coordinate,
+            accessible: false,
+            region: "uthm" as const,
+          },
+        ]),
+    ).values(),
+  ),
+];
+export const routes: TransitRoute[] = [
+  ...illustrativeRoutes.filter((route) => route.region !== "uthm"),
+  ...campusRoutes.map((route, index): TransitRoute => ({
+    id: `U${String(index + 1).padStart(2, "0")}`,
+    name: route.name,
+    destination: route.name,
+    color: ["#b3f56b", "#75baff", "#f6ad73"][index],
+    operator: "UTHM / KATSANA geometry � simulated service",
+    region: "uthm",
+    source: "demo",
+    duration: 20 + index * 5,
+    stops: route.checkpoints.map((stop) => `uthm-katsana-${stop.id}`),
+    path: route.path.map((point) => [point[0], point[1]] as Coordinate),
+  })),
 ];
 
 export function distance(a: Coordinate, b: Coordinate): number {

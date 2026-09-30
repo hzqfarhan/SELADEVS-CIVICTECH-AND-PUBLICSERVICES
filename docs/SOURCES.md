@@ -1,8 +1,188 @@
 # GERAK — complete source, data and API inventory
 
-Updated: **30 September 2026**. App-readable equivalent: `/sources`; machine-readable equivalent: `GET /api/sources`. This inventory distinguishes actual runtime integrations from research.
+Updated: **1 October 2026**. App-readable equivalent: `/sources`; machine-readable equivalent: `GET /api/sources`. This inventory distinguishes actual runtime integrations from research.
 
 ## Connected data and services
+
+### [BAS.MY Kangar · kangar GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-kangar)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Kangar · kangar vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-kangar)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Alor Setar · alor-setar GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-alor-setar)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Alor Setar · alor-setar vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-alor-setar)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Kota Bharu · kota-bharu GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-kota-bharu)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Kota Bharu · kota-bharu vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-kota-bharu)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Kuala Terengganu · kuala-terengganu GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-kuala-terengganu)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Kuala Terengganu · kuala-terengganu vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-kuala-terengganu)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Ipoh · ipoh GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-ipoh)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Ipoh · ipoh vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-ipoh)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Seremban · seremban-a GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-seremban-a)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Seremban · seremban-a vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-seremban-a)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Seremban · seremban-b GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-seremban-b)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Seremban · seremban-b vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-seremban-b)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Melaka · melaka GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-melaka)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Melaka · melaka vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-melaka)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [BAS.MY Kuching · kuching GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-kuching)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [BAS.MY Kuching · kuching vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-kuching)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [KTMB KTMB · Peninsular rail · ktmb GTFS Schedule](https://api.data.gov.my/gtfs-static/ktmb)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [KTMB KTMB · Peninsular rail · ktmb vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/ktmb)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [Prasarana Rapid KL · rapid-kl GTFS Schedule](https://api.data.gov.my/gtfs-static/prasarana?category=rapid-bus-kl)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [Prasarana Rapid KL · rapid-kl vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/prasarana?category=rapid-bus-kl)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [Prasarana MRT feeder buses · mrt-feeder GTFS Schedule](https://api.data.gov.my/gtfs-static/prasarana?category=rapid-bus-mrtfeeder)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [Prasarana MRT feeder buses · mrt-feeder vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/prasarana?category=rapid-bus-mrtfeeder)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [Prasarana Rapid Penang · rapid-penang GTFS Schedule](https://api.data.gov.my/gtfs-static/prasarana?category=rapid-bus-penang)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [Prasarana Rapid Penang · rapid-penang vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/prasarana?category=rapid-bus-penang)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [Prasarana Rapid Kuantan · rapid-kuantan GTFS Schedule](https://api.data.gov.my/gtfs-static/prasarana?category=rapid-bus-kuantan)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [Prasarana Rapid Kuantan · rapid-kuantan vehicle positions](https://api.data.gov.my/gtfs-realtime/vehicle-position/prasarana?category=rapid-bus-kuantan)
+
+Official vehicle-position protobuf feed; original GPS timestamps preserved.
+
+Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.
+
+### [Prasarana Rapid KL rail · schedules only · rapid-rail GTFS Schedule](https://api.data.gov.my/gtfs-static/prasarana?category=rapid-rail-kl)
+
+Official routes, stops and representative trip topology for the selected service.
+
+Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.
+
+### [DOSM Malaysia, state and district boundary polygons](https://github.com/dosm-malaysia/data-open/tree/main/datasets/geodata)
+
+Country outline, 16 states/federal territories and 160 districts for geographic selection and shape-following highlights.
+
+Bundled published snapshot, not a claim of current legal boundary adjudication. Original URLs, SHA-256 hashes and retrieval time: /data/boundaries/provenance.json. DOSM Open Data License retained at /data/boundaries/LICENSE.md. No rectangular substitute polygons.
 
 ### [data.gov.my · BAS.MY Johor GTFS-Realtime](https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-johor)
 
@@ -40,7 +220,19 @@ User-submitted geotags, descriptions, optional images and operator status change
 
 Application-owned data in local JSON or PostgreSQL/PostGIS. Not a Malaysian municipal API. No synthetic reports are seeded. Reports are public; images are re-encoded client-side.
 
+### [UTHM KATSANA tracker](https://uthm.katsana.com/)
+
+Published Batu Pahat and Pagoh route paths and checkpoint coordinates.
+
+Public page inspected 1 October 2026; three routes saved in /data/uthm-katsana.json. Public WebSocket responds, but no live adapter is connected. Vehicles and durations remain simulated; no redistribution licence identified.
+
 ## Standards and documentation
+
+### [DOSM boundary data provenance and licence](/data/boundaries/provenance.json)
+
+Exact source URLs and hashes for the bundled country, state and district files.
+
+Publisher: Department of Statistics Malaysia. Geometry is preserved; files are only JSON-minified. Permission and disclaimers follow the publisher's Open Data License.
 
 ### [Next.js PWA guide](https://nextjs.org/docs/app/guides/progressive-web-apps)
 
@@ -70,7 +262,7 @@ Documents approximately 30-second updates. No connected national TripUpdates or 
 
 Official static endpoints and refresh guidance.
 
-Used to select BAS.MY Johor. KTMB and Prasarana endpoints are research references, not connected feeds in this release.
+Used for all registered BAS.MY cities, KTMB and Prasarana categories. Rapid KL rail has static schedules only; no stable realtime endpoint is claimed.
 
 ### [data.gov.my rate limits](https://developer.data.gov.my/rate-limit)
 
@@ -188,13 +380,7 @@ Not connected. Community flood reports are not official weather alerts.
 
 Official confirmation of campus transport and the existing tracking service.
 
-Institutional source, not a telemetry endpoint. UTHM demo corridors are illustrative.
-
-### [UTHM KATSANA tracker](https://uthm.katsana.com/)
-
-Existing university tracker and prospective authorised integration.
-
-No public ingestion API or authorisation verified. GERAK does not scrape it.
+Institutional source, not a telemetry endpoint. Campus route geometry is sourced separately from the public KATSANA tracker.
 
 ### [MobilityData GTFS validator](https://github.com/MobilityData/gtfs-validator)
 
@@ -206,14 +392,15 @@ Not run or installed in this MVP. The importer currently enforces archive bounds
 
 | Endpoint | Data |
 | --- | --- |
-| `GET /api/vehicles` | Official normalized Johor positions by default; explicit `mode=demo` simulator |
-| `GET /api/network` | Imported official Johor topology; explicit UTHM region is a demo topology |
+| `GET /api/vehicles` | Selected operator vehicle positions; Johor by default; explicit `mode=demo` simulator |
+| `GET /api/network` | Selected operator official topology; UTHM region is a demo topology |
 | `GET /api/events` | Server-Sent Events for positions and report changes |
 | `GET/POST /api/reports` | Public civic records and validated submissions |
 | `PATCH /api/reports/:id` | Authenticated status transitions |
 | `GET/POST/DELETE /api/session` | Operator session state, login and logout |
 | `GET /api/health` | Process/storage selection/feed-cache diagnostics, not database readiness |
 | `GET /api/sources` | This provenance registry |
+| `GET /api/feeds` | Service registry, upstream URLs and update intervals |
 
 Full contracts: [API.md](API.md). These endpoints are implemented by GERAK, not external Malaysian authorities.
 

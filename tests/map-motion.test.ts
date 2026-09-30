@@ -174,3 +174,77 @@ test("expanded 3D geography spreads objects without changing GPS coordinates or 
   assert.ok(Math.abs(gps[0] - path[0][0]) < 1e-9);
   assert.ok(Math.abs(gps[1] - path[0][1]) < 1e-9);
 });
+
+test("official prediction follows corners, reconciles continuously and stops after a bounded outage", () => {
+  const officialRoute = { ...route, source: "official" as const };
+  const motions = new Map<string, VehicleMotion>();
+  const initial = {
+    ...vehicle(0.245, 100000),
+    source: "gtfs-rt" as const,
+    speed: 36,
+    bearingKnown: true,
+  };
+  updateMotions(motions, [initial], [officialRoute], 0, 100000);
+  const predicted = sampleMotion(motions.get("bus-1")!, 35000);
+  assert.ok(
+    predicted.coordinate[1] > initial.coordinate[1],
+    "turns north along the route",
+  );
+  close(predicted.coordinate[0], 103.01);
+  assert.equal("estimated" in predicted && predicted.estimated, true);
+  const next = { ...initial, ...positionOnPath(path, 0.3), timestamp: 135000 };
+  updateMotions(motions, [next], [officialRoute], 35000, 135000);
+  const reconciled = sampleMotion(motions.get("bus-1")!, 35000);
+  close(reconciled.coordinate[0], predicted.coordinate[0]);
+  close(reconciled.coordinate[1], predicted.coordinate[1]);
+  const paused = sampleMotion(motions.get("bus-1")!, 215000);
+  assert.deepEqual(
+    sampleMotion(motions.get("bus-1")!, 600000).coordinate,
+    paused.coordinate,
+  );
+  assert.equal("predictionPaused" in paused && paused.predictionPaused, true);
+  assert.equal(
+    motions.get("bus-1")!.timestamp,
+    135000,
+    "estimated positions do not change the GPS timestamp",
+  );
+});
+
+test("prediction honours zero speed, route ends, reverse direction and off-route observations", () => {
+  const straight = {
+    ...route,
+    source: "official" as const,
+    path: [
+      [103, 1],
+      [103.001, 1],
+    ] as Coordinate[],
+  };
+  const base = {
+    ...vehicle(0, 100000),
+    source: "gtfs-rt" as const,
+    coordinate: [103.0005, 1] as Coordinate,
+    bearing: 90,
+    speed: 36,
+  };
+  const motions = new Map<string, VehicleMotion>();
+  updateMotions(motions, [{ ...base, speed: 0 }], [straight], 0, 100000);
+  close(
+    sampleMotion(motions.get(base.id)!, 90000).coordinate[0],
+    base.coordinate[0],
+  );
+  motions.clear();
+  updateMotions(motions, [base], [straight], 0, 100000);
+  close(sampleMotion(motions.get(base.id)!, 90000).coordinate[0], 103.001);
+  motions.clear();
+  updateMotions(motions, [{ ...base, bearing: 270 }], [straight], 0, 100000);
+  close(sampleMotion(motions.get(base.id)!, 90000).coordinate[0], 103);
+  motions.clear();
+  updateMotions(
+    motions,
+    [{ ...base, coordinate: [104, 2] }],
+    [straight],
+    0,
+    100000,
+  );
+  assert.equal(motions.get(base.id)!.prediction, undefined);
+});

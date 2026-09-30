@@ -16,6 +16,13 @@
 .gerak-transport-map .maplibregl-canvas {
   outline: none;
 }
+/* Marker transforms are GPS pixel offsets, measured from the canvas origin.
+   Relative positioning adds normal-flow offsets and separates stops from the map. */
+.gerak-map-canvas .maplibregl-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
 .gerak-transport-map .maplibregl-ctrl-attrib {
   font: 9px/17px inherit;
   background: rgba(16, 25, 22, 0.83);
@@ -71,21 +78,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border: 1.5px solid var(--bus-color);
-  border-radius: 12px;
-  background: #19271c;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--bus-color);
+  border-radius: 10px;
+  background: #111d15f2;
+  backdrop-filter: blur(8px);
   color: var(--bus-color);
   box-shadow:
-    0 4px 16px #0007,
-    0 0 18px color-mix(in srgb, var(--bus-color) 16%, transparent);
+    0 6px 22px #0009,
+    0 0 22px color-mix(in srgb, var(--bus-color) 25%, transparent);
   cursor: pointer;
   padding: 0;
   transition:
     box-shadow 0.2s,
-    background 0.2s;
+    background 0.2s,
+    border-color 0.2s;
   overflow: visible;
+}
+.gerak-bus-marker:hover {
+  border-color: #ffffff;
+  box-shadow:
+    0 8px 26px #000c,
+    0 0 28px color-mix(in srgb, var(--bus-color) 40%, transparent);
+  z-index: 8 !important;
 }
 .gerak-bus-marker:focus-visible,
 .gerak-stop-marker:focus-visible {
@@ -96,40 +112,62 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transform-origin: center;
+  width: 22px;
+  height: 22px;
+  transform-origin: center center;
   pointer-events: none;
+  filter: drop-shadow(0 2px 4px #000a);
+}
+.gerak-bus-marker-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 .gerak-bus-marker-label {
   position: absolute;
-  bottom: -21px;
+  bottom: -25px;
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
   pointer-events: none;
-  font: 600 10px/16px var(--font-body, Arial, sans-serif);
-  letter-spacing: 0.02em;
-  padding: 0 4px;
-  color: #d9e7df;
-  text-shadow:
-    0 1px 3px #000,
-    0 0 6px #000;
-  background: #101a16b8;
-  border-radius: 3px;
+  font: 700 11px/1.3 var(--font-mono, monospace, -apple-system, sans-serif);
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  color: #f2faf4;
+  text-shadow: 0 1px 2px #000;
+  background: #08120cf6;
+  border: 1px solid color-mix(in srgb, var(--bus-color) 50%, #203628);
+  border-radius: 6px;
+  box-shadow:
+    0 4px 12px #000c,
+    0 0 10px color-mix(in srgb, var(--bus-color) 20%, transparent);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .gerak-bus-marker.is-selected {
   background: var(--bus-color);
-  color: #172513;
-  border: 2px solid #e9ffc0;
+  color: #0b170e;
+  border: 2px solid #ffffff;
   box-shadow:
-    0 0 0 8px color-mix(in srgb, var(--bus-color) 13%, transparent),
-    0 0 0 17px color-mix(in srgb, var(--bus-color) 6%, transparent),
-    0 7px 30px #0008;
+    0 0 0 3px color-mix(in srgb, var(--bus-color) 28%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--bus-color) 12%, transparent),
+    0 10px 32px #000c;
+  z-index: 12 !important;
 }
 .gerak-bus-marker.is-selected .gerak-bus-marker-label {
-  color: var(--bus-color);
+  transform: translateX(-50%) scale(1.08);
+  background: #050e07;
+  color: #ffffff;
+  border-color: var(--bus-color);
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--bus-color) 50%, transparent),
+    0 4px 14px #000d;
 }
 .gerak-stop-marker {
-  position: relative;
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -430,17 +468,9 @@
   }
 }
 
-/* Geographic 3D uses map-anchored bus models; compact targets retain keyboard/touch selection. */
-.is-geographic-3d .gerak-bus-marker:not(.is-selected) {
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
-  border-radius: 50%;
-  background: var(--bus-color, #bafa45);
-  box-shadow: 0 0 0 3px #10251b80;
-}
-.is-geographic-3d .gerak-bus-marker:not(.is-selected) .gerak-bus-marker-icon {
-  display: none;
+/* In 3D view, remove the 2D DOM bus marker component completely (no box, no icon, no plate label) */
+.is-geographic-3d .gerak-bus-marker {
+  display: none !important;
 }
 .gerak-bus-marker:not(.is-selected):not(:hover):not(:focus-visible)
   .gerak-bus-marker-label {
@@ -458,4 +488,138 @@
   line-height: 1.6;
   border-radius: 8px;
   pointer-events: none;
+}
+
+.gerak-boundary-panel {
+  position: absolute;
+  left: 18px;
+  bottom: 142px;
+  z-index: 6;
+  width: min(278px, calc(100% - 90px));
+  border: 1px solid #547566;
+  border-radius: 14px;
+  background: #10241eef;
+  color: #eff9ed;
+  box-shadow: 0 10px 30px #0004;
+}
+.gerak-boundary-panel > button {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 12px;
+  border: 0;
+  border-radius: 14px;
+  color: inherit;
+  background: transparent;
+  font-weight: 650;
+  cursor: pointer;
+}
+.gerak-boundary-panel > button span {
+  font-size: 10px;
+  color: #b7e69d;
+}
+.gerak-boundary-fields {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+.gerak-boundary-fields label {
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
+}
+.gerak-boundary-fields select {
+  width: 100%;
+  background: #21392f;
+  color: #edf9e5;
+  border: 1px solid #496958;
+  border-radius: 7px;
+  padding: 8px;
+}
+.gerak-boundary-fields small {
+  color: #94b4a7;
+  font-size: 10px;
+}
+@media (max-height: 650px) {
+  .gerak-boundary-panel {
+    bottom: 88px;
+  }
+  .gerak-boundary-fields {
+    max-height: 145px;
+    overflow-y: auto;
+  }
+  .gerak-geographic-note {
+    display: none;
+  }
+}
+
+/* Keep MapLibre's positioning transform intact during hover. */
+.gerak-bus-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  touch-action: manipulation;
+  transition:
+    box-shadow 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+.gerak-bus-marker:hover {
+}
+.gerak-bus-marker-label {
+  opacity: 0;
+  visibility: hidden;
+}
+.gerak-bus-marker:hover .gerak-bus-marker-label,
+.gerak-bus-marker:focus-visible .gerak-bus-marker-label,
+.gerak-bus-marker.is-selected .gerak-bus-marker-label {
+  opacity: 1;
+  visibility: visible;
+}
+.gerak-bus-marker.is-estimated {
+  border-style: dashed;
+}
+.gerak-motion-status {
+  position: absolute;
+  bottom: 38px;
+  left: 18px;
+  max-width: calc(100% - 90px);
+  padding: 5px 9px;
+  border: 1px solid #405044;
+  border-radius: 20px;
+  background: #10211ced;
+  color: #e1d7b6;
+  font-size: 10px;
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gerak-bus-marker {
+    transition: none;
+  }
+}
+
+.gerak-map-navigation .gerak-light-button {
+  height: 54px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  color: #f5d395;
+}
+.gerak-light-button small {
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@media (pointer: coarse) {
+  .gerak-bus-marker {
+    width: 38px;
+    height: 38px;
+  }
 }

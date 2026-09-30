@@ -1,6 +1,7 @@
+import { serviceFor } from "../feeds";
 import { unzipSync } from "fflate";
 import { parse } from "csv-parse/sync";
-import type { Coordinate, Stop, TransitRoute } from "@/lib/types";
+import type { Coordinate, Stop, TransitRoute, Region } from "@/lib/types";
 import type { TransitNetwork } from "./network";
 type Row = Record<string, string>;
 const allowedFiles = new Set([
@@ -29,6 +30,7 @@ function validCoordinate(lng: number, lat: number) {
 export function parseStaticGtfs(
   buffer: Uint8Array,
   feedUrl: string,
+  region: Region = "johor",
 ): TransitNetwork {
   if (buffer.byteLength > 32 * 1024 * 1024)
     throw new Error("GTFS archive exceeds 32 MB compressed limit.");
@@ -78,7 +80,7 @@ export function parseStaticGtfs(
       name: s.stop_name || s.stop_id,
       coordinate: [Number(s.stop_lon), Number(s.stop_lat)],
       accessible: s.wheelchair_boarding === "1",
-      region: "johor",
+      region,
     }));
   const stopMap = new Map(stops.map((s) => [s.id, s]));
   const tripTimes = new Map<string, Row[]>();
@@ -149,11 +151,11 @@ export function parseStaticGtfs(
           start != null && end != null && end > start
             ? Math.round(end - start)
             : 0,
-        region: "johor",
+        region,
         operator:
           agencies.find((a) => a.agency_id === route.agency_id)?.agency_name ||
           agencies[0]?.agency_name ||
-          "BAS.MY Johor",
+          `${serviceFor(region).operator} ${serviceFor(region).name}`,
         source: "official",
       };
     });
@@ -165,5 +167,6 @@ export function parseStaticGtfs(
     source: "official",
     importedAt: new Date().toISOString(),
     feedUrl,
+    tripRoutes: Object.fromEntries(trips.map((t) => [t.trip_id, t.route_id])),
   };
 }

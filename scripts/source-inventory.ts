@@ -10,14 +10,14 @@ async function main() {
     future: "Researched but not connected",
   };
   let out =
-    "# GERAK — complete source, data and API inventory\n\nUpdated: **30 September 2026**. App-readable equivalent: `/sources`; machine-readable equivalent: `GET /api/sources`. This inventory distinguishes actual runtime integrations from research.\n\n";
+    "# GERAK — complete source, data and API inventory\n\nUpdated: **1 October 2026**. App-readable equivalent: `/sources`; machine-readable equivalent: `GET /api/sources`. This inventory distinguishes actual runtime integrations from research.\n\n";
   for (const kind of Object.keys(labels) as (keyof typeof labels)[]) {
     out += `## ${labels[kind]}\n\n`;
     for (const item of sources.filter((s) => s.kind === kind))
       out += `### [${item.name}](${item.url})\n\n${item.purpose}\n\n${item.notes}\n\n`;
   }
   out +=
-    "## Application-owned APIs\n\n| Endpoint | Data |\n| --- | --- |\n| `GET /api/vehicles` | Official normalized Johor positions by default; explicit `mode=demo` simulator |\n| `GET /api/network` | Imported official Johor topology; explicit UTHM region is a demo topology |\n| `GET /api/events` | Server-Sent Events for positions and report changes |\n| `GET/POST /api/reports` | Public civic records and validated submissions |\n| `PATCH /api/reports/:id` | Authenticated status transitions |\n| `GET/POST/DELETE /api/session` | Operator session state, login and logout |\n| `GET /api/health` | Process/storage selection/feed-cache diagnostics, not database readiness |\n| `GET /api/sources` | This provenance registry |\n\nFull contracts: [API.md](API.md). These endpoints are implemented by GERAK, not external Malaysian authorities.\n\n";
+    "## Application-owned APIs\n\n| Endpoint | Data |\n| --- | --- |\n| `GET /api/vehicles` | Selected operator vehicle positions; Johor by default; explicit `mode=demo` simulator |\n| `GET /api/network` | Selected operator official topology; UTHM region is a demo topology |\n| `GET /api/events` | Server-Sent Events for positions and report changes |\n| `GET/POST /api/reports` | Public civic records and validated submissions |\n| `PATCH /api/reports/:id` | Authenticated status transitions |\n| `GET/POST/DELETE /api/session` | Operator session state, login and logout |\n| `GET /api/health` | Process/storage selection/feed-cache diagnostics, not database readiness |\n| `GET /api/sources` | This provenance registry |\n| `GET /api/feeds` | Service registry, upstream URLs and update intervals |\n\nFull contracts: [API.md](API.md). These endpoints are implemented by GERAK, not external Malaysian authorities.\n\n";
   out +=
     "## Direct software dependencies\n\nExact transitive dependency versions and integrity hashes are in `package-lock.json`. Licences below come from the installed package manifests. No dependency licence is transferred to unrelated reference-site assets.\n\n| Package | Installed version | Licence | Use |\n| --- | --- | --- | --- |\n";
   for (const [group, dependencies] of Object.entries({

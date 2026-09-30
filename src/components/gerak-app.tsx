@@ -1,4 +1,6 @@
 "use client";
+import { SERVICES, serviceFor } from "@/lib/feeds";
+import { uniqueRouteColors } from "@/lib/route-colors";
 import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -161,14 +163,15 @@ export default function GerakApp({
     importedAt?: string;
   } | null>(null);
   const [networkNotice, setNetworkNotice] = useState("");
-  const usingOfficial = feed === "live" && region === "johor";
-  const regionRoutes = useMemo(
-    () =>
-      usingOfficial
-        ? (officialNetwork?.routes ?? [])
-        : routes.filter((r) => r.region === region),
-    [region, usingOfficial, officialNetwork],
-  );
+  const usingOfficial = feed === "live" && region !== "uthm";
+  const service = serviceFor(region);
+  const regionRoutes = useMemo(() => {
+    const network = usingOfficial
+      ? (officialNetwork?.routes ?? [])
+      : routes.filter((r) => r.region === region);
+    const colors = uniqueRouteColors(network.map((r) => r.id));
+    return network.map((r) => ({ ...r, color: colors.get(r.id)! }));
+  }, [region, usingOfficial, officialNetwork]);
   const regionStops = useMemo(
     () =>
       usingOfficial
@@ -212,11 +215,12 @@ export default function GerakApp({
   const vehicle = snapshot.vehicles.find((v) => v.id === selectedId),
     vehicleRoute = regionRoutes.find((r) => r.id === vehicle?.routeId);
   useEffect(() => {
-    if (feed !== "live" || region !== "johor") return;
+    if (feed !== "live" || region === "uthm") return;
+    setOfficialNetwork(null);
     const controller = new AbortController();
     try {
       const cached = JSON.parse(
-        localStorage.getItem("gerak:official-network") ?? "null",
+        localStorage.getItem(`gerak:official-network:${region}`) ?? "null",
       );
       if (
         cached?.source === "official" &&
@@ -229,12 +233,12 @@ export default function GerakApp({
     } catch {}
     const refresh = async () => {
       try {
-        const response = await fetch("/api/network?region=johor", {
+        const response = await fetch(`/api/network?region=${region}`, {
           signal: controller.signal,
         });
         if (!response.ok) throw Error("Network unavailable");
         const d = await response.json();
-        if (d.source === "official") {
+        if (d.source === "official" && !controller.signal.aborted) {
           setOfficialNetwork((previous) =>
             previous?.importedAt === d.importedAt &&
             previous?.routes.length === d.routes.length
@@ -244,7 +248,10 @@ export default function GerakApp({
           setNetworkNotice(d.message ?? "");
           if (d.routes.length)
             try {
-              localStorage.setItem("gerak:official-network", JSON.stringify(d));
+              localStorage.setItem(
+                `gerak:official-network:${region}`,
+                JSON.stringify(d),
+              );
             } catch {}
         }
       } catch {
@@ -341,6 +348,7 @@ export default function GerakApp({
     setDestination(next === "johor" ? "ksl" : "uthm-library");
   };
   const selectVehicle = (id: string) => {
+    if (mode === "3d") setFollow(true);
     setSelectedId(id);
     setSelectedStop(null);
   };
@@ -598,8 +606,11 @@ export default function GerakApp({
                 value={region}
                 onChange={(e) => changeRegion(e.target.value as Region)}
               >
-                <option value="johor">Johor Bahru, Johor</option>
-                <option value="uthm">UTHM · Parit Raja pilot</option>
+                {SERVICES.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.operator} · {s.name}
+                  </option>
+                ))}
               </select>
               <ChevronDown size={15} />
             </div>
@@ -775,8 +786,8 @@ export default function GerakApp({
                 <div>
                   <strong>
                     {tr(
-                      "Official BAS.MY Johor data",
-                      "Data rasmi BAS.MY Johor",
+                      `${service.operator} · ${service.name} official data`,
+                      `Data rasmi ${service.operator} · ${service.name}`,
                     )}
                   </strong>
                   <span>
@@ -1454,13 +1465,9 @@ export default function GerakApp({
                 )}
               </button>
               <div>
-                <strong>
-                  {region === "johor" ? "Johor Bahru" : "UTHM, Parit Raja"}
-                </strong>
+                <strong>{service.name}</strong>
                 <span>
-                  {region === "johor"
-                    ? "1.4927° N, 103.7414° E"
-                    : tr("Campus mobility pilot", "Perintis mobiliti kampus")}
+                  {`${service.center[1].toFixed(4)}° N, ${service.center[0].toFixed(4)}° E`}
                 </span>
               </div>
               <span className="map-live">
@@ -1548,17 +1555,7 @@ export default function GerakApp({
                 ? tr("A DIFFERENT PERSPECTIVE", "PERSPEKTIF BERBEZA")
                 : tr("EXPLORE YOUR CITY", "TEROKAI BANDAR ANDA")}
             </span>
-            <h2>
-              {region === "johor" ? (
-                <>
-                  Johor<span>Bahru.</span>
-                </>
-              ) : (
-                <>
-                  Kampus<span>kita.</span>
-                </>
-              )}
-            </h2>
+            <h2>{service.name.split(" · ")[0]}</h2>
           </div>
           {!vehicle && !selectedStop && (
             <div className="map-hint">
@@ -1836,13 +1833,13 @@ export default function GerakApp({
             <span className="network-source">
               {mode === "3d"
                 ? tr(
-                    "Johor geography · OpenStreetMap",
-                    "Geografi Johor · OpenStreetMap",
+                    "Malaysia geography · OpenStreetMap",
+                    "Geografi Malaysia · OpenStreetMap",
                   )
                 : usingOfficial
                   ? tr(
-                      "BAS.MY · official GTFS network",
-                      "BAS.MY · rangkaian GTFS rasmi",
+                      `${service.operator} · official GTFS network`,
+                      `${service.operator} · rangkaian GTFS rasmi`,
                     )
                   : tr(
                       "Pilot · illustrative routes",
@@ -1853,6 +1850,10 @@ export default function GerakApp({
               onClick={() => {
                 setFeed((f) => (f === "demo" ? "live" : "demo"));
                 if (region === "uthm") changeRegion("johor");
+                else if (region !== "johor") {
+                  changeRegion("johor");
+                  setFeed("demo");
+                }
                 setFilter(null);
                 setSelectedId(null);
                 setFollow(false);

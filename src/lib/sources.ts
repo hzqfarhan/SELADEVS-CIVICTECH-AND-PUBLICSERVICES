@@ -1,3 +1,4 @@
+import { SERVICES } from "./feeds";
 export interface SourceEntry {
   name: string;
   url: string;
@@ -6,6 +7,51 @@ export interface SourceEntry {
   notes: string;
 }
 export const sources: SourceEntry[] = [
+  ...SERVICES.filter((s) => s.id !== "johor").flatMap((service) =>
+    service.endpoints.flatMap((endpoint) => [
+      {
+        name: `${service.operator} ${service.name} · ${endpoint.id} GTFS Schedule`,
+        url: endpoint.staticUrl,
+        purpose:
+          "Official routes, stops and representative trip topology for the selected service.",
+        kind: "runtime" as const,
+        notes:
+          "Separate persisted cache per endpoint. Empty or unusable datasets are reported without synthetic replacement. Seremban combines both operator feeds with namespaced IDs.",
+      },
+      ...(endpoint.realtimeUrl
+        ? [
+            {
+              name: `${service.operator} ${service.name} · ${endpoint.id} vehicle positions`,
+              url: endpoint.realtimeUrl,
+              purpose:
+                "Official vehicle-position protobuf feed; original GPS timestamps preserved.",
+              kind: "runtime" as const,
+              notes:
+                "Publisher documents 30-second updates; application coalesces requests for 35 seconds. Empty, stale or unavailable feeds are labelled. No trip updates or service-alert integration is claimed.",
+            },
+          ]
+        : []),
+    ]),
+  ),
+
+  {
+    name: "DOSM Malaysia, state and district boundary polygons",
+    url: "https://github.com/dosm-malaysia/data-open/tree/main/datasets/geodata",
+    purpose:
+      "Country outline, 16 states/federal territories and 160 districts for geographic selection and shape-following highlights.",
+    kind: "runtime",
+    notes:
+      "Bundled published snapshot, not a claim of current legal boundary adjudication. Original URLs, SHA-256 hashes and retrieval time: /data/boundaries/provenance.json. DOSM Open Data License retained at /data/boundaries/LICENSE.md. No rectangular substitute polygons.",
+  },
+  {
+    name: "DOSM boundary data provenance and licence",
+    url: "/data/boundaries/provenance.json",
+    purpose:
+      "Exact source URLs and hashes for the bundled country, state and district files.",
+    kind: "standard",
+    notes:
+      "Publisher: Department of Statistics Malaysia. Geometry is preserved; files are only JSON-minified. Permission and disclaimers follow the publisher's Open Data License.",
+  },
   {
     name: "OneBusAway Wayfinder",
     url: "https://github.com/OneBusAway/wayfinder",
@@ -151,7 +197,7 @@ export const sources: SourceEntry[] = [
     purpose: "Official static endpoints and refresh guidance.",
     kind: "standard",
     notes:
-      "Used to select BAS.MY Johor. KTMB and Prasarana endpoints are research references, not connected feeds in this release.",
+      "Used for all registered BAS.MY cities, KTMB and Prasarana categories. Rapid KL rail has static schedules only; no stable realtime endpoint is claimed.",
   },
   {
     name: "data.gov.my rate limits",
@@ -234,16 +280,16 @@ export const sources: SourceEntry[] = [
       "Official confirmation of campus transport and the existing tracking service.",
     kind: "future",
     notes:
-      "Institutional source, not a telemetry endpoint. UTHM demo corridors are illustrative.",
+      "Institutional source, not a telemetry endpoint. Campus route geometry is sourced separately from the public KATSANA tracker.",
   },
   {
     name: "UTHM KATSANA tracker",
     url: "https://uthm.katsana.com/",
     purpose:
-      "Existing university tracker and prospective authorised integration.",
-    kind: "future",
+      "Published Batu Pahat and Pagoh route paths and checkpoint coordinates.",
+    kind: "runtime",
     notes:
-      "No public ingestion API or authorisation verified. GERAK does not scrape it.",
+      "Public page inspected 1 October 2026; three routes saved in /data/uthm-katsana.json. Public WebSocket responds, but no live adapter is connected. Vehicles and durations remain simulated; no redistribution licence identified.",
   },
   {
     name: "MobilityData GTFS validator",

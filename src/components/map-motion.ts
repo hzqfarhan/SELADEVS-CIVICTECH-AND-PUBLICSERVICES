@@ -1,3 +1,4 @@
+import { SERVICES } from "@/lib/feeds";
 import type { Coordinate, Region, TransitRoute, Vehicle } from "@/lib/types";
 
 export interface VehicleMotion {
@@ -11,12 +12,19 @@ export interface VehicleMotion {
   route?: TransitRoute;
   fromProgress?: number;
   toProgress?: number;
+  prediction?: {
+    path: Coordinate[];
+    progress: number;
+    correction: number;
+    rate: number;
+    age: number;
+    loop: boolean;
+  };
 }
 
-export const REGION_CENTERS: Record<Region, Coordinate> = {
-  johor: [103.7565, 1.4835],
-  uthm: [103.0862, 1.8548],
-};
+export const REGION_CENTERS = Object.fromEntries(
+  SERVICES.map((s) => [s.id, s.center]),
+) as Record<Region, Coordinate>;
 
 const lengths = new WeakMap<
   Coordinate[],
@@ -77,7 +85,65 @@ export function positionOnPath(
   return { coordinate: path[path.length - 1], bearing: 0 };
 }
 
+/** Closest segment projection; never extrapolate a bus onto an unrelated corridor. */
+export function projectToRoute(path: Coordinate[], point: Coordinate) {
+  const { segments, total } = routeLengths(path);
+  let nearest = { progress: 0, distance: Infinity, bearing: 0 };
+  let traversed = 0;
+  for (let i = 0; i < segments.length; i++) {
+    const a = path[i],
+      b = path[i + 1];
+    const cos = Math.cos((point[1] * Math.PI) / 180);
+    const dx = (b[0] - a[0]) * cos,
+      dy = b[1] - a[1];
+    const size = dx * dx + dy * dy;
+    if (!size) continue;
+    const t = Math.max(
+      0,
+      Math.min(
+        1,
+        ((point[0] - a[0]) * cos * dx + (point[1] - a[1]) * dy) / size,
+      ),
+    );
+    const distance =
+      Math.hypot((point[0] - a[0]) * cos - t * dx, point[1] - a[1] - t * dy) *
+      111320;
+    if (distance < nearest.distance)
+      nearest = {
+        distance,
+        progress: total ? (traversed + segments[i] * t) / total : 0,
+        bearing: ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360,
+      };
+    traversed += segments[i];
+  }
+  return nearest;
+}
+
 export function sampleMotion(motion: VehicleMotion, now: number) {
+  if (motion.prediction) {
+    const p = motion.prediction;
+    const elapsed = Math.max(0, (now - motion.started) / 1000);
+    // Estimate only for a bounded outage. Never manufacture new GPS timestamps.
+    const seconds = Math.min(180, p.age + elapsed);
+    const blend = Math.min(1, elapsed / 6);
+    let progress =
+      p.progress +
+      p.rate * seconds +
+      p.correction * (1 - blend * blend * (3 - 2 * blend));
+    progress = p.loop
+      ? ((progress % 1) + 1) % 1
+      : Math.max(0, Math.min(1, progress));
+    const sample = positionOnPath(p.path, Math.min(progress, 1 - 1e-12));
+    if (!p.loop && progress === 1)
+      sample.coordinate = p.path[p.path.length - 1];
+    return {
+      ...sample,
+      bearing: (sample.bearing + (p.rate < 0 ? 180 : 0)) % 360,
+      progress,
+      estimated: seconds > 0 && p.rate !== 0,
+      predictionPaused: p.age + elapsed >= 180,
+    };
+  }
   const t =
     motion.duration <= 0
       ? 1
@@ -113,18 +179,24 @@ export function updateMotions(
   vehicles: Vehicle[],
   routes: TransitRoute[],
   now: number,
+  wallNow = Date.now(),
 ) {
   const ids = new Set(vehicles.map((vehicle) => vehicle.id));
   for (const id of motions.keys()) if (!ids.has(id)) motions.delete(id);
   for (const vehicle of vehicles) {
     const previous = motions.get(vehicle.id);
+    const availableRoute = routes.find(
+      (r) => r.id === vehicle.routeId && r.source === "official",
+    );
     // Polls may complete out of order. Never rewind a displayed observation.
     if (previous && vehicle.timestamp < previous.timestamp) continue;
     if (
       previous &&
       previous.timestamp === vehicle.timestamp &&
       previous.to[0] === vehicle.coordinate[0] &&
-      previous.to[1] === vehicle.coordinate[1]
+      previous.to[1] === vehicle.coordinate[1] &&
+      (vehicle.source === "simulator" ||
+        previous.prediction?.path === availableRoute?.path)
     )
       continue;
     const current = previous
@@ -152,7 +224,69 @@ export function updateMotions(
           360) %
         360
       : (previous?.bearing ?? 0);
+    const route = routes.find(
+      (r) => r.id === vehicle.routeId && r.source === "official",
+    );
+    const projected = route
+      ? projectToRoute(route.path, vehicle.coordinate)
+      : undefined;
+    let prediction: VehicleMotion["prediction"];
+    if (
+      vehicle.source === "gtfs-rt" &&
+      route &&
+      projected &&
+      projected.distance < 80
+    ) {
+      const total = routeLengths(route.path).total * 111320;
+      const heading =
+        vehicle.bearingKnown === false ? inferredBearing : vehicle.bearing;
+      const direction =
+        Math.abs(((heading - projected.bearing + 540) % 360) - 180) > 90
+          ? -1
+          : 1;
+      const inferredSpeed =
+        previous && delta > 0
+          ? (Math.hypot(
+              (vehicle.coordinate[0] - previous.to[0]) *
+                Math.cos((vehicle.coordinate[1] * Math.PI) / 180),
+              vehicle.coordinate[1] - previous.to[1],
+            ) *
+              111320) /
+            (delta / 1000)
+          : 0;
+      const speed = Math.max(
+        0,
+        Math.min(
+          vehicle.vehicleKind === "rail" ? 50 : 30,
+          vehicle.speedKnown === false ? inferredSpeed : vehicle.speed / 3.6,
+        ),
+      );
+      const age = Math.max(0, (wallNow - vehicle.timestamp) / 1000);
+      const rate = total ? (direction * speed) / total : 0;
+      const start = projectToRoute(route.path, current.coordinate);
+      const loop =
+        Math.hypot(
+          route.path[0][0] - route.path.at(-1)![0],
+          route.path[0][1] - route.path.at(-1)![1],
+        ) *
+          111320 <
+        30;
+      let correction =
+        previous && start.distance < 80
+          ? start.progress - (projected.progress + rate * Math.min(180, age))
+          : 0;
+      if (loop) correction = ((correction + 1.5) % 1) - 0.5;
+      prediction = {
+        path: route.path,
+        progress: projected.progress,
+        correction,
+        rate,
+        age,
+        loop,
+      };
+    }
     motions.set(vehicle.id, {
+      prediction,
       from: current.coordinate,
       to: vehicle.coordinate,
       fromBearing: current.bearing,

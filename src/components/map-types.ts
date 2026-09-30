@@ -9,6 +9,7 @@ import type {
 
 export interface TransportMapProps {
   mode: "2d" | "3d";
+  lighting?: "day" | "dusk" | "night";
   region: Region;
   vehicles: Vehicle[];
   selectedVehicleId: string | null;

@@ -1,4 +1,4 @@
-export type Region = "johor" | "uthm";
+export type Region = import("./feeds").FeedRegion;
 export type Locale = "en" | "ms";
 export type Coordinate = [number, number];
 export interface Stop {
@@ -24,6 +24,8 @@ export interface Vehicle {
   id: string;
   label: string;
   routeId: string;
+  tripId?: string;
+  vehicleKind?: "bus" | "rail";
   coordinate: Coordinate;
   bearing: number;
   speed: number;

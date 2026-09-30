@@ -18,9 +18,10 @@ export default function SourcesPage() {
         <span className="eyebrow">DATA TRANSPARENCY · KETELUSAN DATA</span>
         <h1>Know what moves your map.</h1>
         <p>
-          Johor opens with official data. A live feed failure never substitutes
-          simulated vehicles. UTHM and the optional Johor demo are explicitly
-          labelled simulations.
+          Choose a BAS.MY city, KTMB or Prasarana service for official data.
+          Rapid KL rail provides schedules only. A live feed failure never
+          substitutes simulated vehicles. UTHM and the optional Johor demo are
+          explicitly labelled simulations.
         </p>
         <p>
           Initial successful integration on 30 September 2026 retrieved 75

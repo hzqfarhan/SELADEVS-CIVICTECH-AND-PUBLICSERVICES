@@ -1,0 +1,25 @@
+{
+  "publisher": "Department of Statistics Malaysia (DOSM)",
+  "retrievedAt": "2026-09-30T16:52:26.102Z",
+  "license": "https://raw.githubusercontent.com/dosm-malaysia/data-open/main/LICENSE.md",
+  "files": [
+    {
+      "file": "country.geojson",
+      "source": "https://raw.githubusercontent.com/dosm-malaysia/data-open/main/datasets/geodata/administrative_0_malaysia.geojson",
+      "sha256": "02869c8b0057649d2d9decef47fab852392811cbdc2a1731be687970037d6e17",
+      "features": 1
+    },
+    {
+      "file": "states.geojson",
+      "source": "https://raw.githubusercontent.com/dosm-malaysia/data-open/main/datasets/geodata/administrative_1_state.geojson",
+      "sha256": "dd7469067f9a8a6e2d486f5114bc1bc978e0ecd0ab64e7659deb6ee88746d9fb",
+      "features": 16
+    },
+    {
+      "file": "districts.geojson",
+      "source": "https://raw.githubusercontent.com/dosm-malaysia/data-open/main/datasets/geodata/administrative_2_district.geojson",
+      "sha256": "646988dd33b0428873aaafe9f6ccc8b2bb0be2b934b9e0a94a36e946383ce564",
+      "features": 160
+    }
+  ]
+}

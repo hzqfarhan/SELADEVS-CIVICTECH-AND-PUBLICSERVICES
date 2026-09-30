@@ -2,10 +2,11 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Region, TransitRoute, Stop } from "@/lib/types";
 import { routes, stops } from "@/lib/transit";
+import { serviceFor, feedId, type Endpoint } from "../feeds";
 import { parseStaticGtfs } from "./gtfs-static";
 import { readResponseBytes } from "./upstream";
-export const JOHOR_STATIC_URL =
-  "https://api.data.gov.my/gtfs-static/mybas-johor";
+import { reserveOfficialRequest } from "./upstream-budget";
+export const JOHOR_STATIC_URL = serviceFor("johor").endpoints[0].staticUrl;
 export interface TransitNetwork {
   routes: TransitRoute[];
   stops: Stop[];
@@ -14,80 +15,120 @@ export interface TransitNetwork {
   feedUrl?: string;
   message?: string;
   stale?: boolean;
+  tripRoutes?: Record<string, string>;
 }
-let cached: TransitNetwork | undefined;
-let pending: Promise<TransitNetwork> | undefined;
-let retryAt = 0;
-const filename = () =>
+interface Cache {
+  network?: TransitNetwork;
+  pending?: Promise<TransitNetwork>;
+  retryAt: number;
+}
+const caches = new Map<string, Cache>();
+export const networkFile = (id: string) =>
   path.join(
+    /* turbopackIgnore: true */
     process.env.GERAK_DATA_DIR || path.join(process.cwd(), ".runtime"),
-    "network.json",
+    id === "johor" ? "network.json" : `network-${id}.json`,
   );
-async function officialNetwork(): Promise<TransitNetwork> {
-  if (!cached) {
-    try {
-      const saved = JSON.parse(
-        await fs.readFile(filename(), "utf8"),
-      ) as TransitNetwork;
-      if (
-        saved.source === "official" &&
-        Array.isArray(saved.routes) &&
-        Array.isArray(saved.stops)
-      )
-        cached = saved;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT")
-        console.warn("Imported network unavailable");
-    }
+export function namespaceNetwork(
+  network: TransitNetwork,
+  endpoint: Endpoint,
+  region: Region,
+): TransitNetwork {
+  return {
+    ...network,
+    routes: network.routes.map((r) => ({
+      ...r,
+      region,
+      id: feedId(endpoint.id, r.id),
+      stops: r.stops.map((s) => feedId(endpoint.id, s)),
+    })),
+    stops: network.stops.map((s) => ({
+      ...s,
+      region,
+      id: feedId(endpoint.id, s.id),
+    })),
+  };
+}
+export function resolveTripRoute(
+  endpointId: string,
+  tripId: string | undefined,
+  rawRouteId: string,
+) {
+  const network = caches.get(endpointId)?.network;
+  const id = feedId(endpointId, rawRouteId);
+  if (network?.routes.some((r) => r.id === id)) return id;
+  if (tripId && network?.tripRoutes) {
+    const exact = network.tripRoutes[tripId];
+    if (exact) return feedId(endpointId, exact);
+    // Prasarana Penang publishes service-prefixed static trip IDs. Match a unique suffix only.
+    const matches = new Set(
+      Object.entries(network.tripRoutes)
+        .filter(([key]) => key.endsWith(`_${tripId}`))
+        .map(([, route]) => route),
+    );
+    if (matches.size === 1) return feedId(endpointId, [...matches][0]);
   }
+  return id;
+}
+async function loadEndpoint(
+  endpoint: Endpoint,
+  region: Region,
+  cache: Cache,
+): Promise<TransitNetwork> {
+  if (!cache.network)
+    try {
+      cache.network = JSON.parse(
+        await fs.readFile(
+          /* turbopackIgnore: true */ networkFile(endpoint.id),
+          "utf8",
+        ),
+      );
+    } catch {}
   if (
-    cached?.importedAt &&
-    Date.now() - Date.parse(cached.importedAt) < 86400000
+    cache.network?.importedAt &&
+    Date.now() - Date.parse(cache.network.importedAt) < 86400000
   )
-    return cached;
+    return cache.network;
   const fallback = (): TransitNetwork =>
-    cached
+    cache.network
       ? {
-          ...cached,
+          ...cache.network,
           stale: true,
-          message: "Last imported official network; refresh pending.",
+          message: `${endpoint.id}: cached network; refresh pending.`,
         }
       : {
           routes: [],
           stops: [],
           source: "official",
           stale: true,
-          message:
-            "Official routes are unavailable. Retry shortly or run npm run ingest.",
+          message: `${endpoint.id}: official network unavailable or waiting for request budget.`,
         };
-  if (Date.now() < retryAt) return fallback();
-  retryAt = Date.now() + 60000;
+  if (Date.now() < cache.retryAt) return fallback();
+  cache.retryAt = Date.now() + 35000;
   try {
-    const response = await fetch(JOHOR_STATIC_URL, {
-      signal: AbortSignal.timeout(20000),
+    reserveOfficialRequest();
+    const response = await fetch(endpoint.staticUrl, {
+      signal: AbortSignal.timeout(25000),
       cache: "no-store",
     });
-    if (!response.ok) throw new Error(`Static feed HTTP ${response.status}`);
-    cached = parseStaticGtfs(
+    if (!response.ok) throw Error(`Static HTTP ${response.status}`);
+    const parsed = parseStaticGtfs(
       await readResponseBytes(response, 32 * 1024 * 1024),
-      JOHOR_STATIC_URL,
+      endpoint.staticUrl,
+      region,
     );
-    try {
-      const target = filename();
-      await fs.mkdir(path.dirname(target), { recursive: true });
-      await fs.writeFile(`${target}.auto.tmp`, JSON.stringify(cached));
-      await fs.rename(`${target}.auto.tmp`, target);
-    } catch {
-      console.warn(
-        "Network import is memory-only: configure persistent GERAK_DATA_DIR.",
-      );
-    }
-    return cached;
+    cache.network = namespaceNetwork(parsed, endpoint, region);
+    const target = networkFile(endpoint.id);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target + ".auto.tmp", JSON.stringify(cache.network));
+    await fs.rename(target + ".auto.tmp", target);
+    return cache.network;
   } catch (error) {
     console.warn(
       JSON.stringify({
         event: "gtfs_static_failed",
-        message: error instanceof Error ? error.message : "Unknown error",
+        endpoint: endpoint.id,
+        message: String(error),
       }),
     );
     return fallback();
@@ -99,11 +140,35 @@ export async function getNetwork(region: Region): Promise<TransitNetwork> {
       routes: routes.filter((r) => r.region === region),
       stops: stops.filter((s) => s.region === region),
       source: "demo",
-      message: "Illustrative UTHM pilot, not university telemetry.",
+      message:
+        "Published UTHM/KATSANA campus geometry; simulated vehicles and journey times.",
     };
-  if (!pending)
-    pending = officialNetwork().finally(() => {
-      pending = undefined;
-    });
-  return pending;
+  const results: TransitNetwork[] = [];
+  for (const endpoint of serviceFor(region).endpoints) {
+    let cache = caches.get(endpoint.id);
+    if (!cache) {
+      cache = { retryAt: 0 };
+      caches.set(endpoint.id, cache);
+    }
+    if (!cache.pending)
+      cache.pending = loadEndpoint(endpoint, region, cache).finally(() => {
+        cache!.pending = undefined;
+      });
+    results.push(await cache.pending);
+  }
+  return {
+    routes: results.flatMap((n) => n.routes),
+    stops: results.flatMap((n) => n.stops),
+    source: "official",
+    importedAt: results.map((n) => n.importedAt || "").sort()[0] || undefined,
+    feedUrl: serviceFor(region)
+      .endpoints.map((e) => e.staticUrl)
+      .join(" ; "),
+    stale: results.some((n) => n.stale),
+    message:
+      results
+        .map((n) => n.message)
+        .filter(Boolean)
+        .join(" · ") || undefined,
+  };
 }

@@ -381,7 +381,7 @@ function VehicleModel({
   return (
     <group
       ref={group}
-      position={[initial[0], 0.32, initial[1]]}
+      position={[initial[0], 0.44, initial[1]]}
       rotation={[0, (-vehicle.bearing * Math.PI) / 180, 0]}
       onClick={choose}
       onPointerOver={(event) => {
@@ -394,83 +394,73 @@ function VehicleModel({
         <mesh
           ref={halo}
           rotation={[-Math.PI / 2, 0, 0]}
-          position={[0, -0.09, 0]}
+          position={[0, -0.12, 0]}
         >
-          <ringGeometry args={[1.5, 1.75, 40]} />
+          <ringGeometry args={[2.2, 2.6, 40]} />
           <meshBasicMaterial
             color={color}
             transparent
-            opacity={0.7}
+            opacity={0.75}
             side={THREE.DoubleSide}
           />
         </mesh>
       )}
-      <mesh position={[0, 0.46, 0]} castShadow>
-        <boxGeometry args={[1.1, 0.64, 2.45]} />
-        <meshStandardMaterial color={color} roughness={0.5} />
+      <mesh position={[0, 0.65, 0]} castShadow>
+        <boxGeometry args={[1.55, 0.9, 3.55]} />
+        <meshStandardMaterial color={color} roughness={0.45} />
       </mesh>
-      <mesh position={[0, 0.87, -0.02]} castShadow>
-        <boxGeometry args={[1.02, 0.37, 2.14]} />
-        <meshStandardMaterial color="#cde4d3" roughness={0.45} />
+      <mesh position={[0, 1.25, -0.02]} castShadow>
+        <boxGeometry args={[1.45, 0.52, 3.1]} />
+        <meshStandardMaterial color="#d4e8da" roughness={0.4} />
       </mesh>
-      <mesh position={[0, 0.76, -1.24]}>
-        <boxGeometry args={[0.87, 0.47, 0.045]} />
+      <mesh position={[0, 1.08, -1.8]}>
+        <boxGeometry args={[1.25, 0.65, 0.06]} />
         <meshStandardMaterial
-          color="#1c4547"
-          roughness={0.3}
-          metalness={0.15}
+          color="#163c3e"
+          roughness={0.25}
+          metalness={0.2}
         />
       </mesh>
-      <mesh position={[0, 0.88, 0.03]}>
-        <boxGeometry args={[1.04, 0.24, 1.69]} />
-        <meshStandardMaterial color="#245252" roughness={0.3} />
+      <mesh position={[0, 1.25, 0.04]}>
+        <boxGeometry args={[1.48, 0.34, 2.45]} />
+        <meshStandardMaterial color="#1e4747" roughness={0.25} />
       </mesh>
-      <mesh position={[0, 1.09, 0.1]}>
-        <boxGeometry args={[0.71, 0.12, 1.25]} />
-        <meshStandardMaterial color="#edf5dc" />
+      <mesh position={[0, 1.55, 0.15]}>
+        <boxGeometry args={[1.0, 0.18, 1.8]} />
+        <meshStandardMaterial color="#eef7de" />
       </mesh>
-      <mesh position={[0, 0.4, -1.28]}>
-        <boxGeometry args={[0.88, 0.14, 0.04]} />
+      <mesh position={[0, 0.56, -1.82]}>
+        <boxGeometry args={[1.25, 0.2, 0.06]} />
         <meshStandardMaterial
-          color="#f8ffc9"
-          emissive="#e4ffc0"
+          color="#fff6b5"
+          emissive="#ffef99"
+          emissiveIntensity={0.6}
+        />
+      </mesh>
+      <mesh position={[0, 0.56, 1.8]}>
+        <boxGeometry args={[1.15, 0.16, 0.06]} />
+        <meshStandardMaterial
+          color="#e65a48"
+          emissive="#cc3b28"
           emissiveIntensity={0.4}
         />
       </mesh>
-      <mesh position={[0, 0.4, 1.24]}>
-        <boxGeometry args={[0.8, 0.11, 0.04]} />
-        <meshStandardMaterial color="#d96f58" />
-      </mesh>
-      {[-0.58, 0.58].flatMap((x) =>
-        [-0.79, 0.79].map((z) => (
+      {[-0.82, 0.82].flatMap((x) =>
+        [-1.15, 1.15].map((z) => (
           <mesh
             key={`${x}-${z}`}
-            position={[x, 0.22, z]}
+            position={[x, 0.3, z]}
             rotation={[0, 0, Math.PI / 2]}
           >
-            <cylinderGeometry args={[0.25, 0.25, 0.13, 10]} />
-            <meshStandardMaterial color="#213e3b" roughness={0.9} />
+            <cylinderGeometry args={[0.35, 0.35, 0.18, 12]} />
+            <meshStandardMaterial color="#182e2c" roughness={0.9} />
           </mesh>
         )),
       )}
-      <mesh position={[0, 0.6, 0]} visible={false}>
-        <boxGeometry args={[2.2, 2.5, 3.5]} />
+      <mesh position={[0, 0.85, 0]} visible={false}>
+        <boxGeometry args={[3.2, 3.5, 5.0]} />
         <meshBasicMaterial />
       </mesh>
-      {showLabel && (
-        <Html position={[0, 2.1, 0]} center zIndexRange={[12, 0]}>
-          <button
-            className={`gerak-city-bus-label ${selected ? "is-selected" : ""}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onSelect(vehicle.id);
-            }}
-            aria-label={`Select ${vehicle.label}`}
-          >
-            {vehicle.label}
-          </button>
-        </Html>
-      )}
     </group>
   );
 }

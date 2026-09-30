@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { REGION_IDS } from "../feeds";
 
 export class HttpError extends Error {
   constructor(
@@ -127,5 +128,5 @@ export function apiError(error: unknown) {
   );
 }
 
-export const regionSchema = z.enum(["johor", "uthm"]);
+export const regionSchema = z.enum(REGION_IDS);
 export const modeSchema = z.enum(["demo", "live"]);

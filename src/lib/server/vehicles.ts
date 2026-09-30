@@ -2,6 +2,9 @@ import GtfsRealtimeBindings from "gtfs-realtime-bindings";
 import type { Region, Vehicle, VehicleSnapshot } from "@/lib/types";
 import { simulateVehicles } from "@/lib/transit";
 import { readResponseBytes } from "./upstream";
+import { serviceFor, feedId, type Endpoint } from "../feeds";
+import { resolveTripRoute } from "./network";
+import { reserveOfficialRequest } from "./upstream-budget";
 
 export const JOHOR_VEHICLES_URL =
   "https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-johor";
@@ -13,7 +16,7 @@ interface FeedCache {
   pending?: Promise<VehicleSnapshot>;
   lastError?: string;
 }
-const cache: FeedCache = { nextFetch: 0 };
+const caches = new Map<string, FeedCache>();
 type Feed = GtfsRealtimeBindings.transit_realtime.IFeedMessage;
 function numeric(value: unknown) {
   return Number(value);
@@ -62,6 +65,8 @@ export function normalizeFeed(
       id,
       label: item.vehicle?.label || id,
       routeId: item.trip?.routeId || "unavailable",
+      tripId: item.trip?.tripId || undefined,
+      vehicleKind: serviceFor(region).kind === "rail" ? "rail" : "bus",
       coordinate: [lng, lat],
       bearing: Number.isFinite(position.bearing)
         ? ((Number(position.bearing) % 360) + 360) % 360
@@ -97,6 +102,14 @@ export function normalizeFeed(
   return [...vehicles.values()];
 }
 function demo(region: Region, message?: string): VehicleSnapshot {
+  if (region !== "johor" && region !== "uthm")
+    return {
+      vehicles: [],
+      source: "simulator",
+      updatedAt: Date.now(),
+      stale: false,
+      message: "This operator has no simulator. Select its official live feed.",
+    };
   return {
     vehicles: simulateVehicles(region),
     source: "simulator",
@@ -113,7 +126,7 @@ function withFreshness(
   snapshot: VehicleSnapshot,
   message?: string,
 ): VehicleSnapshot {
-  const stale = Date.now() - snapshot.updatedAt > staleMs;
+  const stale = Date.now() - snapshot.updatedAt > staleMs || !!message;
   return {
     ...snapshot,
     stale,
@@ -124,12 +137,17 @@ function withFreshness(
         : "Official data.gov.my vehicle positions. ETA, accessibility and occupancy may be unavailable."),
   };
 }
-async function refresh(): Promise<VehicleSnapshot> {
+async function refresh(
+  endpoint: Endpoint,
+  region: Region,
+  cache: FeedCache,
+): Promise<VehicleSnapshot> {
   cache.nextFetch = Date.now() + refreshMs;
   try {
     // The official endpoint negotiates octet-stream and returns 406 for a
     // strict application/x-protobuf Accept header. Keep the default */*.
-    const response = await fetch(JOHOR_VEHICLES_URL, {
+    reserveOfficialRequest();
+    const response = await fetch(endpoint.realtimeUrl!, {
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
@@ -138,10 +156,10 @@ async function refresh(): Promise<VehicleSnapshot> {
     const buffer = await readResponseBytes(response, 16 * 1024 * 1024);
     const feed =
       GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(buffer);
-    const vehicles = normalizeFeed(feed, "johor");
-    if (!vehicles.length)
-      throw new Error("Official feed has no valid vehicle observations");
-    const newest = Math.max(...vehicles.map((v) => v.timestamp));
+    const vehicles = normalizeFeed(feed, region);
+    const newest = vehicles.length
+      ? Math.max(...vehicles.map((v) => v.timestamp))
+      : Number(feed.header.timestamp || 0) * 1000;
     cache.snapshot = {
       vehicles,
       source: "gtfs-rt",
@@ -153,6 +171,7 @@ async function refresh(): Promise<VehicleSnapshot> {
       JSON.stringify({
         level: "info",
         event: "gtfs_refresh",
+        endpoint: endpoint.id,
         vehicles: vehicles.length,
         newest: new Date(newest).toISOString(),
       }),
@@ -181,51 +200,105 @@ async function refresh(): Promise<VehicleSnapshot> {
       message:
         "Official feed unavailable. No live positions received. You can explicitly select the separate demo.",
     };
-  } finally {
-    cache.pending = undefined;
   }
+}
+
+async function endpointVehicles(
+  endpoint: Endpoint,
+  region: Region,
+): Promise<VehicleSnapshot> {
+  let cache = caches.get(endpoint.id);
+  if (!cache) {
+    cache = { nextFetch: 0 };
+    caches.set(endpoint.id, cache);
+  }
+  if (cache.pending) return cache.pending;
+  if (Date.now() < cache.nextFetch) {
+    if (cache.snapshot)
+      return {
+        ...withFreshness(
+          cache.snapshot,
+          cache.lastError
+            ? "Feed temporarily unavailable; last observations retained."
+            : undefined,
+        ),
+        stale:
+          !!cache.lastError || Date.now() - cache.snapshot.updatedAt > staleMs,
+      };
+    return {
+      vehicles: [],
+      source: "gtfs-rt",
+      updatedAt: 0,
+      stale: true,
+      message: `${endpoint.id}: unavailable or waiting for official API request budget.`,
+    };
+  }
+  cache.pending = refresh(endpoint, region, cache).finally(() => {
+    cache!.pending = undefined;
+  });
+  return cache.pending;
 }
 export async function getVehicles(
   region: Region,
   mode: "demo" | "live" = "live",
 ): Promise<VehicleSnapshot> {
   if (mode === "demo") return demo(region);
-  if (region === "uthm")
+  const service = serviceFor(region),
+    endpoints = service.endpoints.filter((e) => e.realtimeUrl);
+  if (!endpoints.length)
     return {
       vehicles: [],
       source: "gtfs-rt",
       updatedAt: 0,
       stale: true,
       message:
-        "UTHM telemetry is not connected. Select the explicitly labelled campus demo or visit the university’s KATSANA tracker.",
+        region === "uthm"
+          ? "UTHM telemetry is not connected. Select the campus demo."
+          : "Rapid KL rail schedules are available; the official publisher does not provide a stable realtime rail feed.",
     };
-  if (cache.pending) return cache.pending;
-  if (Date.now() < cache.nextFetch) {
-    if (cache.snapshot)
-      return withFreshness(
-        cache.snapshot,
-        cache.lastError
-          ? "Official feed unavailable. Showing the last received observations."
-          : undefined,
-      );
-    return {
-      vehicles: [],
-      source: "gtfs-rt",
-      updatedAt: 0,
-      stale: true,
-      message:
-        "Official feed unavailable. Waiting before retry to respect the API quota; no simulated positions are substituted.",
-    };
-  }
-  cache.pending = refresh();
-  return cache.pending;
+  const snapshots = await Promise.all(
+    endpoints.map(async (endpoint) => ({
+      endpoint,
+      snapshot: await endpointVehicles(endpoint, region),
+    })),
+  );
+  const vehicles = snapshots.flatMap(({ endpoint, snapshot }) =>
+    snapshot.vehicles.map((v) => ({
+      ...v,
+      id: feedId(endpoint.id, v.id),
+      routeId: resolveTripRoute(endpoint.id, v.tripId, v.routeId),
+    })),
+  );
+  const failed = snapshots.filter((s) => s.snapshot.stale);
+  return {
+    vehicles,
+    source: "gtfs-rt",
+    updatedAt: Math.max(0, ...snapshots.map((s) => s.snapshot.updatedAt)),
+    stale: failed.length > 0,
+    message: failed.length
+      ? failed.map((s) => `${s.endpoint.id}: ${s.snapshot.message}`).join(" · ")
+      : vehicles.length
+        ? `${service.operator} · ${service.name} official vehicle positions.`
+        : "Official feed currently contains no vehicles. Services may be outside operating hours.",
+  };
 }
 export function feedHealth() {
+  const johor = caches.get("johor");
   return {
-    configured: "data.gov.my/mybas-johor",
-    hasObservations: !!cache.snapshot,
-    lastObservation: cache.snapshot?.updatedAt || null,
-    lastError: cache.lastError || null,
-    refreshSeconds: refreshMs / 1000,
+    configured: "data.gov.my/multi-agency",
+    hasObservations: !!johor?.snapshot,
+    lastObservation: johor?.snapshot?.updatedAt || null,
+    lastError: johor?.lastError || null,
+    refreshSeconds: 35,
+    feeds: Object.fromEntries(
+      [...caches].map(([id, c]) => [
+        id,
+        {
+          vehicles: c.snapshot?.vehicles.length || 0,
+          lastObservation: c.snapshot?.updatedAt || null,
+          lastError: c.lastError || null,
+        },
+      ]),
+    ),
   };
 }

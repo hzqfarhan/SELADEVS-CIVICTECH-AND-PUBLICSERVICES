@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { busFootprint } from "./geographic-3d";
+import MalaysiaBoundaries, {
+  boundaryContains,
+  type Boundary,
+} from "./malaysia-boundaries";
 import type { GeoJSONSource, Map as LibreMap, Marker } from "maplibre-gl";
 import type { Coordinate } from "@/lib/types";
 import type { TransportMapProps } from "./map-types";
@@ -16,7 +20,25 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./transport-map.css";
 
 const BUS_SVG =
-  '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden="true"><rect x="5" y="3" width="14" height="17" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M6 11h12M9 3v8m6-8v8M8 21v-2m8 2v-2" stroke="currentColor" stroke-width="1.8"/><path d="m12 0 2 2h-4z" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1" fill="currentColor"/></svg>';
+  '<svg viewBox="0 0 32 40" width="34" height="34" fill="none" aria-hidden="true">' +
+  '<path d="M16 1.5 L19.5 5.5 H12.5 Z" fill="currentColor"/>' +
+  '<rect x="7" y="6" width="18" height="30" rx="4.5" fill="#132219" stroke="currentColor" stroke-width="1.8"/>' +
+  '<path d="M8.8 13.5 C8.8 8.8, 23.2 8.8, 23.2 13.5 Z" fill="#0b1711" stroke="currentColor" stroke-width="0.9"/>' +
+  '<path d="M12 9.5 L15 13" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.65"/>' +
+  '<rect x="11" y="6.8" width="10" height="2" rx="0.5" fill="currentColor" opacity="0.9"/>' +
+  '<rect x="7.8" y="6.2" width="2.6" height="1.6" rx="0.6" fill="#fff9b8"/>' +
+  '<rect x="21.6" y="6.2" width="2.6" height="1.6" rx="0.6" fill="#fff9b8"/>' +
+  '<path d="M7 9.5 H4.5 C4.2 9.5 4 9.8 4 10.2 L4.2 12 C4.3 12.3 4.6 12.5 4.9 12.4 L7 11.6 Z" fill="currentColor"/>' +
+  '<path d="M25 9.5 H27.5 C27.8 9.5 28 9.8 28 10.2 L27.8 12 C27.7 12.3 27.4 12.5 27.1 12.4 L25 11.6 Z" fill="currentColor"/>' +
+  '<rect x="7.8" y="16" width="1.8" height="16" rx="0.7" fill="#08110b" stroke="currentColor" stroke-width="0.5"/>' +
+  '<rect x="22.4" y="16" width="1.8" height="16" rx="0.7" fill="#08110b" stroke="currentColor" stroke-width="0.5"/>' +
+  '<rect x="11.2" y="18" width="9.6" height="9.5" rx="1.8" fill="#182c20" stroke="currentColor" stroke-width="0.8"/>' +
+  '<line x1="13.2" y1="20.5" x2="18.8" y2="20.5" stroke="currentColor" stroke-width="0.7" opacity="0.8"/>' +
+  '<line x1="13.2" y1="22.8" x2="18.8" y2="22.8" stroke="currentColor" stroke-width="0.7" opacity="0.8"/>' +
+  '<line x1="13.2" y1="25.1" x2="18.8" y2="25.1" stroke="currentColor" stroke-width="0.7" opacity="0.8"/>' +
+  '<rect x="8" y="34.8" width="3" height="1.5" rx="0.5" fill="#ff4d4f"/>' +
+  '<rect x="21" y="34.8" width="3" height="1.5" rx="0.5" fill="#ff4d4f"/>' +
+  "</svg>";
 
 export type { TransportMapProps } from "./map-types";
 
@@ -210,35 +232,63 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
               className="gerak-svg-bus"
             >
               <circle
-                r={props.selectedVehicleId === vehicle.id ? "2.6" : "1.7"}
+                r={props.selectedVehicleId === vehicle.id ? "4.5" : "3.0"}
                 fill={color}
-                opacity="0.18"
+                opacity={
+                  props.selectedVehicleId === vehicle.id ? "0.35" : "0.2"
+                }
               />
               <g data-bus-body="true" transform={`rotate(${vehicle.bearing})`}>
+                <path d="M0 -3.6 L1.3 -2.2 H-1.3 Z" fill={color} />
                 <rect
-                  x="-1.25"
-                  y="-1.25"
-                  width="2.5"
-                  height="2.5"
-                  rx=".8"
+                  x="-1.6"
+                  y="-2.4"
+                  width="3.2"
+                  height="4.8"
+                  rx="1.0"
                   fill={color}
                 />
                 <path
-                  d="M-.65-.7H.65V.25H-.65ZM-.5.7h.2M.3.7h.2"
-                  stroke="#152217"
-                  strokeWidth=".22"
-                  fill="none"
+                  d="M-1.2 -1.7 C-1.2 -2.1, 1.2 -2.1, 1.2 -1.7 L1.1 -.8 H-1.1 Z"
+                  fill="#0e1b13"
                 />
-                <path d="M0 -2 -.5 -1.35H.5Z" fill={color} />
+                <circle cx="-1.2" cy="-2.2" r=".3" fill="#fff9b8" />
+                <circle cx="1.2" cy="-2.2" r=".3" fill="#fff9b8" />
+                <rect
+                  x="-.8"
+                  y="-.2"
+                  width="1.6"
+                  height="1.4"
+                  rx=".4"
+                  fill="#0e1b13"
+                  opacity="0.7"
+                />
+                <rect
+                  x="-1.3"
+                  y="2.0"
+                  width=".6"
+                  height=".3"
+                  rx=".15"
+                  fill="#ff4d4f"
+                />
+                <rect
+                  x=".7"
+                  y="2.0"
+                  width=".6"
+                  height=".3"
+                  rx=".15"
+                  fill="#ff4d4f"
+                />
               </g>
               <text
-                y="-2.2"
+                y="-4.2"
                 textAnchor="middle"
-                fill="#e3efe3"
-                fontSize="1.4"
+                fill="#ffffff"
+                fontSize="1.9"
+                fontWeight="bold"
                 paintOrder="stroke"
                 stroke="#101a16"
-                strokeWidth=".5"
+                strokeWidth=".6"
               >
                 {vehicle.label}
               </text>
@@ -266,6 +316,10 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
 
 function FlatMap(props: TransportMapProps) {
   const container = useRef<HTMLDivElement>(null);
+  const motionStatus = useRef<HTMLDivElement>(null);
+  const [lighting, setLighting] = useState<"day" | "dusk" | "night">("dusk");
+  const lightingRef = useRef(lighting);
+  lightingRef.current = lighting;
   const map = useRef<LibreMap | null>(null);
   const latest = useRef(props);
   latest.current = props;
@@ -278,6 +332,22 @@ function FlatMap(props: TransportMapProps) {
   const staticMarkers = useRef<Marker[]>([]);
   const motions = useRef(new Map<string, VehicleMotion>());
   const [ready, setReady] = useState(false);
+  const [boundary, setBoundary] = useState<Boundary | null>(null);
+  useEffect(() => setBoundary(null), [props.region]);
+  const boundaryRef = useRef(boundary);
+  boundaryRef.current = boundary;
+  const allowedVehicles = useMemo(
+    () =>
+      new Set(
+        props.vehicles
+          .filter((v) => !boundary || boundaryContains(boundary, v.coordinate))
+          .map((v) => v.id),
+      ),
+    [boundary, props.vehicles],
+  );
+  const allowedRef = useRef(allowedVehicles);
+  allowedRef.current = allowedVehicles;
+
   const [unavailable, setUnavailable] = useState(false);
   const [tileError, setTileError] = useState(false);
   const [baseLoaded, setBaseLoaded] = useState(false);
@@ -289,6 +359,7 @@ function FlatMap(props: TransportMapProps) {
     let observer: ResizeObserver | undefined;
     let loadTimeout: ReturnType<typeof setTimeout> | undefined;
     async function createMap() {
+      const { createBusFleetLayer } = await import("./bus-fleet-layer");
       const maplibre = await import("maplibre-gl");
       maplibre.setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
       if (disposed || !container.current) return;
@@ -298,8 +369,8 @@ function FlatMap(props: TransportMapProps) {
           center: REGION_CENTERS[latest.current.region],
           zoom: latest.current.region === "uthm" ? 15 : 12.5,
           attributionControl: false,
-          maxZoom: 18,
-          minZoom: 6,
+          maxZoom: 22,
+          minZoom: 3,
           maxPitch: 70,
           style: "https://tiles.openfreemap.org/styles/dark",
         });
@@ -328,6 +399,12 @@ function FlatMap(props: TransportMapProps) {
         instance.on("load", () => {
           clearTimeout(loadTimeout);
           if (!disposed) {
+            instance.setLight({
+              anchor: "map",
+              color: "#ffe2b1",
+              intensity: 0.55,
+              position: [1.5, 210, 38],
+            });
             instance.addLayer({
               id: "johor-buildings-3d",
               type: "fill-extrusion",
@@ -337,7 +414,20 @@ function FlatMap(props: TransportMapProps) {
               filter: ["!=", ["get", "hide_3d"], true],
               layout: { visibility: "none" },
               paint: {
-                "fill-extrusion-color": "#809f99",
+                "fill-extrusion-color": [
+                  "interpolate",
+                  ["linear"],
+                  ["coalesce", ["get", "render_height"], 6],
+                  0,
+                  "#719b9b",
+                  15,
+                  "#99b7b0",
+                  60,
+                  "#c5c9b3",
+                  160,
+                  "#e0d5bb",
+                ],
+                "fill-extrusion-vertical-gradient": true,
                 "fill-extrusion-height": [
                   "max",
                   3,
@@ -348,7 +438,19 @@ function FlatMap(props: TransportMapProps) {
                   ["get", "render_min_height"],
                   0,
                 ],
-                "fill-extrusion-opacity": 0.8,
+                "fill-extrusion-opacity": 0.96,
+              },
+            });
+            instance.addLayer({
+              id: "gerak-buildings-2d",
+              type: "fill",
+              source: "openmaptiles",
+              "source-layer": "building",
+              minzoom: 14,
+              paint: {
+                "fill-color": "#6a9185",
+                "fill-opacity": 0.24,
+                "fill-outline-color": "#7a9c8c",
               },
             });
             instance.addSource("bus-models", {
@@ -364,9 +466,21 @@ function FlatMap(props: TransportMapProps) {
                 "fill-extrusion-color": ["get", "color"],
                 "fill-extrusion-height": ["get", "height"],
                 "fill-extrusion-base": ["get", "base"],
-                "fill-extrusion-opacity": 1,
+                "fill-extrusion-opacity": 0,
               },
             });
+            instance.addLayer(
+              createBusFleetLayer(
+                () => ({
+                  ...latest.current,
+                  lighting: lightingRef.current,
+                  vehicles: latest.current.vehicles.filter((v) =>
+                    allowedRef.current.has(v.id),
+                  ),
+                }),
+                motions.current,
+              ),
+            );
             setReady(true);
           }
         });
@@ -399,19 +513,54 @@ function FlatMap(props: TransportMapProps) {
             })[0];
             if (hit?.properties?.id)
               latest.current.onSelectVehicle(String(hit.properties.id));
+            else if (instance.getLayer("transit-stop-dots")) {
+              const stop = instance.queryRenderedFeatures(
+                [
+                  [event.point.x - 8, event.point.y - 8],
+                  [event.point.x + 8, event.point.y + 8],
+                ],
+                { layers: ["transit-stop-dots", "transit-stop-names"] },
+              )[0];
+              if (stop?.properties?.id)
+                latest.current.onSelectStop?.(String(stop.properties.id));
+            }
           }
+        });
+        instance.on("mouseenter", "bus-models-3d", () => {
+          if (latest.current.mode === "3d")
+            instance.getCanvas().style.cursor = "pointer";
+        });
+        instance.on("mouseleave", "bus-models-3d", () => {
+          if (latest.current.mode === "3d" && !latest.current.picking)
+            instance.getCanvas().style.cursor = "";
         });
         observer = new ResizeObserver(() => instance.resize());
         observer.observe(container.current);
         let previousFollow = 0;
         let previousModels = 0;
+        let previousStatus = 0;
         const animate = (now: number) => {
           if (disposed || !map.current) return;
+          let estimatedCount = 0,
+            pausedCount = 0;
           for (const [id, motion] of motions.current) {
             const marker = fleetMarkers.current.get(id);
             if (!marker) continue;
             const sample = sampleMotion(motion, now);
-            marker.marker.setLngLat(sample.coordinate);
+            if ("estimated" in sample && sample.estimated) estimatedCount++;
+            if ("predictionPaused" in sample && sample.predictionPaused)
+              pausedCount++;
+            marker.element.classList.toggle(
+              "is-estimated",
+              "estimated" in sample && !!sample.estimated,
+            );
+            // Keep the pressed target still until pointer release, so moving
+            // vehicles remain tappable while their geographic animation continues.
+            if (!marker.element.matches(":active"))
+              marker.marker.setLngLat(sample.coordinate);
+            marker.element.style.display = !allowedRef.current.has(id)
+              ? "none"
+              : "";
             marker.icon.style.transform = `rotate(${sample.bearing - instance.getBearing()}deg)`;
             if (
               latest.current.follow &&
@@ -419,9 +568,33 @@ function FlatMap(props: TransportMapProps) {
               now - previousFollow > 40 &&
               !instance.isMoving()
             ) {
-              instance.setCenter(sample.coordinate);
+              const headingDelta =
+                ((sample.bearing - 90 - instance.getBearing() + 540) % 360) -
+                180;
+              instance.jumpTo({
+                center: sample.coordinate,
+                ...(latest.current.mode === "3d"
+                  ? {
+                      bearing:
+                        instance.getBearing() +
+                        Math.max(-2, Math.min(2, headingDelta * 0.08)),
+                    }
+                  : {}),
+              });
               previousFollow = now;
             }
+          }
+          if (motionStatus.current && now - previousStatus > 500) {
+            motionStatus.current.textContent =
+              latest.current.vehicles.length > 0 &&
+              latest.current.vehicles.every((v) => v.source === "simulator")
+                ? "Simulated service · animated route movement"
+                : pausedCount
+                  ? `${pausedCount} position estimates paused · awaiting GPS`
+                  : estimatedCount
+                    ? `${estimatedCount} route-estimated positions · between GPS updates`
+                    : "GPS observations · waiting for next update";
+            previousStatus = now;
           }
           if (
             latest.current.mode === "3d" &&
@@ -430,45 +603,28 @@ function FlatMap(props: TransportMapProps) {
           ) {
             const zoom = instance.getZoom();
             // Cartographic model scale grows at regional zoom, without moving GPS anchors.
-            const scale = Math.min(12, Math.max(1, Math.pow(2, 15 - zoom)));
-            const features = latest.current.vehicles.flatMap((vehicle) => {
+            const scale = Math.min(
+              36,
+              Math.max(3.8, Math.pow(2, 15.5 - zoom) * 3.8),
+            );
+            const features = latest.current.vehicles.map((vehicle) => {
               const motion = motions.current.get(vehicle.id);
               const sample = motion ? sampleMotion(motion, now) : vehicle;
-              const color =
-                latest.current.routes.find((r) => r.id === vehicle.routeId)
-                  ?.color ?? "#bafa45";
-              return [
-                {
-                  type: "Feature" as const,
-                  properties: {
-                    id: vehicle.id,
-                    color,
-                    height: 3.2 * scale,
-                    base: 0,
-                  },
-                  geometry: busFootprint(
-                    sample.coordinate,
-                    sample.bearing,
-                    12 * scale,
-                    2.6 * scale,
-                  ),
+              return {
+                type: "Feature" as const,
+                properties: {
+                  id: vehicle.id,
+                  color: "#ffffff",
+                  height: 1,
+                  base: 0,
                 },
-                {
-                  type: "Feature" as const,
-                  properties: {
-                    id: vehicle.id,
-                    color: "#e3f1ec",
-                    height: 3.6 * scale,
-                    base: 3.2 * scale,
-                  },
-                  geometry: busFootprint(
-                    sample.coordinate,
-                    sample.bearing,
-                    9 * scale,
-                    2.2 * scale,
-                  ),
-                },
-              ];
+                geometry: busFootprint(
+                  sample.coordinate,
+                  sample.bearing,
+                  14 * Math.min(scale, 8),
+                  5 * Math.min(scale, 8),
+                ),
+              };
             });
             (instance.getSource("bus-models") as GeoJSONSource).setData({
               type: "FeatureCollection",
@@ -552,13 +708,48 @@ function FlatMap(props: TransportMapProps) {
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": ["get", "color"],
-          "line-width": 2.6,
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            1.2,
+            14,
+            2.6,
+            18,
+            4,
+          ],
           "line-opacity": 0.82,
         },
       });
     }
+    // Ground overlays must be drawn before extruded buildings and the Three fleet.
+    for (const id of ["route-glow", "route-outline", "route-line"]) {
+      instance.moveLayer(id, "johor-buildings-3d");
+    }
   }, [ready, unavailable, props.routes, props.region]);
 
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance?.getLayer("route-line")) return;
+    const selectedRoute = props.vehicles.find(
+      (v) => v.id === props.selectedVehicleId,
+    )?.routeId;
+    instance.setPaintProperty(
+      "route-line",
+      "line-opacity",
+      selectedRoute
+        ? ["case", ["==", ["get", "id"], selectedRoute], 1, 0.2]
+        : 0.78,
+    );
+    instance.setPaintProperty(
+      "route-glow",
+      "line-opacity",
+      selectedRoute
+        ? ["case", ["==", ["get", "id"], selectedRoute], 0.3, 0.03]
+        : 0.08,
+    );
+  }, [ready, props.selectedVehicleId, props.vehicles, props.routes]);
   useEffect(() => {
     const instance = map.current;
     if (!instance || !ready || unavailable) return;
@@ -624,6 +815,17 @@ function FlatMap(props: TransportMapProps) {
           label.className = "gerak-bus-marker-label";
           label.textContent = vehicle.label;
           element.append(icon, label);
+          // Map drag handlers must not consume interaction with a vehicle button.
+          for (const eventName of [
+            "pointerdown",
+            "mousedown",
+            "touchstart",
+            "dblclick",
+          ]) {
+            element.addEventListener(eventName, (event) =>
+              event.stopPropagation(),
+            );
+          }
           element.addEventListener("click", (event) => {
             event.stopPropagation();
             latest.current.onSelectVehicle(vehicle.id);
@@ -653,6 +855,7 @@ function FlatMap(props: TransportMapProps) {
         );
         entry.element.style.zIndex =
           props.selectedVehicleId === vehicle.id ? "5" : "2";
+        entry.element.style.display = props.mode === "3d" ? "none" : "";
       }
     });
     return () => {
@@ -664,7 +867,74 @@ function FlatMap(props: TransportMapProps) {
     props.vehicles,
     props.routes,
     props.selectedVehicleId,
+    props.mode,
   ]);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || unavailable) return;
+    const data = {
+      type: "FeatureCollection" as const,
+      features: props.stops
+        .filter(
+          (stop) => !boundary || boundaryContains(boundary, stop.coordinate),
+        )
+        .map((stop) => ({
+          type: "Feature" as const,
+          properties: { id: stop.id, name: stop.name },
+          geometry: { type: "Point" as const, coordinates: stop.coordinate },
+        })),
+    };
+    if (instance.getSource("transit-stops")) {
+      (instance.getSource("transit-stops") as GeoJSONSource).setData(data);
+      return;
+    }
+    instance.addSource("transit-stops", { type: "geojson", data });
+    instance.addLayer({
+      id: "transit-stop-dots",
+      type: "circle",
+      source: "transit-stops",
+      minzoom: 12,
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12,
+          1.5,
+          16,
+          3.5,
+        ],
+        "circle-color": "#c4d3c7",
+        "circle-stroke-color": "#172d24",
+        "circle-stroke-width": 1.5,
+        "circle-opacity": 0.85,
+      },
+    });
+    instance.addLayer({
+      id: "transit-stop-names",
+      type: "symbol",
+      source: "transit-stops",
+      minzoom: 14.5,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 11,
+        "text-anchor": "bottom",
+        "text-offset": [0, -0.9],
+        "text-max-width": 15,
+        "text-padding": 12,
+        "text-allow-overlap": false,
+        "text-ignore-placement": false,
+        "text-optional": true,
+      },
+      paint: {
+        "text-color": "#c4d3c7",
+        "text-halo-color": "#10211c",
+        "text-halo-width": 1.5,
+      },
+    });
+  }, [ready, unavailable, props.stops, boundary]);
 
   useEffect(() => {
     if (!ready || !map.current || unavailable) return;
@@ -673,31 +943,6 @@ function FlatMap(props: TransportMapProps) {
       if (cancelled || !map.current) return;
       staticMarkers.current.forEach((marker) => marker.remove());
       staticMarkers.current = [];
-      props.stops.forEach((stop) => {
-        const element = document.createElement("button");
-        element.type = "button";
-        element.className = "gerak-stop-marker";
-        element.setAttribute(
-          "aria-label",
-          `${stop.name}${stop.accessible ? ", wheelchair accessible" : ""}`,
-        );
-        element.title = stop.name;
-        const dot = document.createElement("span");
-        dot.className = "gerak-stop-dot";
-        const text = document.createElement("span");
-        text.textContent = stop.name;
-        text.className = "gerak-stop-label";
-        element.append(dot, text);
-        element.addEventListener("click", (event) => {
-          event.stopPropagation();
-          latest.current.onSelectStop?.(stop.id);
-        });
-        staticMarkers.current.push(
-          new Marker({ element, anchor: "center" })
-            .setLngLat(stop.coordinate)
-            .addTo(map.current!),
-        );
-      });
       props.reports
         .filter((report) => report.status !== "resolved")
         .forEach((report) => {
@@ -775,6 +1020,11 @@ function FlatMap(props: TransportMapProps) {
     if (!instance || !ready || unavailable) return;
     const is3d = props.mode === "3d";
     instance.setLayoutProperty(
+      "gerak-buildings-2d",
+      "visibility",
+      is3d ? "none" : "visible",
+    );
+    instance.setLayoutProperty(
       "johor-buildings-3d",
       "visibility",
       is3d ? "visible" : "none",
@@ -794,26 +1044,47 @@ function FlatMap(props: TransportMapProps) {
       ...(is3d
         ? {
             center: selected?.coordinate ?? REGION_CENTERS[props.region],
-            zoom: Math.max(instance.getZoom(), 14.5),
+            zoom: Math.max(instance.getZoom(), 15.4),
           }
         : {}),
     });
   }, [ready, unavailable, props.mode, props.region]);
 
   useEffect(() => {
-    if (!ready || !props.follow || !props.selectedVehicleId) return;
+    if (!ready || !props.selectedVehicleId) return;
     const vehicle = props.vehicles.find(
       (v) => v.id === props.selectedVehicleId,
     );
-    if (vehicle)
+    if (vehicle) {
+      const motion = motions.current.get(vehicle.id);
+      const sample = motion ? sampleMotion(motion, performance.now()) : vehicle;
+      const center = sample.coordinate;
       map.current?.easeTo({
-        center: vehicle.coordinate,
-        zoom: props.mode === "3d" ? 16 : 15,
+        center,
+        zoom: Math.max(map.current.getZoom(), props.mode === "3d" ? 17.5 : 16),
+        pitch: props.mode === "3d" ? 62 : 0,
+        ...(props.mode === "3d" ? { bearing: sample.bearing - 90 } : {}),
         duration: 800,
       });
+    }
     // GPS updates are followed by the interpolation loop, not by restarting camera transitions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, props.follow, props.selectedVehicleId, props.mode]);
+
+  useEffect(() => {
+    if (!ready || !map.current) return;
+    map.current.setLight({
+      anchor: "map",
+      color:
+        lighting === "day"
+          ? "#ffffff"
+          : lighting === "night"
+            ? "#9ab6e5"
+            : "#ffe2b1",
+      intensity: lighting === "day" ? 0.65 : lighting === "night" ? 0.2 : 0.55,
+      position: [1.5, 210, lighting === "day" ? 28 : 65],
+    });
+  }, [ready, lighting]);
 
   if (unavailable)
     return (
@@ -824,6 +1095,14 @@ function FlatMap(props: TransportMapProps) {
       className={`gerak-flat-map ${props.mode === "3d" ? "is-geographic-3d" : ""} ${props.picking ? "is-picking" : ""}`}
     >
       <div ref={container} className="gerak-map-canvas" data-testid="map-2d" />
+      {ready && map.current && (
+        <MalaysiaBoundaries
+          key={props.region}
+          map={map.current}
+          onSelect={setBoundary}
+          picking={props.picking}
+        />
+      )}
       {!ready && (
         <div className="gerak-map-loading">
           <span className="gerak-map-loader" />
@@ -840,10 +1119,37 @@ function FlatMap(props: TransportMapProps) {
         <div className="gerak-geographic-note">
           Real geography · OpenStreetMap
           <br />
-          Building heights may be estimated · right-drag to rotate
+          Windows and lights are illustrative · heights may be estimated
         </div>
       )}
+      <div
+        ref={motionStatus}
+        className="gerak-motion-status"
+        title="Route-based estimates use the last reported speed, reconcile with new GPS updates, and pause after three minutes without a new observation."
+      >
+        GPS observations · route estimates between updates
+      </div>
       <div className="gerak-map-navigation" aria-label="Map controls">
+        {props.mode === "3d" && (
+          <button
+            type="button"
+            className="gerak-light-button"
+            aria-label={`Scene lighting: ${lighting}. Change lighting`}
+            title={`Lighting: ${lighting} · click to cycle`}
+            onClick={() =>
+              setLighting(
+                lighting === "day"
+                  ? "dusk"
+                  : lighting === "dusk"
+                    ? "night"
+                    : "day",
+              )
+            }
+          >
+            {lighting === "day" ? "☀" : lighting === "night" ? "☾" : "◐"}
+            <small>{lighting}</small>
+          </button>
+        )}
         <button
           type="button"
           title="Zoom in"

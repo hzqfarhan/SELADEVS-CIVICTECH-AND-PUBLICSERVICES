@@ -62,3 +62,7 @@ No full load test, penetration test, independent accessibility audit or real-dev
 Final interactive browser revalidation was blocked by the browser tool URL-policy rejection. Do not interpret automated checks as a completed passenger-to-operator browser walkthrough. PostgreSQL/Docker deployment, public hosting and physical-phone performance remain unverified.
 
 Production HTTP smoke verification also passed for passenger/operator/source pages, health, network, vehicles, reports, sources, manifest, service worker and map worker. The subsequent live request returned 99 vehicles with `source: gtfs-rt` and `stale: false`; official topology contained 21 routes and 988 stops. UTHM live returned no invented positions, while explicit demo mode returned simulator observations. `npm start` was verified using the standalone launcher. Formatting checks passed.
+
+## Nationwide expansion verification — 1 October 2026
+
+33 tests pass, including Seremban feed merging/ID isolation and Prasarana trip-suffix resolution. TypeScript, production build and formatting pass. HTTP checks verified 13 usable service networks totalling 398 routes and 15,532 stops, real Seremban/Rapid KL responses and empty schedules-only Rapid KL rail positions. All 31 official URLs were probed separately; details and upstream gaps are in FEED_VERIFICATION.md. Updated preview runs on port 3001. Final visual browser verification remains blocked by the previously recorded tool restriction.
