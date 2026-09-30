@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.npm-cache/
+.env*
+!.env.example
+.runtime/
+coverage/
+test-results/
+*.tsbuildinfo
+.DS_Store
+dist/
+public/vendor/
