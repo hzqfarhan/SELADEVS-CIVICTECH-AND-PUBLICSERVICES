@@ -4,6 +4,7 @@ services:
     ports: ["3000:3000"]
     environment:
       NODE_ENV: production
+      APP_ORIGIN: ${APP_ORIGIN:-http://localhost:3000}
       DATABASE_URL: postgres://gerak:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/gerak
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
       OPERATOR_PASSWORD: ${OPERATOR_PASSWORD:?set OPERATOR_PASSWORD}

@@ -1,7 +1,14 @@
-import type { CivicReport, Coordinate, Region, Stop, TransitRoute, Vehicle } from '@/lib/types';
+import type {
+  CivicReport,
+  Coordinate,
+  Region,
+  Stop,
+  TransitRoute,
+  Vehicle,
+} from "@/lib/types";
 
 export interface TransportMapProps {
-  mode: '2d' | '3d';
+  mode: "2d" | "3d";
   region: Region;
   vehicles: Vehicle[];
   selectedVehicleId: string | null;

@@ -20,7 +20,7 @@ The transit tests exercise distance units, path wraparound, heading, determinist
 
 | Scenario | Expected result |
 | --- | --- |
-| Load default Johor demo | Map and source label appear; vehicles visibly move |
+| Load default Johor live | Map and source label appear; vehicles visibly move |
 | Select bus, then switch 2D/3D | Same vehicle remains selected; route details remain useful |
 | Follow vehicle | Camera tracks; leaving follow restores manual exploration |
 | Plan JB Sentral to KSL City | A same-region illustrative itinerary appears |
@@ -31,7 +31,7 @@ The transit tests exercise distance units, path wraparound, heading, determinist
 | Acknowledge and resolve through allowed stages | Shared status changes; passenger sees the update |
 | Unauthenticated status update | Rejected; no persistent mutation |
 | Invalid coordinates / oversized image / malformed JSON | Clear client error; no record is created |
-| Upstream absent, empty, malformed or stale | Honest source/freshness state; usable demo/fallback |
+| Upstream absent, empty, malformed or stale | Honest source/freshness state; no silent simulator substitution |
 | Basemap fails or WebGL unavailable | Fallback remains understandable and controls usable |
 | Offline after an online visit | Offline state appears; cached shell/fallback and drafts remain useful |
 
@@ -54,3 +54,11 @@ Measure performance on an actual ordinary phone before publishing a frame-rate c
 - Confirm offline pages do not misleadingly label cached positions as live.
 
 No full load test, penetration test, independent accessibility audit or real-device performance certification is implied by passing unit tests and a production build.
+
+## Verification record — 30 September 2026
+
+25 automated tests passed, TypeScript passed, and the production build passed. Production dependency audit reported zero known vulnerabilities. A fresh official import returned 21 routes and 988 stops; the 11:28:49 UTC observation sample contained 96 real vehicles. Counts vary with service operations.
+
+Final interactive browser revalidation was blocked by the browser tool URL-policy rejection. Do not interpret automated checks as a completed passenger-to-operator browser walkthrough. PostgreSQL/Docker deployment, public hosting and physical-phone performance remain unverified.
+
+Production HTTP smoke verification also passed for passenger/operator/source pages, health, network, vehicles, reports, sources, manifest, service worker and map worker. The subsequent live request returned 99 vehicles with `source: gtfs-rt` and `stale: false`; official topology contained 21 routes and 988 stops. UTHM live returned no invented positions, while explicit demo mode returned simulator observations. `npm start` was verified using the standalone launcher. Formatting checks passed.

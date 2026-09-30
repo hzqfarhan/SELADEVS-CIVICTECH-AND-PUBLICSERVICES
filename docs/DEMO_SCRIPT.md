@@ -1,63 +1,17 @@
-# Live demo script
+# GERAK live demo — three minutes
 
-Target length: approximately **3 minutes**. Use a fresh, tested production build with two browser tabs, one passenger and one operator. Have a phone-width view ready. The demo must work in explicitly labeled simulation mode even outside bus service hours.
+Before presenting: run `npm run ingest`, `npm run build`, then `npm start`. Check `/api/health`, `/api/vehicles` and `/sources`. Use an operator account or explicitly enable local demo operator access. Rehearse in passenger and operator tabs; final automated browser access was blocked, so this rehearsal remains necessary.
 
-## Before presenting
+1. **0:00–0:35 — Johor, real data.** Open the default live map. Show the official source and GPS timestamp. Explain that positions are observations animated between updates; count varies by service hours.
+2. **0:35–1:10 — A real bus and route.** Select a bus, inspect its official identifier and route. Show stops and journey planning. State that planning is based on representative route topology; live arrival predictions, occupancy and delays are unavailable, not fabricated.
+3. **1:10–1:40 — 3D and follow.** Switch to 3D and follow the selected vehicle. Real route/vehicle coordinates drive an illustrative miniature city; buildings are not a surveyed digital twin.
+4. **1:40–2:20 — Civic participation.** Select a map location and submit a clearly titled demonstration report, optionally with an image. The report is an internal GERAK record and is not sent to a municipality.
+5. **2:20–2:45 — Operator response.** Open the authenticated operator view, find the report and acknowledge it. Show the passenger view receiving the status change.
+6. **2:45–3:00 — Scale responsibly.** Switch language and show the attributed sources page. Explain that UTHM requires an authorized campus telemetry partnership.
 
-Run the checks in `TESTING.md`. Load the app once while online so local assets and the PWA fallback are available. Confirm the configured operator sign-in path. Use non-sensitive example images and report text. Keep the source label visible; do not switch to an empty live feed just to imply a live-data integration.
+If the official feed is unavailable or outside service hours, retain the honest empty/stale state. Only then explicitly select the labeled simulator to demonstrate movement and synthetic ETA behavior. Never describe simulated buses as live official observations. For devices without WebGL use the schematic fallback; postpone 3D if needed.
 
-For the optional official-data segment, run `npm run ingest` before the presentation and inspect live mode immediately before starting. The development verification received 75 official vehicle observations and imported 21 routes/988 stops, but those counts are a historical sample, not a promised live result. Keep the main three-minute story in demo mode so ETA, occupancy and dispatch demonstrations retain their explicit synthetic basis.
 
-## 0:00–0:25 — The city is moving
+## Geographic 3D update — 30 September 2026
 
-**Say:** “GERAK helps Malaysians understand their next journey and improve the places around it.”
-
-Open Johor. Pause long enough to see vehicles move. Point to the visible source badge: “This demonstration fleet is simulated. GERAK also has an adapter for official Malaysian vehicle-position data.”
-
-If a verified live feed is in use, describe the actual source and observation age instead. Never call synthetic positions live operator telemetry.
-
-## 0:25–0:55 — Make one journey concrete
-
-Select a moving bus. Show its route, stops and next estimated arrival. Save a favourite. Plan a same-region trip, such as JB Sentral to KSL City.
-
-**Say:** “The passenger sees the route and an understandable estimate. The demonstration planner works over these illustrative corridors; it does not pretend to be a nationwide timetable engine.”
-
-## 0:55–1:25 — A small world with a purpose
-
-Switch to 3D with the same vehicle selected, then enable follow. Let its orientation and movement become visible. Briefly show the ability to return to 2D.
-
-**Say:** “The bus remains the same object as we change perspective. Movement is interpolated between updates, with an approachable miniature city inspired by Jalan KL and Abeto Messenger. The buildings here are illustrative.”
-
-Do not claim surveyed building accuracy or a GPS reading on every animation frame.
-
-## 1:25–2:15 — Turn an obstacle into an actionable report
-
-Create a report near a stop. Pick a location and category, enter “Blocked ramp beside bus stop,” add a short description and optionally an example photo. Submit and show the returned report ID.
-
-Switch to the operator tab. Wait for the refresh, locate that same ID, and acknowledge it. Show its updated status to the passenger.
-
-**Say:** “This is a persisted report shared between passenger and operator views. The status belongs to GERAK's workflow; connecting a council or campus team requires a real operational agreement.”
-
-## 2:15–2:45 — Show local relevance and resilience
-
-Switch BM/English. Open the UTHM pilot region and identify its simulation label. If rehearsed, demonstrate offline fallback briefly and then reconnect.
-
-**Say:** “UTHM already has shuttle tracking. Our proposed pilot adds this rider experience and civic feedback loop through an authorized adapter. The app is installable, with a useful fallback when connectivity drops.”
-
-## 2:45–3:00 — Close with the concrete next step
-
-**Say:** “The next step is one authorized campus route, verified stop information, and an operations team. We will measure data freshness, arrival-estimate error and report response time.”
-
-End on the selected vehicle and the acknowledged report. No invented users, partnership or impact numbers are needed.
-
-## Recovery moves
-
-| Problem | Rehearsed response |
-| --- | --- |
-| Official feed unavailable or empty | Use labeled demo mode and show the feed status |
-| Third-party basemap unavailable | Use the fallback or miniature view; explain the source outage briefly |
-| 3D/WebGL fails on venue device | Continue the exact passenger/report flow in 2D |
-| Operator sign-in unavailable | Fix configuration before the live pitch; use the verified recording if required |
-| Report submission fails offline | Show the draft/pending state honestly; reconnect before claiming delivery |
-
-Keep a recording of this actual build as backup. A recording should show the same source labels and limitations as the live app.
+The active 3D mode now shares the MapLibre geographic basemap with 2D, replacing the procedural miniature city described in earlier sections. OpenFreeMap/OpenStreetMap supply real Johor coastline, roads and building footprints. Extrusions use provider render heights or an estimated minimum height, not surveyed elevation. GPS-anchored bus footprints animate with observed headings; model size is exaggerated at regional zoom for readability. The MY overview control frames Johor, while follow zooms to the selected bus. Sources: https://openfreemap.org/quick_start/ and https://maplibre.org/maplibre-gl-js/docs/examples/display-buildings-in-3d/. A Johor Bahru z14 tile was verified to contain 70 building features, 7 water features and 1,140 transportation features.

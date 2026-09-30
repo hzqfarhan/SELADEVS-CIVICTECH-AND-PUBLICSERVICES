@@ -1,6 +1,7 @@
 FROM node:22-alpine AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY scripts/prepare-assets.mjs ./scripts/prepare-assets.mjs
 RUN npm ci
 FROM node:22-alpine AS build
 WORKDIR /app

@@ -42,13 +42,13 @@ flowchart LR
 
 `Coordinate` is `[longitude, latitude]`. Routes have geographic paths, stop IDs, region, operator and source. Vehicles preserve ID, route ID, position, heading, observation timestamp and source. The shared `VehicleSnapshot` indicates whether it contains official GTFS-RT or simulator records.
 
-The seed network consists of **illustrative** Johor corridors and a separate UTHM pilot. Its topology, duration, accessibility attributes, occupancy and delays are demonstration data. A deterministic clock-based function produces stable vehicle identities and route progress. The demo ETA calculates remaining loop progress plus synthetic delay; it is an estimate. The planner returns direct or one-transfer options over the seed network, not a timetable-aware national journey plan. Cross-region planning is deliberately rejected.
+The seed network consists of **illustrative** Johor corridors and a separate UTHM pilot. Its topology, duration, accessibility attributes, occupancy and delays are demonstration data. A deterministic clock-based function produces stable vehicle identities and route progress. The demo ETA calculates remaining loop progress plus synthetic delay; it is an estimate. The planner returns direct or one-transfer options over the selected network. Official mode respects representative official stop ordering; duration is a proportional running-time estimate excluding waiting. It is not timetable-aware. Cross-region planning is deliberately rejected.
 
 Official vehicle positions remain authoritative. The renderer must not snap an unmatched official vehicle to a synthetic route. Absent occupancy, accessibility, service alerts or arrival predictions must remain unknown in the user interface. See `API_AND_DATA_SOURCES.md` for the actual official feed capabilities and quota.
 
-The implemented adapter coalesces concurrent requests in one process, refreshes no faster than every 35 seconds, uses an eight-second upstream timeout and marks a snapshot stale after 90 seconds relative to its newest observation. Each vehicle retains its own timestamp. A failed refresh keeps the last official observations if available; otherwise it returns an explicitly labeled simulator snapshot. The cache and quota coordination are not shared between Node processes.
+The implemented adapter coalesces concurrent requests in one process, refreshes no faster than every 35 seconds, uses an eight-second upstream timeout and marks a snapshot stale after 90 seconds relative to its newest observation. Each vehicle retains its own timestamp. A failed refresh keeps the last official observations if available; otherwise it returns an empty official snapshot with an unavailable notice. The cache and quota coordination are not shared between Node processes.
 
-`/api/network` reads `.runtime/network.json` (or the configured data directory) after a successful static import; otherwise it returns the regional seed network with `source: demo`. Importing geometry does not turn the bounded demo journey planner into timetable-aware official routing.
+`/api/network` automatically downloads and persists official Johor GTFS to `.runtime/network.json`, refreshing after 24 hours. Failures retain cached official data or return empty official topology. UTHM remains an explicitly illustrative pilot. Live is the default; simulation requires explicit selection.
 
 ## Motion and map rendering
 
@@ -124,3 +124,8 @@ flowchart LR
 ```
 
 Redis, elected scheduling, OIDC, an OTP deployment, media scanning, automated backups and production monitoring are **hardening work**, not services silently provided by `npm run dev`. A single Node container is the first deployable topology. See `DEPLOYMENT.md` for release gates and `UTHM_PILOT.md` for the proposed authorized campus telemetry boundary.
+
+
+## Geographic 3D update — 30 September 2026
+
+The active 3D mode now shares the MapLibre geographic basemap with 2D, replacing the procedural miniature city described in earlier sections. OpenFreeMap/OpenStreetMap supply real Johor coastline, roads and building footprints. Extrusions use provider render heights or an estimated minimum height, not surveyed elevation. GPS-anchored bus footprints animate with observed headings; model size is exaggerated at regional zoom for readability. The MY overview control frames Johor, while follow zooms to the selected bus. Sources: https://openfreemap.org/quick_start/ and https://maplibre.org/maplibre-gl-js/docs/examples/display-buildings-in-3d/. A Johor Bahru z14 tile was verified to contain 70 building features, 7 water features and 1,140 transportation features.

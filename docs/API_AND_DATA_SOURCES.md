@@ -76,3 +76,8 @@ Campus route names, synthetic stops and vehicle identities in a demo are illustr
 | Operator ETAs/service alerts | No such national feed verified | Derived estimates and GERAK/demo alerts only |
 | Municipal ticket delivery | No endpoint or partnership verified | GERAK internal lifecycle only |
 | Map tiles/buildings/terrain | Depends on configured provider and coverage | Keep attribution; degrade gracefully |
+
+
+## Geographic 3D update — 30 September 2026
+
+The active 3D mode now shares the MapLibre geographic basemap with 2D, replacing the procedural miniature city described in earlier sections. OpenFreeMap/OpenStreetMap supply real Johor coastline, roads and building footprints. Extrusions use provider render heights or an estimated minimum height, not surveyed elevation. GPS-anchored bus footprints animate with observed headings; model size is exaggerated at regional zoom for readability. The MY overview control frames Johor, while follow zooms to the selected bus. Sources: https://openfreemap.org/quick_start/ and https://maplibre.org/maplibre-gl-js/docs/examples/display-buildings-in-3d/. A Johor Bahru z14 tile was verified to contain 70 building features, 7 water features and 1,140 transportation features.

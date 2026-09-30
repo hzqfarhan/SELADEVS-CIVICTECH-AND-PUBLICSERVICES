@@ -6,7 +6,7 @@ All endpoints are same-origin Next.js Node route handlers. Coordinates are `[lon
 
 | Method and path | Contract | Authentication |
 | --- | --- | --- |
-| `GET /api/vehicles?region=johor&mode=demo` | `{ vehicles, source, updatedAt, stale, message }` | Public |
+| `GET /api/vehicles?region=johor&mode=live` | `{ vehicles, source, updatedAt, stale, message }` | Public |
 | `GET /api/network?region=johor` | `{ routes, stops, source, importedAt?, feedUrl? }` | Public |
 | `GET /api/reports` | `{ reports: CivicReport[] }`, latest 500 | Public |
 | `POST /api/reports` | Validated report below → `201 { report }` | Public, same-origin |
@@ -14,12 +14,14 @@ All endpoints are same-origin Next.js Node route handlers. Coordinates are `[lon
 | `GET /api/session` | `{ authenticated, demoAvailable, mode }` | Public |
 | `POST /api/session` | `{ demo: true }` or `{ password: "…" }` | Same-origin |
 | `DELETE /api/session` | Clears operator cookie | Same-origin |
-| `GET /api/events?region=johor&mode=demo` | Server-Sent Events | Public |
+| `GET /api/events?region=johor&mode=live` | Server-Sent Events | Public |
 | `GET /api/health` | Process status, storage selection, official feed cache state | Public |
 
-Supported regions are `johor` and `uthm`; modes are `demo` and `live`. Invalid values return 400. UTHM always uses the visibly labeled pilot simulator, including a `live` request, until authorized telemetry is connected. Johor live mode uses actual official data.gov.my positions. A failed first upstream request returns labeled simulator data; an outage after a successful fetch retains official observations and their original timestamps. `source` is the authority, not the requested mode. A snapshot becomes stale after 90 seconds from its newest observation; inspect each vehicle's timestamp as well.
+Supported regions are `johor` and `uthm`; modes are `demo` and `live`, defaulting to live. Invalid values return 400. Johor live mode uses actual data.gov.my positions. UTHM live requests return an empty unavailable snapshot until authorized telemetry is connected. Simulation requires explicit `mode=demo`. A failed first official request returns no vehicles; subsequent failures retain the original observations and timestamps, marked stale. No failure silently substitutes invented vehicles. Snapshots become stale after 90 seconds; inspect each vehicle timestamp too.
 
-`/api/network` serves the imported official Johor static feed when available and the seeded demo network otherwise. The demo motion/planner still uses its explicit illustrative network. Do not use imported static geometry to infer that demo vehicles are actual official buses. The network endpoint allows a 60-second public cache.
+`/api/network` automatically imports the official Johor static feed and refreshes its persisted cache after 24 hours. Failed imports retain any cached official network with its freshness notice; otherwise they return an empty official network. UTHM topology is explicitly illustrative. The public HTTP cache lasts 60 seconds. Official journey planning supports direct/one-transfer representative stop sequences; it is not timetable-aware, excludes waiting time, and does not claim live arrivals.
+
+`GET /api/sources` returns the complete attributed source registry, also available at `/sources` and in `docs/SOURCES.md`.
 
 ## Submit and update a civic report
 
@@ -55,7 +57,7 @@ Browser mutations must send their exact `Origin`; requests with cookies and no O
 ## Realtime stream
 
 ```js
-const events = new EventSource('/api/events?region=johor&mode=demo');
+const events = new EventSource('/api/events?region=johor&mode=live');
 events.addEventListener('vehicles', event => {
   const snapshot = JSON.parse(event.data);
 });
