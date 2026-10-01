@@ -187,7 +187,11 @@ export function createBusFleetLayer(
           Math.sin(targetHeading - model.bus.root.rotation.z),
           Math.cos(targetHeading - model.bus.root.rotation.z),
         );
-        model.bus.root.rotation.z += turn * Math.min(1, dt * 8);
+        if (!model.coordinate) {
+          model.bus.root.rotation.z = targetHeading;
+        } else {
+          model.bus.root.rotation.z += turn * Math.min(1, dt * 8);
+        }
         const scale = Math.min(12, Math.max(2.4, 2 ** (16.5 - map.getZoom())));
         model.bus.root.scale.set(
           scale,

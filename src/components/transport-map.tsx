@@ -6,7 +6,6 @@ import type { CurrentWeather } from "@/lib/weather";
 import { MapWeather } from "./map-weather";
 import { createDayPalette } from "./map-day-palette";
 import { updateFleetClusters } from "./fleet-clusters";
-import { busFootprint } from "./geographic-3d";
 import MalaysiaBoundaries, {
   boundaryContains,
   type Boundary,
@@ -349,6 +348,7 @@ function FlatMap(props: TransportMapProps) {
   const map = useRef<LibreMap | null>(null);
   const latest = useRef(props);
   latest.current = props;
+  const easingUntilRef = useRef(0);
   const fleetMarkers = useRef(
     new Map<
       string,
@@ -575,13 +575,35 @@ function FlatMap(props: TransportMapProps) {
           }
           if (latest.current.picking) {
             latest.current.onPick?.([event.lngLat.lng, event.lngLat.lat]);
-          } else if (instance.getLayer("bus-models-3d")) {
-            const hit = instance.queryRenderedFeatures(event.point, {
-              layers: ["bus-models-3d"],
-            })[0];
-            if (hit?.properties?.id)
-              latest.current.onSelectVehicle(String(hit.properties.id));
-            else if (instance.getLayer("transit-stop-dots")) {
+          } else {
+            let hitVehicleId: string | null = null;
+            if (latest.current.mode === "3d") {
+              let minDist = 36;
+              for (const v of latest.current.vehicles) {
+                if (!allowedRef.current.has(v.id)) continue;
+                const motion = motions.current.get(v.id);
+                const sample = motion
+                  ? sampleMotion(motion, performance.now())
+                  : v;
+                const pt = instance.project(sample.coordinate);
+                const dist = Math.hypot(
+                  pt.x - event.point.x,
+                  pt.y - event.point.y,
+                );
+                if (dist < minDist) {
+                  minDist = dist;
+                  hitVehicleId = v.id;
+                }
+              }
+            } else if (instance.getLayer("bus-models-3d")) {
+              const hit = instance.queryRenderedFeatures(event.point, {
+                layers: ["bus-models-3d"],
+              })[0];
+              if (hit?.properties?.id) hitVehicleId = String(hit.properties.id);
+            }
+            if (hitVehicleId) {
+              latest.current.onSelectVehicle(hitVehicleId);
+            } else if (instance.getLayer("transit-stop-dots")) {
               const stop = instance.queryRenderedFeatures(
                 [
                   [event.point.x - 8, event.point.y - 8],
@@ -594,18 +616,27 @@ function FlatMap(props: TransportMapProps) {
             }
           }
         });
-        instance.on("mouseenter", "bus-models-3d", () => {
-          if (latest.current.mode === "3d")
-            instance.getCanvas().style.cursor = "pointer";
+        instance.on("mousemove", (event) => {
+          if (latest.current.mode !== "3d" || latest.current.picking) return;
+          let isOver = false;
+          for (const v of latest.current.vehicles) {
+            if (!allowedRef.current.has(v.id)) continue;
+            const motion = motions.current.get(v.id);
+            const sample = motion ? sampleMotion(motion, performance.now()) : v;
+            const pt = instance.project(sample.coordinate);
+            if (Math.hypot(pt.x - event.point.x, pt.y - event.point.y) < 32) {
+              isOver = true;
+              break;
+            }
+          }
+          instance.getCanvas().style.cursor = isOver ? "pointer" : "";
         });
-        instance.on("mouseleave", "bus-models-3d", () => {
-          if (latest.current.mode === "3d" && !latest.current.picking)
-            instance.getCanvas().style.cursor = "";
+        instance.getCanvas().addEventListener("mouseleave", () => {
+          if (!latest.current.picking) instance.getCanvas().style.cursor = "";
         });
         observer = new ResizeObserver(() => instance.resize());
         observer.observe(container.current);
         let previousFollow = 0;
-        let previousModels = 0;
         let previousStatus = 0;
         const animate = (now: number) => {
           if (disposed || !map.current) return;
@@ -630,37 +661,60 @@ function FlatMap(props: TransportMapProps) {
               instance.getZoom() < 13 || !allowedRef.current.has(id)
                 ? "none"
                 : "";
-            marker.icon.style.transform = `rotate(${sample.bearing - instance.getBearing()}deg)`;
-            if (
-              latest.current.follow &&
-              latest.current.selectedVehicleId === id &&
-              now - previousFollow > 40 &&
-              !instance.isMoving()
-            ) {
-              const headingDelta =
-                ((sample.bearing +
-                  (angleRef.current === "right"
-                    ? -90
-                    : angleRef.current === "left"
-                      ? 90
-                      : 180) -
-                  instance.getBearing() +
-                  540) %
-                  360) -
-                180;
-              instance.jumpTo({
-                center: sample.coordinate,
-                ...(latest.current.mode === "3d"
-                  ? {
-                      bearing:
-                        instance.getBearing() +
-                        Math.max(-2, Math.min(2, headingDelta * 0.08)),
-                    }
-                  : {}),
-              });
-              previousFollow = now;
+            if (latest.current.mode !== "3d") {
+              marker.icon.style.transform = `rotate(${sample.bearing - instance.getBearing()}deg)`;
             }
           }
+
+          // Follow selected vehicle in 60fps lockstep without micro-stutter
+          const selectedId = latest.current.selectedVehicleId;
+          if (latest.current.follow && selectedId) {
+            const motion = motions.current.get(selectedId);
+            const vehicle = latest.current.vehicles.find(
+              (v) => v.id === selectedId,
+            );
+            if (motion || vehicle) {
+              const sample = motion ? sampleMotion(motion, now) : vehicle!;
+              if (now < easingUntilRef.current) {
+                // Initial easeTo transition active: let camera glide smoothly to vehicle
+                previousFollow = now;
+              } else {
+                const dt =
+                  previousFollow > 0
+                    ? Math.min(
+                        0.05,
+                        Math.max(0.001, (now - previousFollow) / 1000),
+                      )
+                    : 0.016;
+                previousFollow = now;
+
+                let targetBearing: number | undefined;
+                if (latest.current.mode === "3d") {
+                  const desiredAngle =
+                    sample.bearing +
+                    (angleRef.current === "right"
+                      ? -90
+                      : angleRef.current === "left"
+                        ? 90
+                        : 180);
+                  const headingDelta =
+                    (((desiredAngle - instance.getBearing() + 540) % 360) - 180);
+                  const turnDamping = 1 - Math.exp(-dt * 5);
+                  targetBearing =
+                    (instance.getBearing() + headingDelta * turnDamping + 360) %
+                    360;
+                }
+
+                instance.jumpTo({
+                  center: sample.coordinate,
+                  ...(targetBearing !== undefined
+                    ? { bearing: targetBearing }
+                    : {}),
+                });
+              }
+            }
+          }
+
           if (motionStatus.current && now - previousStatus > 500) {
             motionStatus.current.textContent =
               latest.current.vehicles.length > 0 &&
@@ -672,42 +726,6 @@ function FlatMap(props: TransportMapProps) {
                     ? `${estimatedCount} route-estimated positions · between GPS updates`
                     : "GPS observations · waiting for next update";
             previousStatus = now;
-          }
-          if (
-            latest.current.mode === "3d" &&
-            now - previousModels > 100 &&
-            instance.getSource("bus-models")
-          ) {
-            const zoom = instance.getZoom();
-            // Cartographic model scale grows at regional zoom, without moving GPS anchors.
-            const scale = Math.min(
-              36,
-              Math.max(3.8, Math.pow(2, 15.5 - zoom) * 3.8),
-            );
-            const features = latest.current.vehicles.map((vehicle) => {
-              const motion = motions.current.get(vehicle.id);
-              const sample = motion ? sampleMotion(motion, now) : vehicle;
-              return {
-                type: "Feature" as const,
-                properties: {
-                  id: vehicle.id,
-                  color: "#ffffff",
-                  height: 1,
-                  base: 0,
-                },
-                geometry: busFootprint(
-                  sample.coordinate,
-                  sample.bearing,
-                  14 * Math.min(scale, 8),
-                  5 * Math.min(scale, 8),
-                ),
-              };
-            });
-            (instance.getSource("bus-models") as GeoJSONSource).setData({
-              type: "FeatureCollection",
-              features,
-            });
-            previousModels = now;
           }
           frame = requestAnimationFrame(animate);
         };
@@ -1193,12 +1211,10 @@ function FlatMap(props: TransportMapProps) {
       const motion = motions.current.get(vehicle.id);
       const sample = motion ? sampleMotion(motion, performance.now()) : vehicle;
       const center = sample.coordinate;
+      easingUntilRef.current = performance.now() + 850;
       map.current?.easeTo({
         center,
-        padding:
-          map.current && map.current.getContainer().clientWidth > 700
-            ? { top: 0, left: 0, right: 340, bottom: 0 }
-            : { top: 0, left: 0, right: 0, bottom: 200 },
+        padding: { top: 0, left: 0, right: 0, bottom: 0 },
         zoom: Math.max(map.current.getZoom(), props.mode === "3d" ? 17.5 : 16),
         pitch: props.mode === "3d" ? 62 : 0,
         ...(props.mode === "3d"
