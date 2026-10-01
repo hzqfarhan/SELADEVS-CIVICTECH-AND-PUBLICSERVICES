@@ -139,7 +139,8 @@ function CityBlocks({
   region: string;
 }) {
   const city = useMemo(() => {
-    const random = randomGenerator(region === "uthm" ? 606 : 2026);
+    const isCampus = region === "uthm" || region === "uthm-pagoh";
+    const random = randomGenerator(isCampus ? 606 : 2026);
     const paths = routes.map((route) => route.path.map(projection.project));
     const awayFromRoad = (x: number, z: number, margin: number) =>
       paths.every((path) =>
@@ -178,7 +179,7 @@ function CityBlocks({
       });
     for (
       let i = 0;
-      i < 500 && buildings.length < (region === "uthm" ? 45 : 80);
+      i < 500 && buildings.length < (isCampus ? 45 : 80);
       i++
     ) {
       const x = (random() - 0.5) * (projection.width - 9),
@@ -199,7 +200,7 @@ function CityBlocks({
       const tall = region === "johor" && random() > 0.94;
       const h = tall
         ? 4.5 + random() * 3
-        : 1.5 + random() * (region === "uthm" ? 2.8 : 3.6);
+        : 1.5 + random() * (isCampus ? 2.8 : 3.6);
       const color = palette[Math.floor(random() * palette.length)];
       buildings.push({
         position: [x, h / 2 + 0.13, z],

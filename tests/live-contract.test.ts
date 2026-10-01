@@ -18,9 +18,13 @@ test("live requests never silently replace unavailable GPS with simulator data",
 });
 test("UTHM has no invented real feed; simulation requires an explicit demo request", async () => {
   assert.equal((await getVehicles("uthm", "live")).vehicles.length, 0);
-  const demo = await getVehicles("uthm", "demo");
-  assert.equal(demo.source, "simulator");
-  assert.ok(demo.vehicles.length > 0);
+  assert.equal((await getVehicles("uthm-pagoh", "live")).vehicles.length, 0);
+  const demoParitRaja = await getVehicles("uthm", "demo");
+  assert.equal(demoParitRaja.source, "simulator");
+  assert.ok(demoParitRaja.vehicles.length > 0);
+  const demoPagoh = await getVehicles("uthm-pagoh", "demo");
+  assert.equal(demoPagoh.source, "simulator");
+  assert.ok(demoPagoh.vehicles.length > 0);
 });
 test("missing GPS speed and bearing remain marked unknown", () => {
   const now = Date.now();

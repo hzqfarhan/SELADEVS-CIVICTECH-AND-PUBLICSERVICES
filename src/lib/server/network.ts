@@ -135,7 +135,7 @@ async function loadEndpoint(
   }
 }
 export async function getNetwork(region: Region): Promise<TransitNetwork> {
-  if (region === "uthm")
+  if (region === "uthm" || region === "uthm-pagoh")
     return {
       routes: routes.filter((r) => r.region === region),
       stops: stops.filter((s) => s.region === region),

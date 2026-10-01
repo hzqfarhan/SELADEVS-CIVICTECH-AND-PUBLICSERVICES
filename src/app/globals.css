@@ -771,6 +771,7 @@
 .map-control-right {
   display: flex;
   gap: 9px;
+  margin-left: auto;
 }
 .mode-toggle {
   display: flex;

@@ -102,7 +102,7 @@ export function normalizeFeed(
   return [...vehicles.values()];
 }
 function demo(region: Region, message?: string): VehicleSnapshot {
-  if (region !== "johor" && region !== "uthm")
+  if (region !== "johor" && region !== "uthm" && region !== "uthm-pagoh")
     return {
       vehicles: [],
       source: "simulator",
@@ -117,7 +117,7 @@ function demo(region: Region, message?: string): VehicleSnapshot {
     stale: false,
     message:
       message ||
-      (region === "uthm"
+      (region === "uthm" || region === "uthm-pagoh"
         ? "UTHM pilot simulation. No university GPS feed is connected."
         : "Demo vehicles follow illustrative Johor routes. Switch to official live data for actual GPS positions."),
   };
@@ -252,7 +252,7 @@ export async function getVehicles(
       updatedAt: 0,
       stale: true,
       message:
-        region === "uthm"
+        region === "uthm" || region === "uthm-pagoh"
           ? "UTHM telemetry is not connected. Select the campus demo."
           : "Rapid KL rail schedules are available; the official publisher does not provide a stable realtime rail feed.",
     };

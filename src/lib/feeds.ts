@@ -1,4 +1,6 @@
 export const REGION_IDS = [
+  "uthm",
+  "uthm-pagoh",
   "johor",
   "kangar",
   "alor-setar",
@@ -14,7 +16,6 @@ export const REGION_IDS = [
   "rapid-penang",
   "rapid-kuantan",
   "rapid-rail",
-  "uthm",
 ] as const;
 export type FeedRegion = (typeof REGION_IDS)[number];
 export interface Endpoint {
@@ -48,6 +49,22 @@ const endpoint = (
   };
 };
 export const SERVICES: Service[] = [
+  {
+    id: "uthm",
+    name: "UTHM Parit Raja",
+    operator: "UTHM pilot",
+    center: [103.0862, 1.8548],
+    kind: "pilot",
+    endpoints: [],
+  },
+  {
+    id: "uthm-pagoh",
+    name: "UTHM Pagoh",
+    operator: "UTHM pilot",
+    center: [102.733, 2.1495],
+    kind: "pilot",
+    endpoints: [],
+  },
   ...(
     [
       ["johor", "Johor Bahru", 103.7565, 1.4835],
@@ -104,14 +121,6 @@ export const SERVICES: Service[] = [
     kind: id === "rapid-rail" ? "rail" : "bus",
     endpoints: [endpoint(id, "prasarana", category, id !== "rapid-rail")],
   })),
-  {
-    id: "uthm",
-    name: "UTHM · Parit Raja pilot",
-    operator: "UTHM pilot",
-    center: [103.0862, 1.8548],
-    kind: "pilot",
-    endpoints: [],
-  },
 ];
 export const serviceFor = (region: FeedRegion) =>
   SERVICES.find((s) => s.id === region)!;

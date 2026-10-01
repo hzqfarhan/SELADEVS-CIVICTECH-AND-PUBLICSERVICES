@@ -42,8 +42,6 @@ import {
   Footprints,
   CloudRain,
   Construction,
-  PanelLeftClose,
-  PanelLeftOpen,
 } from "lucide-react";
 import type {
   CivicReport,
@@ -163,7 +161,8 @@ export default function GerakApp({
     importedAt?: string;
   } | null>(null);
   const [networkNotice, setNetworkNotice] = useState("");
-  const usingOfficial = feed === "live" && region !== "uthm";
+  const isCampus = region === "uthm" || region === "uthm-pagoh";
+  const usingOfficial = feed === "live" && !isCampus;
   const service = serviceFor(region);
   const regionRoutes = useMemo(() => {
     const network = usingOfficial
@@ -215,7 +214,7 @@ export default function GerakApp({
   const vehicle = snapshot.vehicles.find((v) => v.id === selectedId),
     vehicleRoute = regionRoutes.find((r) => r.id === vehicle?.routeId);
   useEffect(() => {
-    if (feed !== "live" || region === "uthm") return;
+    if (feed !== "live" || isCampus) return;
     setOfficialNetwork(null);
     const controller = new AbortController();
     try {
@@ -338,14 +337,19 @@ export default function GerakApp({
   }, [toast]);
   const changeRegion = (next: Region) => {
     setRegion(next);
-    setFeed(next === "uthm" ? "demo" : "live");
+    setFeed(next === "uthm" || next === "uthm-pagoh" ? "demo" : "live");
     setFilter(null);
     setSelectedId(null);
     setFollow(false);
     setSelectedStop(null);
     setPlanned(false);
-    setOrigin(next === "johor" ? "jb-sentral" : "uthm-gate");
-    setDestination(next === "johor" ? "ksl" : "uthm-library");
+    const stopsForRegion = stops.filter((s) => s.region === next);
+    setOrigin(next === "johor" ? "jb-sentral" : stopsForRegion[0]?.id || "");
+    setDestination(
+      next === "johor"
+        ? "ksl"
+        : stopsForRegion[1]?.id || stopsForRegion[0]?.id || "",
+    );
   };
   const selectVehicle = (id: string) => {
     if (mode === "3d") setFollow(true);
@@ -606,11 +610,19 @@ export default function GerakApp({
                 value={region}
                 onChange={(e) => changeRegion(e.target.value as Region)}
               >
-                {SERVICES.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.operator} · {s.name}
-                  </option>
-                ))}
+                {SERVICES.map((s) => {
+                  const label =
+                    s.operator === "BAS.MY" ||
+                    s.kind === "pilot" ||
+                    s.name.startsWith(s.operator)
+                      ? s.name
+                      : `${s.operator} · ${s.name}`;
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
               <ChevronDown size={15} />
             </div>
@@ -1452,29 +1464,6 @@ export default function GerakApp({
             }}
           />
           <div className="map-top-controls">
-            <div className="map-location">
-              <button
-                className="icon-button panel-toggle"
-                aria-label={panelOpen ? "Hide panel" : "Show panel"}
-                onClick={() => setPanelOpen((p) => !p)}
-              >
-                {panelOpen ? (
-                  <PanelLeftClose size={17} />
-                ) : (
-                  <PanelLeftOpen size={17} />
-                )}
-              </button>
-              <div>
-                <strong>{service.name}</strong>
-                <span>
-                  {`${service.center[1].toFixed(4)}° N, ${service.center[0].toFixed(4)}° E`}
-                </span>
-              </div>
-              <span className="map-live">
-                <span className="status-dot" />
-                {feed === "demo" ? "DEMO" : snapshot.stale ? "STALE" : "LIVE"}
-              </span>
-            </div>
             <div className="map-control-right">
               <div className="mode-toggle" role="group" aria-label="Map mode">
                 <button
@@ -1557,28 +1546,6 @@ export default function GerakApp({
             </span>
             <h2>{service.name.split(" · ")[0]}</h2>
           </div>
-          {!vehicle && !selectedStop && (
-            <div className="map-hint">
-              <span className="hint-icon">
-                <BusFront size={18} />
-              </span>
-              <span>
-                <strong>
-                  {tr(
-                    "Your next ride is out there.",
-                    "Perjalanan seterusnya menanti.",
-                  )}
-                </strong>
-                <small>
-                  {tr(
-                    "Tap a moving bus to see where it’s heading.",
-                    "Tekan bas bergerak untuk lihat destinasinya.",
-                  )}
-                </small>
-              </span>
-              <span className="hint-spark">✳</span>
-            </div>
-          )}
           {vehicle && (
             <div className="vehicle-detail" aria-live="polite">
               <div className="detail-top">
@@ -1849,7 +1816,8 @@ export default function GerakApp({
             <button
               onClick={() => {
                 setFeed((f) => (f === "demo" ? "live" : "demo"));
-                if (region === "uthm") changeRegion("johor");
+                if (region === "uthm" || region === "uthm-pagoh")
+                  changeRegion("johor");
                 else if (region !== "johor") {
                   changeRegion("johor");
                   setFeed("demo");

@@ -253,42 +253,64 @@ const illustrativeRoutes: TransitRoute[] = [
 ];
 
 // Published campus geometry; duration and vehicle motion remain demo estimates.
-const campusRoutes = Object.values(campusSnapshot.campuses).flatMap(
-  (campus) => campus.routes,
-);
+const campusDefinitions: Array<{
+  campus: (typeof campusSnapshot.campuses)["batu-pahat"];
+  region: Region;
+}> = [
+  {
+    campus: campusSnapshot.campuses["batu-pahat"],
+    region: "uthm",
+  },
+  {
+    campus: campusSnapshot.campuses["pagoh"],
+    region: "uthm-pagoh",
+  },
+];
+
 export const stops: Stop[] = [
-  ...illustrativeStops.filter((stop) => stop.region !== "uthm"),
-  ...Array.from(
-    new Map(
-      campusRoutes
-        .flatMap((route) => route.checkpoints)
-        .map((stop) => [
-          stop.id,
-          {
-            id: `uthm-katsana-${stop.id}`,
-            name: stop.name,
-            coordinate: [stop.longitude, stop.latitude] as Coordinate,
-            accessible: false,
-            region: "uthm" as const,
-          },
-        ]),
-    ).values(),
+  ...illustrativeStops.filter(
+    (stop) => stop.region !== "uthm" && (stop.region as string) !== "uthm-pagoh",
+  ),
+  ...campusDefinitions.flatMap(({ campus, region }) =>
+    Array.from(
+      new Map(
+        campus.routes
+          .flatMap((route) => route.checkpoints)
+          .map((stop) => [
+            stop.id,
+            {
+              id: `uthm-katsana-${stop.id}`,
+              name: stop.name,
+              coordinate: [stop.longitude, stop.latitude] as Coordinate,
+              accessible: false,
+              region,
+            },
+          ]),
+      ).values(),
+    ),
   ),
 ];
 export const routes: TransitRoute[] = [
-  ...illustrativeRoutes.filter((route) => route.region !== "uthm"),
-  ...campusRoutes.map((route, index): TransitRoute => ({
-    id: `U${String(index + 1).padStart(2, "0")}`,
-    name: route.name,
-    destination: route.name,
-    color: ["#b3f56b", "#75baff", "#f6ad73"][index],
-    operator: "UTHM / KATSANA geometry � simulated service",
-    region: "uthm",
-    source: "demo",
-    duration: 20 + index * 5,
-    stops: route.checkpoints.map((stop) => `uthm-katsana-${stop.id}`),
-    path: route.path.map((point) => [point[0], point[1]] as Coordinate),
-  })),
+  ...illustrativeRoutes.filter(
+    (route) => route.region !== "uthm" && (route.region as string) !== "uthm-pagoh",
+  ),
+  ...campusDefinitions.flatMap(({ campus, region }, campusIdx) =>
+    campus.routes.map((route, routeIdx): TransitRoute => {
+      const overallIndex = campusIdx * 2 + routeIdx;
+      return {
+        id: `U${String(overallIndex + 1).padStart(2, "0")}`,
+        name: route.name,
+        destination: route.name,
+        color: ["#b3f56b", "#75baff", "#f6ad73"][overallIndex % 3],
+        operator: "UTHM / KATSANA geometry · simulated service",
+        region,
+        source: "demo",
+        duration: 20 + routeIdx * 5,
+        stops: route.checkpoints.map((stop) => `uthm-katsana-${stop.id}`),
+        path: route.path.map((point) => [point[0], point[1]] as Coordinate),
+      };
+    }),
+  ),
 ];
 
 export function distance(a: Coordinate, b: Coordinate): number {

@@ -367,7 +367,11 @@ function FlatMap(props: TransportMapProps) {
         const instance = new maplibre.Map({
           container: container.current,
           center: REGION_CENTERS[latest.current.region],
-          zoom: latest.current.region === "uthm" ? 15 : 12.5,
+          zoom:
+            latest.current.region === "uthm" ||
+            latest.current.region === "uthm-pagoh"
+              ? 15
+              : 12.5,
           attributionControl: false,
           maxZoom: 22,
           minZoom: 3,
@@ -776,7 +780,8 @@ function FlatMap(props: TransportMapProps) {
         right: compact ? 25 : 60,
       },
       duration: regionAtFit.current ? 1000 : 0,
-      maxZoom: props.region === "uthm" ? 15.8 : 15,
+      maxZoom:
+        props.region === "uthm" || props.region === "uthm-pagoh" ? 15.8 : 15,
     });
     regionAtFit.current = fitKey;
   }, [ready, unavailable, props.routes, props.region, props.vehicles]);
@@ -1194,7 +1199,10 @@ function FlatMap(props: TransportMapProps) {
             map.current?.fitBounds(projection.bounds, {
               padding: 100,
               duration: 700,
-              maxZoom: props.region === "uthm" ? 15.8 : 13.8,
+              maxZoom:
+                props.region === "uthm" || props.region === "uthm-pagoh"
+                  ? 15.8
+                  : 13.8,
             });
           }}
         >
