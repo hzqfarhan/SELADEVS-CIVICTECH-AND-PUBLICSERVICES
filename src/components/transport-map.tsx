@@ -323,6 +323,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
 function FlatMap(props: TransportMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const motionStatus = useRef<HTMLDivElement>(null);
+  const lastFocus = useRef("");
   const [lightingChoice, setLighting] = useState<
     "auto" | "day" | "dusk" | "night"
   >("auto");
@@ -1175,7 +1176,16 @@ function FlatMap(props: TransportMapProps) {
   }, [ready, unavailable, props.mode, props.region]);
 
   useEffect(() => {
-    if (!ready || !props.selectedVehicleId) return;
+    if (!ready) return;
+    if (!props.selectedVehicleId) {
+      lastFocus.current = "";
+      map.current?.setPadding({ top: 0, right: 0, bottom: 0, left: 0 });
+      return;
+    }
+    const focusKey = `${props.selectedVehicleId}:${props.mode}:${viewAngle}`;
+    // Stopping follow must leave the camera where the user stopped it.
+    if (!props.follow && lastFocus.current === focusKey) return;
+    lastFocus.current = focusKey;
     const vehicle = props.vehicles.find(
       (v) => v.id === props.selectedVehicleId,
     );

@@ -3200,3 +3200,5 @@
 @media(max-width:700px) { .side-panel { flex: 0 0 35%; height: 35%; max-height: 35%; } .map-workspace { min-height: 290px; } }
 
 @media(max-width:700px) { .vehicle-detail > h2 { display: none; } .vehicle-detail .license-plate-header { margin-bottom: 5px; } .vehicle-detail > p { margin: 5px 0; } .ride-status { padding: 8px; margin: 7px 0; } }
+
+.map-workspace:has(.vehicle-detail) .map-city-label { display: none; }

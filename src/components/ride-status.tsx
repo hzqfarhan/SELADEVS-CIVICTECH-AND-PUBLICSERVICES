@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { Stop, TransitRoute, Vehicle } from "@/lib/types";
+import { etaForVehicle } from "@/lib/transit";
 import { projectToRoute } from "./map-motion";
 export function RideStatus({
   vehicle,
@@ -46,6 +47,16 @@ export function RideStatus({
           .filter((stop) => stop.distance < 120 && stop.progress > 0.0001)
           .sort((a, b) => a.progress - b.progress)[0]?.stop
       : undefined;
+  const demoNext =
+    vehicle.source === "simulator" && route
+      ? route.stops
+          .map((id) => ({
+            stop: stops.find((s) => s.id === id),
+            eta: etaForVehicle(vehicle, id),
+          }))
+          .filter((s) => s.stop && s.eta !== null)
+          .sort((a, b) => a.eta! - b.eta!)[0]?.stop
+      : undefined;
   const label =
     vehicle.source === "simulator"
       ? "Simulated service"
@@ -69,7 +80,7 @@ export function RideStatus({
       </span>
       <div>
         <small>Next stop · route estimate</small>
-        <b>{next?.name ?? "Not confirmed"}</b>
+        <b>{demoNext?.name ?? next?.name ?? "Not confirmed"}</b>
         <span>
           {vehicle.source === "simulator"
             ? "Demo journey estimates below"
