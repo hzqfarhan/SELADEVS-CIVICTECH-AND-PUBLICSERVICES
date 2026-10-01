@@ -126,7 +126,7 @@ export default function GerakApp({
   const [locale, setLocale] = useState<Locale>("en"),
     [view, setView] = useState<View>(initialView),
     [region, setRegion] = useState<Region>("johor"),
-    [mode, setMode] = useState<"2d" | "3d">("2d");
+    [mode, setMode] = useState<"2d" | "3d">("3d");
   const [feed, setFeed] = useState<"demo" | "live">("live"),
     [selectedId, setSelectedId] = useState<string | null>(null),
     [follow, setFollow] = useState(false),
@@ -301,6 +301,8 @@ export default function GerakApp({
           : [],
       );
       setLocale(localStorage.getItem("gerak:locale") === "ms" ? "ms" : "en");
+      const savedMode = localStorage.getItem("gerak:mode");
+      if (savedMode === "2d" || savedMode === "3d") setMode(savedMode);
     } catch {}
     void fetch("/api/session")
       .then((r) => r.json())
@@ -342,6 +344,11 @@ export default function GerakApp({
       localStorage.setItem("gerak:locale", locale);
     } catch {}
   }, [locale]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("gerak:mode", mode);
+    } catch {}
+  }, [mode]);
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(""), 5000);
@@ -2000,18 +2007,38 @@ export default function GerakApp({
             })()}
           <div className="map-bottom">
             <div className="map-legend">
-              <span>
-                <i style={{ background: "#b3f56b" }} />
-                {tr("City", "Bandar")}
-              </span>
-              <span>
-                <i style={{ background: "#75baff" }} />
-                {tr("Waterfront", "Persisiran")}
-              </span>
-              <span>
-                <i style={{ background: "#d6a1ff" }} />
-                {tr("Connections", "Sambungan")}
-              </span>
+              {regionRoutes.length > 0 ? (
+                regionRoutes.slice(0, 4).map((r) => (
+                  <span
+                    key={r.id}
+                    onClick={() => setFilter(filter === r.id ? null : r.id)}
+                    style={{
+                      cursor: "pointer",
+                      opacity: filter && filter !== r.id ? 0.45 : 1,
+                      transition: "opacity 0.2s ease",
+                    }}
+                    title={
+                      filter === r.id
+                        ? tr("Show all routes", "Tunjuk semua laluan")
+                        : `${tr("Filter route", "Tapis laluan")}: ${r.name}`
+                    }
+                  >
+                    <i style={{ background: r.color }} />
+                    {r.name}
+                  </span>
+                ))
+              ) : (
+                <>
+                  <span>
+                    <i style={{ background: "#b3f56b" }} />
+                    {tr("Route 1", "Laluan 1")}
+                  </span>
+                  <span>
+                    <i style={{ background: "#75baff" }} />
+                    {tr("Route 2", "Laluan 2")}
+                  </span>
+                </>
+              )}
               {filter && (
                 <button onClick={() => setFilter(null)}>
                   <X size={12} />
@@ -2066,7 +2093,6 @@ export default function GerakApp({
                 setFollow(false);
                 setSelectedStop(null);
                 setShowPlanner(false);
-                setMode("2d");
               }}
             >
               <Radio size={12} />

@@ -840,15 +840,15 @@ function FlatMap(props: TransportMapProps) {
       "route-line",
       "line-opacity",
       selectedRoute
-        ? ["case", ["==", ["get", "id"], selectedRoute], 1, 0.2]
-        : 0.78,
+        ? ["case", ["==", ["get", "id"], selectedRoute], 1, 0.42]
+        : 0.85,
     );
     instance.setPaintProperty(
       "route-glow",
       "line-opacity",
       selectedRoute
-        ? ["case", ["==", ["get", "id"], selectedRoute], 0.3, 0.03]
-        : 0.08,
+        ? ["case", ["==", ["get", "id"], selectedRoute], 0.35, 0.06]
+        : 0.09,
     );
   }, [ready, props.selectedVehicleId, props.vehicles, props.routes]);
   useEffect(() => {
