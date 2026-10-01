@@ -7,6 +7,7 @@ import {
   planJourney,
   etaForVehicle,
   routes,
+  stops,
 } from "../src/lib/transit";
 test("haversine uses meters and stationary coordinates are zero", () => {
   assert.equal(distance([103, 1], [103, 1]), 0);
@@ -52,3 +53,15 @@ test("ETA does not invent live arrivals or unrelated stops", () => {
   );
   assert.equal(etaForVehicle(vehicle, "uthm-gate"), null);
 });
+test("proximity calculations correctly identify closest stop and walking distance", () => {
+  const userNearJb: [number, number] = [103.7635, 1.4627];
+  const closest = stops.reduce((prev, curr) =>
+    distance(userNearJb, curr.coordinate) <
+    distance(userNearJb, prev.coordinate)
+      ? curr
+      : prev,
+  );
+  assert.equal(closest.id, "jb-sentral");
+  assert.ok(distance(userNearJb, closest.coordinate) < 50);
+});
+

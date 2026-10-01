@@ -53,7 +53,7 @@ import type {
   TransitRoute,
   Stop,
 } from "@/lib/types";
-import { routes, stops, etaForVehicle, planJourney } from "@/lib/transit";
+import { routes, stops, etaForVehicle, planJourney, distance } from "@/lib/transit";
 import { useNetwork } from "@/lib/use-network";
 const TransportMap = dynamic(() => import("./transport-map"), {
   ssr: false,
@@ -128,6 +128,9 @@ export default function GerakApp({
     [showReport, setShowReport] = useState(false),
     [picking, setPicking] = useState(false),
     [picked, setPicked] = useState<Coordinate | null>(null);
+  const [userLocation, setUserLocation] = useState<Coordinate | null>(null),
+    [showSurroundings, setShowSurroundings] = useState(true),
+    [dismissCitySuggest, setDismissCitySuggest] = useState(false);
   const [origin, setOrigin] = useState("jb-sentral"),
     [destination, setDestination] = useState("ksl"),
     [planned, setPlanned] = useState(false),
@@ -381,9 +384,45 @@ export default function GerakApp({
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
-  const searchedStops = regionStops.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const searchedStops = useMemo(() => {
+    const list = regionStops.filter((s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()),
+    );
+    if (!userLocation) return list;
+    return [...list].sort(
+      (a, b) =>
+        distance(userLocation, a.coordinate) -
+        distance(userLocation, b.coordinate),
+    );
+  }, [regionStops, search, userLocation]);
+
+  const nearestStop = useMemo(() => {
+    if (!userLocation || !regionStops.length) return null;
+    let best = regionStops[0];
+    let bestDist = distance(userLocation, best.coordinate);
+    for (let i = 1; i < regionStops.length; i++) {
+      const d = distance(userLocation, regionStops[i].coordinate);
+      if (d < bestDist) {
+        bestDist = d;
+        best = regionStops[i];
+      }
+    }
+    return { stop: best, distanceMeters: Math.round(bestDist) };
+  }, [userLocation, regionStops]);
+
+  const nearestService = useMemo(() => {
+    if (!userLocation) return null;
+    let best = SERVICES[0];
+    let bestDist = distance(userLocation, best.center);
+    for (let i = 1; i < SERVICES.length; i++) {
+      const d = distance(userLocation, SERVICES[i].center);
+      if (d < bestDist) {
+        bestDist = d;
+        best = SERVICES[i];
+      }
+    }
+    return { service: best, distanceMeters: Math.round(bestDist) };
+  }, [userLocation]);
   useEffect(() => {
     if (usingOfficial && regionRoutes[0]) {
       const ids = regionRoutes[0].stops;
@@ -971,6 +1010,19 @@ export default function GerakApp({
                           <span>
                             <strong>{stop.name}</strong>
                             <small>
+                              {userLocation && (
+                                <span className="stop-distance">
+                                  {(() => {
+                                    const d = Math.round(
+                                      distance(userLocation, stop.coordinate),
+                                    );
+                                    return d < 1000
+                                      ? `${d}m`
+                                      : `${(d / 1000).toFixed(1)}km`;
+                                  })()}{" "}
+                                  ·{" "}
+                                </span>
+                              )}
                               {regionRoutes
                                 .filter((r) => r.stops.includes(stop.id))
                                 .map((r) => r.id)
@@ -1462,6 +1514,13 @@ export default function GerakApp({
               setSelectedStop(id);
               setSelectedId(null);
             }}
+            userLocation={userLocation}
+            onUserLocationChange={(coord) => {
+              setUserLocation(coord);
+              setShowSurroundings(true);
+              setDismissCitySuggest(false);
+            }}
+            onLocationError={(msg) => notify(msg)}
           />
           <div className="map-top-controls">
             <div className="map-control-right">
@@ -1538,6 +1597,38 @@ export default function GerakApp({
               {snapshot.message}
             </div>
           )}
+          {userLocation &&
+            !dismissCitySuggest &&
+            nearestService &&
+            nearestService.service.id !== region &&
+            nearestService.distanceMeters < 50000 &&
+            !vehicle &&
+            !selectedStop && (
+              <div className="map-banner city-suggest-banner">
+                <MapPin size={16} />
+                <span>
+                  {tr(
+                    `You are near ${nearestService.service.name} (${Math.round(nearestService.distanceMeters / 1000)} km away).`,
+                    `Anda berada berhampiran ${nearestService.service.name} (${Math.round(nearestService.distanceMeters / 1000)} km).`,
+                  )}
+                </span>
+                <button
+                  className="banner-action-button"
+                  onClick={() =>
+                    changeRegion(nearestService.service.id as Region)
+                  }
+                >
+                  {tr("Switch", "Tukar")}
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="Dismiss suggestion"
+                  onClick={() => setDismissCitySuggest(true)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
           <div className="map-city-label">
             <span>
               {mode === "3d"
@@ -1546,6 +1637,47 @@ export default function GerakApp({
             </span>
             <h2>{service.name.split(" · ")[0]}</h2>
           </div>
+          {userLocation && showSurroundings && nearestStop && !vehicle && !selectedStop && (
+            <div
+              className="surroundings-card"
+              role="region"
+              aria-label={tr("Your surroundings", "Sekitar anda")}
+            >
+              <div className="surroundings-top">
+                <span className="surroundings-badge">
+                  <Navigation size={12} />
+                  {tr("YOUR SURROUNDINGS", "SEKITAR ANDA")}
+                </span>
+                <button
+                  className="icon-button"
+                  aria-label={tr("Close surroundings", "Tutup maklumat sekitar")}
+                  onClick={() => setShowSurroundings(false)}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="surroundings-body">
+                <strong>{nearestStop.stop.name}</strong>
+                <p>
+                  {nearestStop.distanceMeters < 1000
+                    ? `${nearestStop.distanceMeters} m`
+                    : `${(nearestStop.distanceMeters / 1000).toFixed(1)} km`}{" "}
+                  · ~{Math.max(1, Math.round(nearestStop.distanceMeters / 80))}{" "}
+                  {tr("min walk", "min jalan")}
+                </p>
+              </div>
+              <button
+                className="surroundings-action"
+                onClick={() => {
+                  setSelectedStop(nearestStop.stop.id);
+                  setSelectedId(null);
+                }}
+              >
+                <span>{tr("View stop & arrivals", "Lihat hentian & ketibaan")}</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
           {vehicle && (
             <div className="vehicle-detail" aria-live="polite">
               <div className="detail-top">

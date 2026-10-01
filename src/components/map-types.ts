@@ -22,4 +22,7 @@ export interface TransportMapProps {
   picking?: boolean;
   onPick?: (coordinate: Coordinate) => void;
   onSelectStop?: (id: string) => void;
+  userLocation?: Coordinate | null;
+  onUserLocationChange?: (coordinate: Coordinate | null) => void;
+  onLocationError?: (message: string) => void;
 }

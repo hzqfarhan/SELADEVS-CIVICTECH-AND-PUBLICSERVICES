@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { LocateFixed } from "lucide-react";
 import { busFootprint } from "./geographic-3d";
 import MalaysiaBoundaries, {
   boundaryContains,
@@ -346,12 +347,13 @@ function FlatMap(props: TransportMapProps) {
     [boundary, props.vehicles],
   );
   const allowedRef = useRef(allowedVehicles);
-  allowedRef.current = allowedVehicles;
-
   const [unavailable, setUnavailable] = useState(false);
   const [tileError, setTileError] = useState(false);
   const [baseLoaded, setBaseLoaded] = useState(false);
   const regionAtFit = useRef<string | null>(null);
+  const [locating, setLocating] = useState(false);
+  const userMarkerRef = useRef<Marker | null>(null);
+  const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     let disposed = false;
@@ -389,7 +391,7 @@ function FlatMap(props: TransportMapProps) {
         );
         instance.addControl(
           new maplibre.ScaleControl({ maxWidth: 85, unit: "metric" }),
-          "bottom-left",
+          "bottom-right",
         );
         instance
           .getCanvas()
@@ -648,6 +650,12 @@ function FlatMap(props: TransportMapProps) {
     });
     return () => {
       disposed = true;
+      if (watchIdRef.current !== null && typeof navigator !== "undefined") {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      userMarkerRef.current?.remove();
+      userMarkerRef.current = null;
       clearTimeout(loadTimeout);
       cancelAnimationFrame(frame);
       observer?.disconnect();
@@ -878,6 +886,38 @@ function FlatMap(props: TransportMapProps) {
   useEffect(() => {
     const instance = map.current;
     if (!ready || !instance || unavailable) return;
+    let cancelled = false;
+    if (props.userLocation) {
+      void import("maplibre-gl").then(({ Marker }) => {
+        if (cancelled || !map.current || !props.userLocation) return;
+        if (!userMarkerRef.current) {
+          const el = document.createElement("div");
+          el.className = "gerak-user-marker";
+          el.setAttribute("aria-label", "Your current location");
+          const pulse = document.createElement("span");
+          pulse.className = "gerak-user-marker-pulse";
+          const dot = document.createElement("span");
+          dot.className = "gerak-user-marker-dot";
+          el.append(pulse, dot);
+          userMarkerRef.current = new Marker({ element: el, anchor: "center" })
+            .setLngLat(props.userLocation)
+            .addTo(map.current);
+        } else {
+          userMarkerRef.current.setLngLat(props.userLocation);
+        }
+      });
+    } else if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [props.userLocation, ready, unavailable]);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || unavailable) return;
     const data = {
       type: "FeatureCollection" as const,
       features: props.stops
@@ -1091,6 +1131,60 @@ function FlatMap(props: TransportMapProps) {
     });
   }, [ready, lighting]);
 
+  const handleLocate = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      latest.current.onLocationError?.(
+        "Geolocation is not supported by your browser.",
+      );
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const coord: Coordinate = [pos.coords.longitude, pos.coords.latitude];
+        latest.current.onUserLocationChange?.(coord);
+        if (map.current) {
+          map.current.flyTo({
+            center: coord,
+            zoom: Math.max(15.5, map.current.getZoom()),
+            duration: 1200,
+          });
+        }
+        if (watchIdRef.current === null) {
+          watchIdRef.current = navigator.geolocation.watchPosition(
+            (watchPos) => {
+              const watchCoord: Coordinate = [
+                watchPos.coords.longitude,
+                watchPos.coords.latitude,
+              ];
+              latest.current.onUserLocationChange?.(watchCoord);
+            },
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
+          );
+        }
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === 1) {
+          latest.current.onLocationError?.(
+            "Location access denied. Please enable location permissions in your browser to view your surroundings.",
+          );
+        } else if (err.code === 2) {
+          latest.current.onLocationError?.(
+            "GPS location unavailable on this device.",
+          );
+        } else {
+          latest.current.onLocationError?.(
+            "Location request timed out. Please try again.",
+          );
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+    );
+  };
+
   if (unavailable)
     return (
       <SchematicMap {...props} reason="Map could not load · route schematic" />
@@ -1118,13 +1212,6 @@ function FlatMap(props: TransportMapProps) {
       {tileError && !baseLoaded && (
         <div className="gerak-map-tile-notice">
           Basemap unavailable · route positions remain available
-        </div>
-      )}
-      {props.mode === "3d" && (
-        <div className="gerak-geographic-note">
-          Real geography · OpenStreetMap
-          <br />
-          Windows and lights are illustrative · heights may be estimated
         </div>
       )}
       <div
@@ -1172,6 +1259,21 @@ function FlatMap(props: TransportMapProps) {
           −
         </button>
         <span />
+        <button
+          type="button"
+          className={`gerak-locate-button ${locating ? "is-locating" : ""} ${props.userLocation ? "is-active" : ""}`}
+          title={
+            locating
+              ? "Finding your location…"
+              : props.userLocation
+                ? "Your location (click to center)"
+                : "Find my location & surroundings"
+          }
+          aria-label="Find my location"
+          onClick={handleLocate}
+        >
+          <LocateFixed size={17} />
+        </button>
         {props.mode === "3d" && props.region === "johor" && (
           <button
             type="button"

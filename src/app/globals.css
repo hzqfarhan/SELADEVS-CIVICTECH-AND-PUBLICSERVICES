@@ -821,12 +821,12 @@
 }
 .map-city-label {
   position: absolute;
-  top: 113px;
-  left: 36px;
+  top: 22px;
+  left: 28px;
   pointer-events: none;
   z-index: 2;
   text-shadow: 0 2px 20px #0005;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 .map-city-label > span {
   font-size: 9px;
@@ -840,7 +840,7 @@
   letter-spacing: -2.5px;
   font-weight: 500;
   line-height: 1.04;
-  margin-top: 13px;
+  margin-top: 7px;
   color: #eff7e8;
 }
 .map-city-label h2 span {
@@ -2115,8 +2115,8 @@
     display: none;
   }
   .map-city-label {
-    left: 27px;
-    top: 110px;
+    left: 22px;
+    top: 20px;
   }
   .map-city-label h2 {
     font-size: 40px;
@@ -2468,46 +2468,52 @@
     width: 13px;
   }
   .map-city-label {
-    top: 69px;
-    left: 19px;
-    opacity: 0.55;
+    top: 12px;
+    left: 12px;
+    opacity: 0.85;
   }
   .map-city-label > span {
-    font-size: 7px;
-    letter-spacing: 1.6px;
+    font-size: 7.5px;
+    letter-spacing: 1.2px;
   }
   .map-city-label h2 {
-    font-size: 29px;
-    letter-spacing: -1.3px;
-    margin-top: 7px;
+    font-size: 19px;
+    letter-spacing: -0.6px;
+    margin-top: 2px;
   }
   .map-hint {
     display: none;
   }
   .map-bottom {
-    left: 12px;
-    right: 12px;
-    bottom: 42px;
+    left: 10px;
+    right: 10px;
+    bottom: 38px;
+    gap: 8px;
   }
   .map-legend {
-    padding: 8px 9px;
-    gap: 10px;
+    padding: 6px 9px;
+    gap: 8px;
     border-radius: 7px;
   }
   .map-legend > span {
     font-size: 8px;
+    gap: 4px;
   }
   .map-legend > span i {
-    width: 8px;
+    width: 7px;
     height: 2px;
   }
   .report-fab {
-    height: 32px;
-    width: 32px;
+    height: 30px;
+    width: 30px;
     border-radius: 7px;
+    padding: 0;
+    display: grid;
+    place-items: center;
   }
   .report-fab svg {
-    width: 16px;
+    width: 15px;
+    height: 15px;
   }
   .network-strip {
     padding: 10px 13px;
@@ -2901,3 +2907,157 @@
     gap: 7px;
   }
 }
+
+/* Surroundings Card */
+.surroundings-card {
+  position: absolute;
+  top: 86px;
+  left: 28px;
+  width: 290px;
+  max-width: calc(100vw - 56px);
+  background: #11201bed;
+  border: 1px solid #38bdf844;
+  box-shadow: 0 10px 30px #00000055, 0 0 15px #38bdf818;
+  backdrop-filter: blur(14px);
+  border-radius: 12px;
+  padding: 12px 14px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: gerak-fade-in 0.2s ease-out;
+}
+.surroundings-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.surroundings-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #38bdf8;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+}
+.surroundings-body strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #effbf4;
+  line-height: 1.3;
+}
+.surroundings-body p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: #9eb5a7;
+}
+.surroundings-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: #38bdf818;
+  border: 1px solid #38bdf838;
+  color: #cceeff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 2px;
+}
+.surroundings-action:hover {
+  background: #38bdf82a;
+  border-color: #38bdf866;
+  color: #ffffff;
+}
+
+/* City Suggestion Banner */
+.city-suggest-banner {
+  background: #10262bed;
+  border: 1px solid #38bdf855;
+  color: #e0f4fc;
+}
+.banner-action-button {
+  background: #38bdf8;
+  color: #071e28;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.banner-action-button:hover {
+  opacity: 0.9;
+}
+
+/* Stop distance indicator in sidebar */
+.stop-distance {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .surroundings-card {
+    top: 44px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+    padding: 7px 11px;
+    border-radius: 9px;
+    gap: 5px;
+    z-index: 6;
+  }
+  .surroundings-top {
+    gap: 8px;
+  }
+  .surroundings-badge {
+    font-size: 8.5px;
+  }
+  .surroundings-body {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .surroundings-body strong {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .surroundings-body p {
+    font-size: 9.5px;
+    white-space: nowrap;
+    margin: 0;
+  }
+  .surroundings-action {
+    padding: 5px 9px;
+    font-size: 10px;
+    border-radius: 6px;
+  }
+  .city-suggest-banner {
+    top: 44px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    padding: 7px 10px;
+    font-size: 10px;
+    border-radius: 8px;
+    gap: 6px;
+    z-index: 6;
+  }
+  .banner-action-button {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+}
+
