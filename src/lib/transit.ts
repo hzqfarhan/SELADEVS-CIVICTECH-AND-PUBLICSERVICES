@@ -301,7 +301,10 @@ export const routes: TransitRoute[] = [
         id: `U${String(overallIndex + 1).padStart(2, "0")}`,
         name: route.name,
         destination: route.name,
-        color: ["#b3f56b", "#75baff", "#f6ad73"][overallIndex % 3],
+        color:
+          route.name.includes("KKTU")
+            ? "#38bdf8"
+            : ["#b3f56b", "#75baff", "#f6ad73"][overallIndex % 3],
         operator: "UTHM / KATSANA geometry · simulated service",
         region,
         source: "demo",

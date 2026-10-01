@@ -172,7 +172,7 @@ export default function GerakApp({
       ? (officialNetwork?.routes ?? [])
       : routes.filter((r) => r.region === region);
     const colors = uniqueRouteColors(network.map((r) => r.id));
-    return network.map((r) => ({ ...r, color: colors.get(r.id)! }));
+    return network.map((r) => ({ ...r, color: r.color || colors.get(r.id)! }));
   }, [region, usingOfficial, officialNetwork]);
   const regionStops = useMemo(
     () =>

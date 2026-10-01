@@ -38,6 +38,7 @@ export interface Vehicle {
   source: "simulator" | "gtfs-rt";
   progress?: number;
   region: Region;
+  licensePlate?: string;
 }
 export type ReportCategory =
   | "damaged-stop"

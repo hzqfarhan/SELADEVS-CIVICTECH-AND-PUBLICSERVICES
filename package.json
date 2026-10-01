@@ -15,6 +15,9 @@
     "prebuild": "node scripts/prepare-assets.mjs",
     "postinstall": "node scripts/prepare-assets.mjs",
     "sources": "tsx scripts/source-inventory.ts",
+    "scrape:uthm": "tsx scripts/scrape-uthm.ts",
+    "scrape:uthm:watch": "tsx scripts/scrape-uthm.ts --watch",
+    "scrape:uthm:json": "tsx scripts/scrape-uthm.ts --json",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/*.{ts,mjs}\" \"tests/*.ts\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/*.{ts,mjs}\" \"tests/*.ts\""
   },
