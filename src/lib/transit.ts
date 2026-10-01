@@ -115,6 +115,13 @@ const illustrativeStops: Stop[] = [
     accessible: false,
     region: "uthm",
   },
+  {
+    id: "uthm-kktu",
+    name: "Kolej Kediaman Taman Universiti (KKTU)",
+    coordinate: [103.075257, 1.85574],
+    accessible: true,
+    region: "uthm",
+  },
 ];
 const illustrativeRoutes: TransitRoute[] = [
   {
@@ -267,10 +274,21 @@ const campusDefinitions: Array<{
   },
 ];
 
+const additionalCampusStops: Stop[] = [
+  {
+    id: "uthm-kktu",
+    name: "Kolej Kediaman Taman Universiti (KKTU)",
+    coordinate: [103.075257, 1.85574],
+    accessible: true,
+    region: "uthm",
+  },
+];
+
 export const stops: Stop[] = [
   ...illustrativeStops.filter(
     (stop) => stop.region !== "uthm" && (stop.region as string) !== "uthm-pagoh",
   ),
+  ...additionalCampusStops,
   ...campusDefinitions.flatMap(({ campus, region }) =>
     Array.from(
       new Map(
