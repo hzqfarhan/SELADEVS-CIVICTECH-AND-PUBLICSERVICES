@@ -66,6 +66,11 @@ export function createBusFleetLayer(
 
   const buildings = createBuildingDetails(origin, units);
   scene.add(buildings.group);
+  const focusScene = new THREE.Scene();
+  const focusAmbient = new THREE.AmbientLight("#e7f0ff", 2);
+  const focusSun = new THREE.DirectionalLight("#fff3d1", 2.5);
+  focusSun.position.set(-50, 30, 100);
+  focusScene.add(focusAmbient, focusSun);
   let lastFrame = 0;
   let lastLampUpdate = -Infinity;
   const ambient = new THREE.AmbientLight("#b3d6ef", 1.4);
@@ -92,7 +97,7 @@ export function createBusFleetLayer(
     },
     render(_gl, args) {
       const props = getProps();
-      if (props.mode !== "3d" || map.getZoom() < 11) return;
+      if (props.mode !== "3d" || map.getZoom() < 13) return;
       const now = performance.now();
       const dt = Math.min(0.1, Math.max(0.001, (now - lastFrame) / 1000));
       lastFrame = now;
@@ -100,6 +105,8 @@ export function createBusFleetLayer(
       ambient.intensity =
         lighting === "day" ? 2 : lighting === "night" ? 0.65 : 1.4;
       sun.intensity = lighting === "day" ? 3 : lighting === "night" ? 0.7 : 2.8;
+      if (props.weatherCode !== undefined && props.weatherCode >= 3)
+        sun.intensity *= props.weatherCode >= 51 ? 0.6 : 0.8;
       sun.color.set(
         lighting === "day"
           ? "#fff9e9"
@@ -110,6 +117,7 @@ export function createBusFleetLayer(
       poolMaterial.opacity =
         lighting === "day" ? 0.025 : lighting === "night" ? 0.2 : 0.11;
       buildings.update(map, now, lighting);
+      if (props.follow) buildings.group.visible = false;
 
       const active = new Set(props.vehicles.map((v) => v.id));
       for (const [id, model] of models)
@@ -217,6 +225,20 @@ export function createBusFleetLayer(
         );
       renderer.resetState();
       renderer.render(scene, camera);
+      // Focus overlay keeps the selected ride legible through softened buildings.
+      const focused =
+        props.follow && props.selectedVehicleId
+          ? models.get(props.selectedVehicleId)?.bus.root
+          : undefined;
+      if (focused?.visible) {
+        focusAmbient.intensity = ambient.intensity;
+        focusSun.intensity = sun.intensity;
+        focusSun.color.copy(sun.color);
+        focusScene.add(focused);
+        renderer.clearDepth();
+        renderer.render(focusScene, camera);
+        scene.add(focused);
+      }
       renderer.resetState();
       map.triggerRepaint();
     },

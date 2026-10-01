@@ -89,3 +89,6 @@ The endpoint registry in src/lib/feeds.ts replaces the Johor-only adapter scope 
 ## UTHM / KATSANA campus snapshot
 
 The public page https://uthm.katsana.com/ supplies three campus route paths and checkpoint coordinates, captured in `/data/uthm-katsana.json`. Its advertised `wss://ws.shuttle.katsana.com/stream/1` endpoint responded with vehicle state and ping events on 1 October 2026. GERAK currently uses the geometry only, with explicitly simulated vehicle motion. See [UTHM_PILOT.md](UTHM_PILOT.md) for fields, verification limits and production adapter requirements.
+
+## Open-Meteo weather
+https://api.open-meteo.com/v1/forecast supplies modelled current conditions at registered service centres. See https://open-meteo.com/en/docs. Weather card attributes the provider, shows model time in MYT and labels stale data. City/service selection changes the requested location. This is not a station observation or official severe-weather alert. Commercial deployments must review provider API terms.

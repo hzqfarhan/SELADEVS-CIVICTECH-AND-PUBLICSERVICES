@@ -15,6 +15,9 @@ export interface TransportMapProps {
   selectedVehicleId: string | null;
   onSelectVehicle: (id: string) => void;
   follow: boolean;
+  onFollowChange?: (follow: boolean) => void;
+  onOverview?: () => void;
+  weatherCode?: number;
   routes: TransitRoute[];
   stops: Stop[];
   reports: CivicReport[];

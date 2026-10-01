@@ -56,3 +56,7 @@ The shared conversation could not be fetched. The available CODEFEST archive was
 - [x] Stabilize 2D bus interaction: remove marker-root scaling and transform transitions, reduce desktop markers to 32px with 22px icons, retain 38px touch targets, suppress map-drag initiation on marker presses, and hold pressed markers still until release. TypeScript and production build pass; interactive browser verification remains pending.
 
 - [x] Selecting a bus now smoothly centres and zooms to its displayed/interpolated position in both map modes, without requiring Follow. Preserves a closer existing zoom. Production build and TypeScript pass.
+
+- [x] 3D click automatically follows from the bus right-hand side; tyres enlarged from radius 0.48 to 0.70 with matching wheel rotation. Ground route layers placed before building/fleet layers.
+- [x] Day mode now recolours the basemap and is available in both 2D/3D. Added service-area current weather from Open-Meteo with timestamps, caching, stale/unavailable states and source attribution. 38 tests and TypeScript pass.
+- [x] Production build completes and weather API returns validated HTTP 200 current model data for Johor Bahru and Kuching on port 3001. Browser visual verification remains pending. Full-repository formatting check reports seven concurrently modified files outside the weather/day-palette additions; these were not reformatted wholesale.

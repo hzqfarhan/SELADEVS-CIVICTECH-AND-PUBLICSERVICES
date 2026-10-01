@@ -301,10 +301,32 @@
 .top-operator:hover {
   background: #2b3c39;
 }
+.sidebar-rail-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #ffffff18;
+  background: #182b22;
+  color: #a4c4b2;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.sidebar-rail-toggle-btn:hover {
+  background: #243e32;
+  color: #c9ff5d;
+  border-color: #c9ff5d50;
+  box-shadow: 0 0 12px #c9ff5d25;
+}
 .workspace {
   min-height: 0;
   display: grid;
   grid-template-columns: 357px minmax(0, 1fr);
+  position: relative;
 }
 .workspace.panel-collapsed {
   grid-template-columns: 1fr;
@@ -319,6 +341,60 @@
 }
 .panel-heading {
   padding: 30px 25px 22px;
+}
+.panel-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #ffffff16;
+  background: #14221b;
+  color: #8da498;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.sidebar-toggle-btn:hover {
+  background: #1e362a;
+  color: #c9ff5d;
+  border-color: #c9ff5d50;
+  box-shadow: 0 0 10px #c9ff5d20;
+}
+.sidebar-floating-restore-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 12;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid #ffffff24;
+  background: #111d16f0;
+  backdrop-filter: blur(12px);
+  color: #eff9ed;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 18px #00000070, 0 0 12px #00000040;
+  transition: all 0.18s ease;
+  animation: slide-in 0.18s ease-out;
+}
+.sidebar-floating-restore-btn:hover {
+  background: #182e22;
+  color: #c9ff5d;
+  border-color: #c9ff5d50;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px #00000090, 0 0 16px #c9ff5d30;
 }
 .eyebrow {
   font-size: 10px;
@@ -3109,3 +3185,18 @@
   }
 }
 
+
+/* Passenger map polish: readable status, scrollable details and room to interact. */
+.ride-status { display: grid; gap: 6px; padding: 12px; margin: 12px 0; background: #0b1918; border: 1px solid #395249; border-radius: 10px; font-size: 11px; }
+.ride-status > strong { color: #cfec9d; }
+.ride-status span, .ride-status small { color: #aec2b7; display: block; line-height: 1.5; }
+.ride-status b { display: block; color: #eff8ed; margin: 4px 0; }
+.vehicle-detail { max-height: calc(100% - 160px); overflow-y: auto; overscroll-behavior: contain; }
+@media(max-width:700px) {
+  .vehicle-detail { top: auto; bottom: 72px; right: 10px; left: 10px; width: auto; max-height: 185px; }
+  .map-city-label { display: none; }
+}
+
+@media(max-width:700px) { .side-panel { flex: 0 0 35%; height: 35%; max-height: 35%; } .map-workspace { min-height: 290px; } }
+
+@media(max-width:700px) { .vehicle-detail > h2 { display: none; } .vehicle-detail .license-plate-header { margin-bottom: 5px; } .vehicle-detail > p { margin: 5px 0; } .ride-status { padding: 8px; margin: 7px 0; } }

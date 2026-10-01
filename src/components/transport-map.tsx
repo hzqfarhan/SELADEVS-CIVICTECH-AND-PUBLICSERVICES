@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LocateFixed } from "lucide-react";
+import type { CurrentWeather } from "@/lib/weather";
+import { MapWeather } from "./map-weather";
+import { createDayPalette } from "./map-day-palette";
+import { updateFleetClusters } from "./fleet-clusters";
 import { busFootprint } from "./geographic-3d";
 import MalaysiaBoundaries, {
   boundaryContains,
@@ -52,6 +56,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
   const motions = useRef(new Map<string, VehicleMotion>());
   const nodes = useRef(new Map<string, SVGGElement>());
   const [pick, setPick] = useState<Coordinate | null>(null);
+
   useEffect(() => {
     updateMotions(
       motions.current,
@@ -318,7 +323,26 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
 function FlatMap(props: TransportMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const motionStatus = useRef<HTMLDivElement>(null);
-  const [lighting, setLighting] = useState<"day" | "dusk" | "night">("dusk");
+  const [lightingChoice, setLighting] = useState<
+    "auto" | "day" | "dusk" | "night"
+  >("auto");
+  const [weather, setWeather] = useState<CurrentWeather | null>(null);
+  const lighting =
+    lightingChoice === "auto"
+      ? weather && !weather.stale
+        ? weather.isDay
+          ? "day"
+          : "night"
+        : "day"
+      : lightingChoice;
+  const [viewAngle, setViewAngle] = useState<"right" | "left" | "front">(
+    "right",
+  );
+  const angleRef = useRef(viewAngle);
+  angleRef.current = viewAngle;
+  const weatherRef = useRef(weather);
+  weatherRef.current = weather;
+  const dayPalette = useRef(createDayPalette());
   const lightingRef = useRef(lighting);
   lightingRef.current = lighting;
   const map = useRef<LibreMap | null>(null);
@@ -481,6 +505,9 @@ function FlatMap(props: TransportMapProps) {
                 () => ({
                   ...latest.current,
                   lighting: lightingRef.current,
+                  weatherCode: weatherRef.current?.stale
+                    ? undefined
+                    : weatherRef.current?.code,
                   vehicles: latest.current.vehicles.filter((v) =>
                     allowedRef.current.has(v.id),
                   ),
@@ -511,7 +538,40 @@ function FlatMap(props: TransportMapProps) {
         instance.on("webglcontextlost", () => {
           if (!disposed) setUnavailable(true);
         });
+        instance.on("dragstart", (event) => {
+          if (event.originalEvent) latest.current.onFollowChange?.(false);
+        });
         instance.on("click", (event) => {
+          if (
+            !latest.current.picking &&
+            instance.getZoom() < 13 &&
+            instance.getLayer("fleet-clusters")
+          ) {
+            const hit = instance.queryRenderedFeatures(event.point, {
+              layers: ["fleet-clusters", "fleet-overview-single"],
+            })[0];
+            if (
+              hit?.properties?.cluster_id !== undefined &&
+              hit.geometry.type === "Point"
+            ) {
+              const coordinates = hit.geometry.coordinates as [number, number];
+              void (instance.getSource("fleet-overview") as GeoJSONSource)
+                .getClusterExpansionZoom(Number(hit.properties.cluster_id))
+                .then((zoom) => {
+                  if (!disposed)
+                    instance.easeTo({
+                      center: coordinates,
+                      zoom: zoom + 0.25,
+                      duration: 600,
+                    });
+                });
+              return;
+            }
+            if (hit?.properties?.id) {
+              latest.current.onSelectVehicle(String(hit.properties.id));
+              return;
+            }
+          }
           if (latest.current.picking) {
             latest.current.onPick?.([event.lngLat.lng, event.lngLat.lat]);
           } else if (instance.getLayer("bus-models-3d")) {
@@ -565,9 +625,10 @@ function FlatMap(props: TransportMapProps) {
             // vehicles remain tappable while their geographic animation continues.
             if (!marker.element.matches(":active"))
               marker.marker.setLngLat(sample.coordinate);
-            marker.element.style.display = !allowedRef.current.has(id)
-              ? "none"
-              : "";
+            marker.element.style.display =
+              instance.getZoom() < 13 || !allowedRef.current.has(id)
+                ? "none"
+                : "";
             marker.icon.style.transform = `rotate(${sample.bearing - instance.getBearing()}deg)`;
             if (
               latest.current.follow &&
@@ -576,7 +637,15 @@ function FlatMap(props: TransportMapProps) {
               !instance.isMoving()
             ) {
               const headingDelta =
-                ((sample.bearing - 90 - instance.getBearing() + 540) % 360) -
+                ((sample.bearing +
+                  (angleRef.current === "right"
+                    ? -90
+                    : angleRef.current === "left"
+                      ? 90
+                      : 180) -
+                  instance.getBearing() +
+                  540) %
+                  360) -
                 180;
               instance.jumpTo({
                 center: sample.coordinate,
@@ -796,6 +865,14 @@ function FlatMap(props: TransportMapProps) {
   }, [ready, unavailable, props.routes, props.region, props.vehicles]);
 
   useEffect(() => {
+    if (!ready || !map.current || unavailable) return;
+    updateFleetClusters(
+      map.current,
+      props.vehicles.filter((v) => allowedVehicles.has(v.id)),
+    );
+  }, [ready, unavailable, props.vehicles, allowedVehicles]);
+
+  useEffect(() => {
     updateMotions(
       motions.current,
       props.vehicles,
@@ -869,7 +946,8 @@ function FlatMap(props: TransportMapProps) {
         );
         entry.element.style.zIndex =
           props.selectedVehicleId === vehicle.id ? "5" : "2";
-        entry.element.style.display = props.mode === "3d" ? "none" : "";
+        entry.element.style.display =
+          props.mode === "3d" || map.current.getZoom() < 13 ? "none" : "";
       }
     });
     return () => {
@@ -1107,18 +1185,38 @@ function FlatMap(props: TransportMapProps) {
       const center = sample.coordinate;
       map.current?.easeTo({
         center,
+        padding:
+          map.current && map.current.getContainer().clientWidth > 700
+            ? { top: 0, left: 0, right: 340, bottom: 0 }
+            : { top: 0, left: 0, right: 0, bottom: 200 },
         zoom: Math.max(map.current.getZoom(), props.mode === "3d" ? 17.5 : 16),
         pitch: props.mode === "3d" ? 62 : 0,
-        ...(props.mode === "3d" ? { bearing: sample.bearing - 90 } : {}),
+        ...(props.mode === "3d"
+          ? {
+              bearing:
+                sample.bearing +
+                (viewAngle === "right" ? -90 : viewAngle === "left" ? 90 : 180),
+            }
+          : {}),
         duration: 800,
       });
     }
     // GPS updates are followed by the interpolation loop, not by restarting camera transitions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, props.follow, props.selectedVehicleId, props.mode]);
+  }, [ready, props.follow, props.selectedVehicleId, props.mode, viewAngle]);
+
+  useEffect(() => {
+    if (ready && map.current?.getLayer("johor-buildings-3d"))
+      map.current.setPaintProperty(
+        "johor-buildings-3d",
+        "fill-extrusion-opacity",
+        props.follow ? 0.18 : 0.96,
+      );
+  }, [ready, props.follow]);
 
   useEffect(() => {
     if (!ready || !map.current) return;
+    dayPalette.current(map.current, lighting === "day");
     map.current.setLight({
       anchor: "map",
       color:
@@ -1130,7 +1228,7 @@ function FlatMap(props: TransportMapProps) {
       intensity: lighting === "day" ? 0.65 : lighting === "night" ? 0.2 : 0.55,
       position: [1.5, 210, lighting === "day" ? 28 : 65],
     });
-  }, [ready, lighting]);
+  }, [ready, lighting, boundary]);
 
   const handleLocate = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
@@ -1222,27 +1320,70 @@ function FlatMap(props: TransportMapProps) {
       >
         GPS observations · route estimates between updates
       </div>
+      {props.selectedVehicleId && (
+        <div className="gerak-follow-controls">
+          <button
+            type="button"
+            onClick={() => props.onFollowChange?.(!props.follow)}
+          >
+            {props.follow ? "Stop following" : "Follow bus"}
+          </button>
+          {props.mode === "3d" && (
+            <select
+              aria-label="Bus viewing angle"
+              value={viewAngle}
+              onChange={(event) =>
+                setViewAngle(event.target.value as typeof viewAngle)
+              }
+            >
+              <option value="right">Right side</option>
+              <option value="left">Left side</option>
+              <option value="front">Front view</option>
+            </select>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              props.onOverview?.();
+              map.current?.fitBounds(
+                createProjection(props.routes, props.region).bounds,
+                {
+                  padding: 55,
+                  pitch: props.mode === "3d" ? 35 : 0,
+                  bearing: 0,
+                  duration: 800,
+                },
+              );
+            }}
+          >
+            Overview
+          </button>
+        </div>
+      )}
+      <MapWeather region={props.region} onWeather={setWeather} />
       <div className="gerak-map-navigation" aria-label="Map controls">
-        {props.mode === "3d" && (
+        {
           <button
             type="button"
             className="gerak-light-button"
-            aria-label={`Scene lighting: ${lighting}. Change lighting`}
-            title={`Lighting: ${lighting} · click to cycle`}
+            aria-label={`Scene lighting: ${lightingChoice}. Change lighting`}
+            title={`Lighting: ${lightingChoice} (${lighting}) · click to cycle`}
             onClick={() =>
               setLighting(
-                lighting === "day"
-                  ? "dusk"
-                  : lighting === "dusk"
-                    ? "night"
-                    : "day",
+                lightingChoice === "auto"
+                  ? "day"
+                  : lightingChoice === "day"
+                    ? "dusk"
+                    : lightingChoice === "dusk"
+                      ? "night"
+                      : "auto",
               )
             }
           >
             {lighting === "day" ? "☀" : lighting === "night" ? "☾" : "◐"}
-            <small>{lighting}</small>
+            <small>{lightingChoice}</small>
           </button>
-        )}
+        }
         <button
           type="button"
           title="Zoom in"

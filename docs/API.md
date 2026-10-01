@@ -81,3 +81,6 @@ Types: `src/lib/types.ts`. Validation: `src/lib/server/reports.ts`. End-to-end r
 ## Multi-agency caching
 
 All official adapters share a four-request/minute budget within one Node process. Each vehicle feed coalesces concurrent requests for 35 seconds; each static endpoint persists a separate daily cache. Excess demand returns cached/unavailable status without fabricated positions. Multiple replicas require shared ingestion coordination. Known endpoint and snapshot limitations are recorded in FEED_VERIFICATION.md.
+
+## Current weather
+GET /api/weather?region=johor returns temperature (C), feelsLike (C), humidity (%), precipitation (mm per provider current interval), wind (km/h), WMO code, isDay, observedAt/fetchedAt (Unix milliseconds), location and stale. Uses the selected service-area centre, not the user's precise location. 15-minute server cache, deduplicated in-flight requests, bounded response size, 8-second timeout and request limiting. Returns 503 if unavailable without cached data; never synthesizes readings.

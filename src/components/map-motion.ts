@@ -86,10 +86,15 @@ export function positionOnPath(
 }
 
 /** Closest segment projection; never extrapolate a bus onto an unrelated corridor. */
-export function projectToRoute(path: Coordinate[], point: Coordinate) {
+export function projectToRoute(
+  path: Coordinate[],
+  point: Coordinate,
+  heading?: number,
+) {
   const { segments, total } = routeLengths(path);
   let nearest = { progress: 0, distance: Infinity, bearing: 0 };
   let traversed = 0;
+  let bestScore = Infinity;
   for (let i = 0; i < segments.length; i++) {
     const a = path[i],
       b = path[i + 1];
@@ -108,15 +113,32 @@ export function projectToRoute(path: Coordinate[], point: Coordinate) {
     const distance =
       Math.hypot((point[0] - a[0]) * cos - t * dx, point[1] - a[1] - t * dy) *
       111320;
-    if (distance < nearest.distance)
+    const segmentBearing = ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
+    const angle =
+      heading === undefined
+        ? 0
+        : Math.abs(((heading - segmentBearing + 540) % 360) - 180);
+    // At nearby crossings prefer an aligned street, in either direction.
+    const score = distance + (Math.min(angle, 180 - angle) / 90) * 25;
+    if (score < bestScore) {
+      bestScore = score;
       nearest = {
         distance,
         progress: total ? (traversed + segments[i] * t) / total : 0,
         bearing: ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360,
       };
+    }
     traversed += segments[i];
   }
   return nearest;
+}
+
+/** Coast to a halt over the final 30 seconds of a three-minute GPS outage. */
+export function predictionTravelSeconds(age: number) {
+  const seconds = Math.max(0, Math.min(180, age));
+  if (seconds <= 150) return seconds;
+  const t = (seconds - 150) / 30;
+  return 150 + 30 * (t - t ** 3 + t ** 4 / 2);
 }
 
 export function sampleMotion(motion: VehicleMotion, now: number) {
@@ -124,7 +146,7 @@ export function sampleMotion(motion: VehicleMotion, now: number) {
     const p = motion.prediction;
     const elapsed = Math.max(0, (now - motion.started) / 1000);
     // Estimate only for a bounded outage. Never manufacture new GPS timestamps.
-    const seconds = Math.min(180, p.age + elapsed);
+    const seconds = predictionTravelSeconds(p.age + elapsed);
     const blend = Math.min(1, elapsed / 6);
     let progress =
       p.progress +
@@ -228,7 +250,11 @@ export function updateMotions(
       (r) => r.id === vehicle.routeId && r.source === "official",
     );
     const projected = route
-      ? projectToRoute(route.path, vehicle.coordinate)
+      ? projectToRoute(
+          route.path,
+          vehicle.coordinate,
+          vehicle.bearingKnown === false ? undefined : vehicle.bearing,
+        )
       : undefined;
     let prediction: VehicleMotion["prediction"];
     if (
@@ -273,7 +299,8 @@ export function updateMotions(
         30;
       let correction =
         previous && start.distance < 80
-          ? start.progress - (projected.progress + rate * Math.min(180, age))
+          ? start.progress -
+            (projected.progress + rate * predictionTravelSeconds(age))
           : 0;
       if (loop) correction = ((correction + 1.5) % 1) - 0.5;
       prediction = {

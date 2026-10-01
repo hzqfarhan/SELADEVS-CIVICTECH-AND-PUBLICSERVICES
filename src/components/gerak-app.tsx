@@ -1,4 +1,5 @@
 "use client";
+import { RideStatus } from "./ride-status";
 import { SERVICES, serviceFor } from "@/lib/feeds";
 import { uniqueRouteColors } from "@/lib/route-colors";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -42,6 +43,8 @@ import {
   Footprints,
   CloudRain,
   Construction,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import type {
   CivicReport,
@@ -53,7 +56,13 @@ import type {
   TransitRoute,
   Stop,
 } from "@/lib/types";
-import { routes, stops, etaForVehicle, planJourney, distance } from "@/lib/transit";
+import {
+  routes,
+  stops,
+  etaForVehicle,
+  planJourney,
+  distance,
+} from "@/lib/transit";
 import { useNetwork } from "@/lib/use-network";
 const TransportMap = dynamic(() => import("./transport-map"), {
   ssr: false,
@@ -355,6 +364,7 @@ export default function GerakApp({
     );
   };
   const selectVehicle = (id: string) => {
+    if (window.matchMedia("(max-width: 700px)").matches) setPanelOpen(false);
     if (mode === "3d") setFollow(true);
     setSelectedId(id);
     setSelectedStop(null);
@@ -544,6 +554,27 @@ export default function GerakApp({
       </aside>
       <header className="topbar">
         <div className="brand-lockup">
+          <button
+            type="button"
+            className="sidebar-rail-toggle-btn"
+            onClick={() => setPanelOpen((open) => !open)}
+            aria-label={
+              panelOpen
+                ? tr("Collapse sidebar", "Kecilkan panel")
+                : tr("Expand sidebar", "Buka panel")
+            }
+            title={
+              panelOpen
+                ? tr("Collapse sidebar", "Kecilkan panel")
+                : tr("Expand sidebar", "Buka panel")
+            }
+          >
+            {panelOpen ? (
+              <PanelLeftClose size={18} />
+            ) : (
+              <PanelLeftOpen size={18} />
+            )}
+          </button>
           <button className="wordmark" onClick={() => setView("explore")}>
             gerak<span>↗</span>
           </button>
@@ -601,12 +632,23 @@ export default function GerakApp({
             )}
           >
             <div className="panel-heading">
-              <span className="eyebrow">
-                <span className="tiny-star">✳</span>{" "}
-                {view === "operator"
-                  ? tr("CONTROL CENTRE", "PUSAT KAWALAN")
-                  : tr("YOUR CITY, CONNECTED", "BANDAR ANDA, TERHUBUNG")}
-              </span>
+              <div className="panel-heading-row">
+                <span className="eyebrow">
+                  <span className="tiny-star">✳</span>{" "}
+                  {view === "operator"
+                    ? tr("CONTROL CENTRE", "PUSAT KAWALAN")
+                    : tr("YOUR CITY, CONNECTED", "BANDAR ANDA, TERHUBUNG")}
+                </span>
+                <button
+                  type="button"
+                  className="sidebar-toggle-btn"
+                  onClick={() => setPanelOpen(false)}
+                  aria-label={tr("Collapse sidebar", "Kecilkan panel sisi")}
+                  title={tr("Collapse sidebar (minimize)", "Kecilkan panel sisi")}
+                >
+                  <PanelLeftClose size={16} />
+                </button>
+              </div>
               <h1>
                 {view === "operator"
                   ? tr("Keep your city moving.", "Pastikan bandar bergerak.")
@@ -1272,8 +1314,16 @@ export default function GerakApp({
                             <BusFront size={19} />
                           </span>
                           <span>
-                            <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <span className="mini-plate">{v.licensePlate || v.label}</span>
+                            <strong
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <span className="mini-plate">
+                                {v.licensePlate || v.label}
+                              </span>
                             </strong>
                             <small>
                               {v.routeId} ·{" "}
@@ -1495,12 +1545,31 @@ export default function GerakApp({
             "Peta pengangkutan interaktif",
           )}
         >
+          {!panelOpen && (
+            <button
+              type="button"
+              className="sidebar-floating-restore-btn"
+              onClick={() => setPanelOpen(true)}
+              aria-label={tr("Expand sidebar", "Buka panel")}
+              title={tr("Expand sidebar", "Buka panel")}
+            >
+              <PanelLeftOpen size={16} />
+              <span>{tr("Show panel", "Buka panel")}</span>
+            </button>
+          )}
           <TransportMap
             mode={mode}
             region={region}
             vehicles={displayedVehicles}
             selectedVehicleId={selectedId}
             onSelectVehicle={selectVehicle}
+            onFollowChange={setFollow}
+            onOverview={() => {
+              setPanelOpen(true);
+              setSelectedId(null);
+              setSelectedStop(null);
+              setFollow(false);
+            }}
             follow={follow}
             routes={displayedRoutes}
             stops={mapStops}
@@ -1639,47 +1708,57 @@ export default function GerakApp({
             </span>
             <h2>{service.name.split(" · ")[0]}</h2>
           </div>
-          {userLocation && showSurroundings && nearestStop && !vehicle && !selectedStop && (
-            <div
-              className="surroundings-card"
-              role="region"
-              aria-label={tr("Your surroundings", "Sekitar anda")}
-            >
-              <div className="surroundings-top">
-                <span className="surroundings-badge">
-                  <Navigation size={12} />
-                  {tr("YOUR SURROUNDINGS", "SEKITAR ANDA")}
-                </span>
+          {userLocation &&
+            showSurroundings &&
+            nearestStop &&
+            !vehicle &&
+            !selectedStop && (
+              <div
+                className="surroundings-card"
+                role="region"
+                aria-label={tr("Your surroundings", "Sekitar anda")}
+              >
+                <div className="surroundings-top">
+                  <span className="surroundings-badge">
+                    <Navigation size={12} />
+                    {tr("YOUR SURROUNDINGS", "SEKITAR ANDA")}
+                  </span>
+                  <button
+                    className="icon-button"
+                    aria-label={tr(
+                      "Close surroundings",
+                      "Tutup maklumat sekitar",
+                    )}
+                    onClick={() => setShowSurroundings(false)}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="surroundings-body">
+                  <strong>{nearestStop.stop.name}</strong>
+                  <p>
+                    {nearestStop.distanceMeters < 1000
+                      ? `${nearestStop.distanceMeters} m`
+                      : `${(nearestStop.distanceMeters / 1000).toFixed(1)} km`}{" "}
+                    · ~
+                    {Math.max(1, Math.round(nearestStop.distanceMeters / 80))}{" "}
+                    {tr("min walk", "min jalan")}
+                  </p>
+                </div>
                 <button
-                  className="icon-button"
-                  aria-label={tr("Close surroundings", "Tutup maklumat sekitar")}
-                  onClick={() => setShowSurroundings(false)}
+                  className="surroundings-action"
+                  onClick={() => {
+                    setSelectedStop(nearestStop.stop.id);
+                    setSelectedId(null);
+                  }}
                 >
-                  <X size={14} />
+                  <span>
+                    {tr("View stop & arrivals", "Lihat hentian & ketibaan")}
+                  </span>
+                  <ChevronRight size={14} />
                 </button>
               </div>
-              <div className="surroundings-body">
-                <strong>{nearestStop.stop.name}</strong>
-                <p>
-                  {nearestStop.distanceMeters < 1000
-                    ? `${nearestStop.distanceMeters} m`
-                    : `${(nearestStop.distanceMeters / 1000).toFixed(1)} km`}{" "}
-                  · ~{Math.max(1, Math.round(nearestStop.distanceMeters / 80))}{" "}
-                  {tr("min walk", "min jalan")}
-                </p>
-              </div>
-              <button
-                className="surroundings-action"
-                onClick={() => {
-                  setSelectedStop(nearestStop.stop.id);
-                  setSelectedId(null);
-                }}
-              >
-                <span>{tr("View stop & arrivals", "Lihat hentian & ketibaan")}</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          )}
+            )}
           {vehicle && (
             <div className="vehicle-detail" aria-live="polite">
               <div className="detail-top">
@@ -1707,11 +1786,18 @@ export default function GerakApp({
                 </button>
               </div>
               <div className="license-plate-header">
-                <span className="plate-badge" title="Nombor Pendaftaran Bas / Vehicle Registration Plate">
+                <span
+                  className="plate-badge"
+                  title="Nombor Pendaftaran Bas / Vehicle Registration Plate"
+                >
                   <span className="plate-flag">🇲🇾</span>
-                  <span className="plate-code">{vehicle.licensePlate || vehicle.label}</span>
+                  <span className="plate-code">
+                    {vehicle.licensePlate || vehicle.label}
+                  </span>
                 </span>
-                <span className="plate-route-chip">{vehicleRoute?.name ?? vehicle.routeId}</span>
+                <span className="plate-route-chip">
+                  {vehicleRoute?.name ?? vehicle.routeId}
+                </span>
               </div>
               <h2>{vehicle.label}</h2>
               <p>
@@ -1721,6 +1807,11 @@ export default function GerakApp({
                     "Kedudukan rasmi · metadata laluan tidak tersedia",
                   )}
               </p>
+              <RideStatus
+                vehicle={vehicle}
+                route={vehicleRoute}
+                stops={regionStops}
+              />
               <div className="vehicle-metrics">
                 <div>
                   <span>{tr("Speed", "Kelajuan")}</span>
@@ -1753,7 +1844,11 @@ export default function GerakApp({
                       ? tr("Stale GPS", "GPS lapuk")
                       : vehicle.delay
                         ? `+${vehicle.delay} min`
-                        : tr("Moving", "Bergerak")}
+                        : vehicle.speedKnown === false
+                          ? tr("Unknown", "Tidak diketahui")
+                          : vehicle.speed < 1
+                            ? tr("Stopped", "Berhenti")
+                            : tr("Moving", "Bergerak")}
                   </strong>
                 </div>
               </div>
@@ -1784,7 +1879,10 @@ export default function GerakApp({
                     .sort((a, b) => a.eta! - b.eta!)
                     .slice(0, 3)
                     .map(({ stop, eta }, i) => (
-                      <div className="upcoming-stop" key={`${stop?.id || i}-${i}`}>
+                      <div
+                        className="upcoming-stop"
+                        key={`${stop?.id || i}-${i}`}
+                      >
                         <i className={i === 0 ? "first" : ""} />
                         <span>{stop?.name}</span>
                         <strong>
@@ -1800,7 +1898,7 @@ export default function GerakApp({
               >
                 <LocateFixed size={16} />
                 {follow
-                  ? tr("Following vehicle", "Mengikuti kenderaan")
+                  ? tr("Stop following", "Berhenti mengikuti")
                   : tr("Follow this ride", "Ikuti perjalanan ini")}
                 {follow && <span className="status-dot" />}
               </button>

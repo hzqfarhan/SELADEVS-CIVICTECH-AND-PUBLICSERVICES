@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createProjection,
+  projectToRoute,
+  predictionTravelSeconds,
   positionOnPath,
   sampleMotion,
   updateMotions,
@@ -247,4 +249,23 @@ test("prediction honours zero speed, route ends, reverse direction and off-route
     100000,
   );
   assert.equal(motions.get(base.id)!.prediction, undefined);
+});
+
+test("route matching prefers heading-aligned segments at nearby crossings", () => {
+  const crossing: Coordinate[] = [
+    [103, 1],
+    [103.01, 1],
+    [103.005, 0.995],
+    [103.005, 1.005],
+  ];
+  const point: Coordinate = [103.005, 1];
+  const east = projectToRoute(crossing, point, 90);
+  const north = projectToRoute(crossing, point, 0);
+  close(east.bearing, 90);
+  close(north.bearing, 0);
+});
+test("outage prediction slows smoothly before stopping", () => {
+  assert.equal(predictionTravelSeconds(150), 150);
+  assert.ok(predictionTravelSeconds(175) - predictionTravelSeconds(170) < 5);
+  assert.equal(predictionTravelSeconds(180), predictionTravelSeconds(600));
 });

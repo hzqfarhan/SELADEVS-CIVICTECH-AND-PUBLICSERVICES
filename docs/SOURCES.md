@@ -4,6 +4,12 @@ Updated: **1 October 2026**. App-readable equivalent: `/sources`; machine-readab
 
 ## Connected data and services
 
+### [Open-Meteo current weather](https://open-meteo.com/en/docs)
+
+Current modelled conditions at the selected service-area centre.
+
+Server requests api.open-meteo.com/v1/forecast with current temperature, apparent temperature, humidity, precipitation, wind, weather code and is_day. 15-minute cache; timestamps and stale status shown. Data attribution CC BY 4.0; free API is for non-commercial use, review commercial terms before production.
+
 ### [BAS.MY Kangar · kangar GTFS Schedule](https://api.data.gov.my/gtfs-static/mybas-kangar)
 
 Official routes, stops and representative trip topology for the selected service.

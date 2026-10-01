@@ -7,6 +7,14 @@ export interface SourceEntry {
   notes: string;
 }
 export const sources: SourceEntry[] = [
+  {
+    name: "Open-Meteo current weather",
+    url: "https://open-meteo.com/en/docs",
+    purpose: "Current modelled conditions at the selected service-area centre.",
+    kind: "runtime",
+    notes:
+      "Server requests api.open-meteo.com/v1/forecast with current temperature, apparent temperature, humidity, precipitation, wind, weather code and is_day. 15-minute cache; timestamps and stale status shown. Data attribution CC BY 4.0; free API is for non-commercial use, review commercial terms before production.",
+  },
   ...SERVICES.filter((s) => s.id !== "johor").flatMap((service) =>
     service.endpoints.flatMap((endpoint) => [
       {
