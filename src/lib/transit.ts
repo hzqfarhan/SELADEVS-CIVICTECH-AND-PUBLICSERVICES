@@ -377,6 +377,26 @@ export function positionOnPath(
   }
   return { coordinate: path[0], bearing: 0 };
 }
+const UTHM_PARIT_RAJA_PLATES = [
+  "JQF 7400",
+  "JPJ 7300",
+  "JRE 9100",
+  "JRE 9200",
+  "JPL 3900",
+  "JRM 6900",
+  "JMG 1800",
+  "JJU 6300",
+];
+const UTHM_PAGOH_PLATES = [
+  "JPJ 1600",
+  "JNV 2800",
+  "JNV 2900",
+  "JPJ 1400",
+  "JTU 7900",
+  "JMG 1700",
+  "JNC 2400",
+];
+
 export function simulateVehicles(region: Region, time = Date.now()): Vehicle[] {
   return routes
     .filter((r) => r.region === region)
@@ -391,9 +411,17 @@ export function simulateVehicles(region: Region, time = Date.now()): Vehicle[] {
         const length = route.path
           .slice(1)
           .reduce((s, p, j) => s + distance(route.path[j], p), 0);
+        const plate =
+          region === "uthm"
+            ? UTHM_PARIT_RAJA_PLATES[(ri * 3 + i) % UTHM_PARIT_RAJA_PLATES.length]
+            : region === "uthm-pagoh"
+              ? UTHM_PAGOH_PLATES[(ri * 3 + i) % UTHM_PAGOH_PLATES.length]
+              : `JHR ${String(ri * 4 + i + 101)}`;
         return {
           id: `${route.id}-${i + 1}`,
-          label: `${region === "johor" ? "JHR" : "UTH"} ${String(ri * 4 + i + 101)}`,
+          label: plate,
+          licensePlate: plate,
+          vehicleKind: "bus",
           routeId: route.id,
           ...position,
           progress,

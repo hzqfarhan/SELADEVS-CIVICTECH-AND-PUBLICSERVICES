@@ -480,13 +480,30 @@
   }
 }
 
-/* In 3D view, remove the 2D DOM bus marker component completely (no box, no icon, no plate label) */
+/* In 3D view, hide the 2D icon box so the 3D bus model is visible, but float the license plate badge right above it */
 .is-geographic-3d .gerak-bus-marker {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  width: auto !important;
+  height: auto !important;
+}
+.is-geographic-3d .gerak-bus-marker .gerak-bus-marker-icon {
   display: none !important;
 }
-.gerak-bus-marker:not(.is-selected):not(:hover):not(:focus-visible)
-  .gerak-bus-marker-label {
-  display: none;
+.is-geographic-3d .gerak-bus-marker .gerak-bus-marker-label {
+  display: inline-flex !important;
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: translateY(-28px) !important;
+  box-shadow: 0 4px 16px #000000d0, 0 0 12px color-mix(in srgb, var(--bus-color) 40%, transparent) !important;
+}
+
+/* Make plate label visible in 2D mode with clear Malaysian license plate styling */
+.gerak-bus-marker .gerak-bus-marker-label {
+  display: inline-flex;
 }
 .gerak-geographic-note {
   display: none;

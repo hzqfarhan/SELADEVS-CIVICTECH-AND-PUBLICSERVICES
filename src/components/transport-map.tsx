@@ -347,6 +347,7 @@ function FlatMap(props: TransportMapProps) {
     [boundary, props.vehicles],
   );
   const allowedRef = useRef(allowedVehicles);
+  allowedRef.current = allowedVehicles;
   const [unavailable, setUnavailable] = useState(false);
   const [tileError, setTileError] = useState(false);
   const [baseLoaded, setBaseLoaded] = useState(false);

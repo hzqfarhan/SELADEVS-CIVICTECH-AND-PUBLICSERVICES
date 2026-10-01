@@ -18,6 +18,7 @@
     "scrape:uthm": "tsx scripts/scrape-uthm.ts",
     "scrape:uthm:watch": "tsx scripts/scrape-uthm.ts --watch",
     "scrape:uthm:json": "tsx scripts/scrape-uthm.ts --json",
+    "worker:dev": "tsx worker/src/index.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"scripts/*.{ts,mjs}\" \"tests/*.ts\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"scripts/*.{ts,mjs}\" \"tests/*.ts\""
   },

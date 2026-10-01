@@ -1272,7 +1272,9 @@ export default function GerakApp({
                             <BusFront size={19} />
                           </span>
                           <span>
-                            <strong>{v.label}</strong>
+                            <strong style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span className="mini-plate">{v.licensePlate || v.label}</span>
+                            </strong>
                             <small>
                               {v.routeId} ·{" "}
                               {v.speedKnown === false
@@ -1703,6 +1705,13 @@ export default function GerakApp({
                 >
                   <X size={17} />
                 </button>
+              </div>
+              <div className="license-plate-header">
+                <span className="plate-badge" title="Nombor Pendaftaran Bas / Vehicle Registration Plate">
+                  <span className="plate-flag">🇲🇾</span>
+                  <span className="plate-code">{vehicle.licensePlate || vehicle.label}</span>
+                </span>
+                <span className="plate-route-chip">{vehicleRoute?.name ?? vehicle.routeId}</span>
               </div>
               <h2>{vehicle.label}</h2>
               <p>

@@ -1055,6 +1055,54 @@
   color: #8da38a;
   letter-spacing: 0.8px;
 }
+.license-plate-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.plate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #090e0c;
+  border: 1.5px solid #284433;
+  border-radius: 6px;
+  padding: 3px 10px;
+  box-shadow: 0 2px 10px #00000080, inset 0 1px 0 #ffffff14;
+}
+.plate-badge .plate-flag {
+  font-size: 11px;
+}
+.plate-badge .plate-code {
+  font-family: var(--font-mono, monospace, -apple-system, sans-serif);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px #000;
+}
+.plate-route-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: #a3c4b1;
+  background: #172820;
+  border: 1px solid #233e31;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+.mini-plate {
+  display: inline-block;
+  background: #090e0c;
+  border: 1px solid #2d4536;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: #f0f7f2;
+}
 .vehicle-detail > h2 {
   font-family: "Space Grotesk Variable", sans-serif;
   font-size: 26px;
