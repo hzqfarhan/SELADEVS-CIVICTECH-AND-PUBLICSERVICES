@@ -1775,7 +1775,7 @@ export default function GerakApp({
                     .sort((a, b) => a.eta! - b.eta!)
                     .slice(0, 3)
                     .map(({ stop, eta }, i) => (
-                      <div className="upcoming-stop" key={stop!.id}>
+                      <div className="upcoming-stop" key={`${stop?.id || i}-${i}`}>
                         <i className={i === 0 ? "first" : ""} />
                         <span>{stop?.name}</span>
                         <strong>
