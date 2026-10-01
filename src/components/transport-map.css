@@ -493,66 +493,144 @@
 .gerak-boundary-panel {
   position: absolute;
   left: 18px;
-  bottom: 142px;
+  bottom: 20px;
   z-index: 6;
-  width: min(278px, calc(100% - 90px));
-  border: 1px solid #547566;
-  border-radius: 14px;
-  background: #10241eef;
-  color: #eff9ed;
-  box-shadow: 0 10px 30px #0004;
+  width: auto;
 }
-.gerak-boundary-panel > button {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
+.gerak-boundary-trigger {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 12px;
-  border: 0;
-  border-radius: 14px;
-  color: inherit;
-  background: transparent;
-  font-weight: 650;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid #ffffff18;
+  border-radius: 9px;
+  background: #14211eed;
+  backdrop-filter: blur(12px);
+  color: #eff9ed;
+  font-size: 11.5px;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 4px 16px #00000035;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
-.gerak-boundary-panel > button span {
-  font-size: 10px;
-  color: #b7e69d;
+.gerak-boundary-trigger:hover {
+  background: #192d28;
+  border-color: #ffffff2e;
+  transform: translateY(-1px);
+}
+.gerak-boundary-flag {
+  font-size: 13px;
+  line-height: 1;
+}
+.gerak-boundary-label {
+  font-size: 11.5px;
+  letter-spacing: 0.2px;
+}
+.gerak-boundary-arrow {
+  font-size: 9px;
+  color: #92aba0;
+  margin-left: 2px;
 }
 .gerak-boundary-fields {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 260px;
+  max-width: min(280px, calc(100vw - 36px));
+  max-height: min(320px, calc(100vh - 120px));
+  overflow-y: auto;
   display: grid;
   gap: 10px;
-  padding: 0 12px 12px;
+  padding: 14px;
+  border: 1px solid #3d5849;
+  border-radius: 12px;
+  background: #12221df7;
+  backdrop-filter: blur(16px);
+  color: #eff9ed;
+  box-shadow: 0 12px 36px #00000060;
+  animation: gerak-slide-up 0.18s ease-out;
+}
+.gerak-boundary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #ffffff14;
+}
+.gerak-boundary-header strong {
+  font-size: 11px;
+  color: #b7e69d;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.gerak-boundary-close {
+  background: transparent;
+  border: none;
+  color: #8da499;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+}
+.gerak-boundary-close:hover {
+  color: #eff9ed;
+  background: #ffffff14;
 }
 .gerak-boundary-fields label {
   display: grid;
   gap: 5px;
   font-size: 11px;
+  color: #a4beaf;
 }
 .gerak-boundary-fields select {
   width: 100%;
-  background: #21392f;
+  background: #1b2e26;
   color: #edf9e5;
-  border: 1px solid #496958;
+  border: 1px solid #436351;
   border-radius: 7px;
-  padding: 8px;
+  padding: 7px 9px;
+  font-size: 11.5px;
 }
 .gerak-boundary-fields small {
-  color: #94b4a7;
-  font-size: 10px;
+  color: #839d90;
+  font-size: 9.5px;
+  line-height: 1.4;
+}
+@keyframes gerak-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @media (max-height: 650px) {
   .gerak-boundary-panel {
-    bottom: 88px;
+    bottom: 14px;
   }
   .gerak-boundary-fields {
-    max-height: 145px;
+    max-height: 160px;
     overflow-y: auto;
   }
   .gerak-geographic-note {
     display: none;
+  }
+}
+@media (max-width: 700px) {
+  .gerak-boundary-panel {
+    left: 12px;
+    bottom: 14px;
+  }
+  .gerak-boundary-trigger {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  .gerak-boundary-fields {
+    max-width: calc(100vw - 24px);
   }
 }
 

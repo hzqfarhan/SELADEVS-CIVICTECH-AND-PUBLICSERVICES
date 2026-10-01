@@ -248,11 +248,34 @@ export default function MalaysiaBoundaries({
   }, [map, state, expanded, picking, data]);
   return (
     <div className="gerak-boundary-panel">
-      <button onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
-        🇲🇾 {district || state || "Malaysia"} <span>Explore boundaries</span>
+      <button
+        type="button"
+        className="gerak-boundary-trigger"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        title="Explore Malaysia boundaries"
+      >
+        <span className="gerak-boundary-flag">🇲🇾</span>
+        <span className="gerak-boundary-label">
+          {district || state || "Malaysia"}
+        </span>
+        <span className="gerak-boundary-arrow" aria-hidden="true">
+          {expanded ? "▴" : "▾"}
+        </span>
       </button>
       {expanded && (
         <div className="gerak-boundary-fields">
+          <div className="gerak-boundary-header">
+            <strong>Boundaries / Sempadan</strong>
+            <button
+              type="button"
+              className="gerak-boundary-close"
+              onClick={() => setExpanded(false)}
+              aria-label="Close boundaries"
+            >
+              ✕
+            </button>
+          </div>
           {error ? (
             <p>Boundaries unavailable. Reload to retry.</p>
           ) : !data ? (
