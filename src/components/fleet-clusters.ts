@@ -17,19 +17,19 @@ export function updateFleetClusters(map: LibreMap, vehicles: Vehicle[]) {
     type: "geojson",
     data,
     cluster: true,
-    clusterRadius: 48,
-    clusterMaxZoom: 12,
+    clusterRadius: 36,
+    clusterMaxZoom: 10,
   });
   map.addLayer({
     id: "fleet-clusters",
     type: "circle",
     source: "fleet-overview",
-    maxzoom: 13,
-    filter: ["has", "point_count"],
+    maxzoom: 11,
+    filter: [">=", ["get", "point_count"], 2],
     paint: {
-      "circle-color": "#173c32",
-      "circle-radius": ["step", ["get", "point_count"], 18, 20, 23, 60, 28],
-      "circle-stroke-color": "#b9ed76",
+      "circle-color": "#122a22",
+      "circle-radius": ["step", ["get", "point_count"], 16, 5, 20, 20, 24],
+      "circle-stroke-color": "#b3f56b",
       "circle-stroke-width": 2,
     },
   });
@@ -37,27 +37,14 @@ export function updateFleetClusters(map: LibreMap, vehicles: Vehicle[]) {
     id: "fleet-cluster-count",
     type: "symbol",
     source: "fleet-overview",
-    maxzoom: 13,
-    filter: ["has", "point_count"],
+    maxzoom: 11,
+    filter: [">=", ["get", "point_count"], 2],
     layout: {
       "text-field": ["get", "point_count_abbreviated"],
       "text-font": ["Noto Sans Regular"],
-      "text-size": 12,
+      "text-size": 11,
       "text-allow-overlap": true,
     },
     paint: { "text-color": "#f0ffdf" },
-  });
-  map.addLayer({
-    id: "fleet-overview-single",
-    type: "circle",
-    source: "fleet-overview",
-    maxzoom: 13,
-    filter: ["!", ["has", "point_count"]],
-    paint: {
-      "circle-color": "#b9ed76",
-      "circle-radius": 6,
-      "circle-stroke-color": "#173c32",
-      "circle-stroke-width": 2,
-    },
   });
 }

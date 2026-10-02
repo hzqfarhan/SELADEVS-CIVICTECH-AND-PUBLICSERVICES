@@ -97,7 +97,7 @@ export function createBusFleetLayer(
     },
     render(_gl, args) {
       const props = getProps();
-      if (props.mode !== "3d" || map.getZoom() < 13) return;
+      if (props.mode !== "3d" || map.getZoom() < 11.5) return;
       const now = performance.now();
       const dt = Math.min(0.1, Math.max(0.001, (now - lastFrame) / 1000));
       lastFrame = now;

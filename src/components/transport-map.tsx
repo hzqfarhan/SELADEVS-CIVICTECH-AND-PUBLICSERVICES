@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LocateFixed } from "lucide-react";
+import { LocateFixed, Maximize2 } from "lucide-react";
 import type { CurrentWeather } from "@/lib/weather";
 import { MapWeather } from "./map-weather";
 import { createDayPalette } from "./map-day-palette";
@@ -392,6 +392,7 @@ function FlatMap(props: TransportMapProps) {
       maplibre.setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
       if (disposed || !container.current) return;
       try {
+        const isInitial3D = latest.current.mode === "3d";
         const instance = new maplibre.Map({
           container: container.current,
           center: REGION_CENTERS[latest.current.region],
@@ -399,7 +400,9 @@ function FlatMap(props: TransportMapProps) {
             latest.current.region === "uthm" ||
             latest.current.region === "uthm-pagoh"
               ? 15
-              : 12.5,
+              : isInitial3D ? 14 : 12.5,
+          pitch: isInitial3D ? 55 : 0,
+          bearing: isInitial3D ? -15 : 0,
           attributionControl: false,
           maxZoom: 22,
           minZoom: 3,
@@ -442,9 +445,11 @@ function FlatMap(props: TransportMapProps) {
               type: "fill-extrusion",
               source: "openmaptiles",
               "source-layer": "building",
-              minzoom: 13,
+              minzoom: 12,
               filter: ["!=", ["get", "hide_3d"], true],
-              layout: { visibility: "none" },
+              layout: {
+                visibility: latest.current.mode === "3d" ? "visible" : "none",
+              },
               paint: {
                 "fill-extrusion-color": [
                   "interpolate",
@@ -493,7 +498,9 @@ function FlatMap(props: TransportMapProps) {
               id: "bus-models-3d",
               type: "fill-extrusion",
               source: "bus-models",
-              layout: { visibility: "none" },
+              layout: {
+                visibility: latest.current.mode === "3d" ? "visible" : "none",
+              },
               paint: {
                 "fill-extrusion-color": ["get", "color"],
                 "fill-extrusion-height": ["get", "height"],
@@ -657,10 +664,9 @@ function FlatMap(props: TransportMapProps) {
             // vehicles remain tappable while their geographic animation continues.
             if (!marker.element.matches(":active"))
               marker.marker.setLngLat(sample.coordinate);
-            marker.element.style.display =
-              instance.getZoom() < 13 || !allowedRef.current.has(id)
-                ? "none"
-                : "";
+            marker.element.style.display = !allowedRef.current.has(id)
+              ? "none"
+              : "";
             if (latest.current.mode !== "3d") {
               marker.icon.style.transform = `rotate(${sample.bearing - instance.getBearing()}deg)`;
             }
@@ -786,9 +792,19 @@ function FlatMap(props: TransportMapProps) {
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": ["get", "color"],
-          "line-width": 15,
-          "line-opacity": 0.08,
-          "line-blur": 5,
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            6,
+            12,
+            11,
+            16,
+            18,
+          ],
+          "line-opacity": 0.2,
+          "line-blur": 6,
         },
       });
       instance.addLayer({
@@ -797,9 +813,21 @@ function FlatMap(props: TransportMapProps) {
         source: "routes",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#091810",
-          "line-width": 6,
-          "line-opacity": 0.8,
+          "line-color": "#06130c",
+          "line-width": [
+            "interpolate",
+            ["linear"],
+            ["zoom"],
+            8,
+            3,
+            12,
+            4.8,
+            15,
+            6.5,
+            18,
+            8.5,
+          ],
+          "line-opacity": 0.85,
         },
       });
       instance.addLayer({
@@ -814,13 +842,15 @@ function FlatMap(props: TransportMapProps) {
             ["linear"],
             ["zoom"],
             8,
-            1.2,
-            14,
-            2.6,
+            1.8,
+            12,
+            3,
+            15,
+            4.2,
             18,
-            4,
+            6,
           ],
-          "line-opacity": 0.82,
+          "line-opacity": 0.9,
         },
       });
     }
@@ -865,23 +895,36 @@ function FlatMap(props: TransportMapProps) {
     if (official.length) {
       const lngs = official.map((vehicle) => vehicle.coordinate[0]);
       const lats = official.map((vehicle) => vehicle.coordinate[1]);
-      bounds[0] = [Math.min(...lngs), Math.min(...lats)];
-      bounds[1] = [Math.max(...lngs), Math.max(...lats)];
+      bounds[0] = [
+        Math.min(bounds[0][0], ...lngs),
+        Math.min(bounds[0][1], ...lats),
+      ];
+      bounds[1] = [
+        Math.max(bounds[1][0], ...lngs),
+        Math.max(bounds[1][1], ...lats),
+      ];
     }
+    const is3d = props.mode === "3d";
     const compact = instance.getContainer().clientHeight < 500;
     instance.fitBounds(bounds, {
       padding: {
-        top: compact ? 60 : 100,
-        bottom: compact ? 65 : 115,
+        top: compact ? 60 : 90,
+        bottom: compact ? 65 : 100,
         left: compact ? 25 : 60,
         right: compact ? 25 : 60,
       },
       duration: regionAtFit.current ? 1000 : 0,
+      pitch: is3d ? 45 : 0,
+      bearing: is3d ? -15 : 0,
       maxZoom:
-        props.region === "uthm" || props.region === "uthm-pagoh" ? 15.8 : 15,
+        props.region === "uthm" || props.region === "uthm-pagoh"
+          ? 15.8
+          : is3d
+            ? 14.5
+            : 13.8,
     });
     regionAtFit.current = fitKey;
-  }, [ready, unavailable, props.routes, props.region, props.vehicles]);
+  }, [ready, unavailable, props.routes, props.region, props.vehicles, props.mode]);
 
   useEffect(() => {
     if (!ready || !map.current || unavailable) return;
@@ -965,8 +1008,7 @@ function FlatMap(props: TransportMapProps) {
         );
         entry.element.style.zIndex =
           props.selectedVehicleId === vehicle.id ? "5" : "2";
-        entry.element.style.display =
-          props.mode === "3d" || map.current.getZoom() < 13 ? "none" : "";
+        entry.element.style.display = "";
       }
     });
     return () => {
@@ -1162,32 +1204,35 @@ function FlatMap(props: TransportMapProps) {
     const instance = map.current;
     if (!instance || !ready || unavailable) return;
     const is3d = props.mode === "3d";
-    instance.setLayoutProperty(
-      "gerak-buildings-2d",
-      "visibility",
-      is3d ? "none" : "visible",
-    );
-    instance.setLayoutProperty(
-      "johor-buildings-3d",
-      "visibility",
-      is3d ? "visible" : "none",
-    );
-    instance.setLayoutProperty(
-      "bus-models-3d",
-      "visibility",
-      is3d ? "visible" : "none",
-    );
+    if (instance.getLayer("gerak-buildings-2d"))
+      instance.setLayoutProperty(
+        "gerak-buildings-2d",
+        "visibility",
+        is3d ? "none" : "visible",
+      );
+    if (instance.getLayer("johor-buildings-3d"))
+      instance.setLayoutProperty(
+        "johor-buildings-3d",
+        "visibility",
+        is3d ? "visible" : "none",
+      );
+    if (instance.getLayer("bus-models-3d"))
+      instance.setLayoutProperty(
+        "bus-models-3d",
+        "visibility",
+        is3d ? "visible" : "none",
+      );
     const selected = latest.current.vehicles.find(
       (v) => v.id === latest.current.selectedVehicleId,
     );
     instance.easeTo({
-      pitch: is3d ? 58 : 0,
-      bearing: is3d ? -18 : 0,
+      pitch: is3d ? 55 : 0,
+      bearing: is3d ? -15 : 0,
       duration: 1000,
       ...(is3d
         ? {
-            center: selected?.coordinate ?? REGION_CENTERS[props.region],
-            zoom: Math.max(instance.getZoom(), 15.4),
+            center: selected?.coordinate ?? instance.getCenter(),
+            zoom: Math.max(instance.getZoom(), 13.8),
           }
         : {}),
     });
@@ -1309,6 +1354,52 @@ function FlatMap(props: TransportMapProps) {
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
   };
+
+  const handleOverall = () => {
+    props.onOverview?.();
+    const is3d = props.mode === "3d";
+    const points = [
+      ...props.routes.flatMap((r) => r.path),
+      ...props.vehicles.map((v) => v.coordinate),
+    ];
+    let bounds: [Coordinate, Coordinate];
+    if (points.length > 0) {
+      const lngs = points.map((p) => p[0]);
+      const lats = points.map((p) => p[1]);
+      bounds = [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ];
+    } else {
+      bounds = createProjection(props.routes, props.region).bounds;
+    }
+    const compact = map.current?.getContainer().clientHeight
+      ? map.current.getContainer().clientHeight < 500
+      : false;
+    map.current?.fitBounds(bounds, {
+      padding: {
+        top: compact ? 60 : 80,
+        bottom: compact ? 65 : 90,
+        left: compact ? 30 : 60,
+        right: compact ? 30 : 60,
+      },
+      pitch: is3d ? 45 : 0,
+      bearing: is3d ? -15 : 0,
+      duration: 900,
+      maxZoom:
+        props.region === "uthm" || props.region === "uthm-pagoh"
+          ? 15.8
+          : is3d
+            ? 14.5
+            : 13.5,
+    });
+  };
+
+  useEffect(() => {
+    const onTrigger = () => handleOverall();
+    window.addEventListener("gerak:overview", onTrigger);
+    return () => window.removeEventListener("gerak:overview", onTrigger);
+  }, [props.routes, props.vehicles, props.region, props.mode]);
 
   if (unavailable)
     return (
@@ -1442,22 +1533,37 @@ function FlatMap(props: TransportMapProps) {
         >
           <LocateFixed size={17} />
         </button>
-        {props.mode === "3d" && props.region === "johor" && (
+        <button
+          type="button"
+          className="gerak-overall-button"
+          title="Overall network view (all routes & buses)"
+          aria-label="Overall network view"
+          onClick={handleOverall}
+        >
+          <Maximize2 size={16} />
+        </button>
+        {props.region === "johor" && (
           <button
             type="button"
-            title="Johor overview"
+            title="Johor State Overview"
             aria-label="Show all Johor geography"
-            onClick={() =>
+            onClick={() => {
+              props.onOverview?.();
               map.current?.fitBounds(
                 [
                   [102.4, 1.15],
                   [104.6, 2.9],
                 ],
-                { padding: 60, pitch: 35, bearing: 0, duration: 1000 },
-              )
-            }
+                {
+                  padding: 60,
+                  pitch: props.mode === "3d" ? 38 : 0,
+                  bearing: props.mode === "3d" ? -12 : 0,
+                  duration: 1000,
+                },
+              );
+            }}
           >
-            MY
+            JB
           </button>
         )}
         <button
@@ -1465,14 +1571,19 @@ function FlatMap(props: TransportMapProps) {
           title="Recenter map"
           aria-label="Recenter map"
           onClick={() => {
+            const is3d = props.mode === "3d";
             const projection = createProjection(props.routes, props.region);
             map.current?.fitBounds(projection.bounds, {
               padding: 100,
               duration: 700,
+              pitch: is3d ? 50 : 0,
+              bearing: is3d ? -15 : 0,
               maxZoom:
                 props.region === "uthm" || props.region === "uthm-pagoh"
                   ? 15.8
-                  : 13.8,
+                  : is3d
+                    ? 14.5
+                    : 13.8,
             });
           }}
         >

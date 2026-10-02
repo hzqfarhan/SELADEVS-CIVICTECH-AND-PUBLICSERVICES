@@ -1,7 +1,7 @@
 "use client";
 import { RideStatus } from "./ride-status";
 import { SERVICES, serviceFor } from "@/lib/feeds";
-import { uniqueRouteColors } from "@/lib/route-colors";
+import { uniqueRouteColors, routeColor } from "@/lib/route-colors";
 import { useState, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -21,6 +21,7 @@ import {
   LayoutDashboard,
   LocateFixed,
   MapPin,
+  Maximize2,
   MessageSquare,
   Navigation,
   Plus,
@@ -177,16 +178,31 @@ export default function GerakApp({
   const usingOfficial = feed === "live" && !isCampus;
   const service = serviceFor(region);
   const regionRoutes = useMemo(() => {
-    const network = usingOfficial
-      ? (officialNetwork?.routes ?? [])
-      : routes.filter((r) => r.region === region);
-    const colors = uniqueRouteColors(network.map((r) => r.id));
-    return network.map((r) => ({ ...r, color: r.color || colors.get(r.id)! }));
+    const officialRoutes = officialNetwork?.routes ?? [];
+    const baseRoutes =
+      usingOfficial && officialRoutes.length > 0
+        ? officialRoutes
+        : routes.filter((r) => r.region === region);
+    const colors = uniqueRouteColors(baseRoutes.map((r) => r.id));
+    // If the feed provides uniform or monochromatic colors (e.g. data.gov.my BAS.MY setting every route to #FF40B4 in JB),
+    // override with unique distinct vibrant colors so each line is easily identifiable.
+    const uniqueColorsInFeed = new Set(
+      baseRoutes.map((r) => (r.color || "").toLowerCase()).filter(Boolean),
+    );
+    const isMonochromatic = uniqueColorsInFeed.size <= 1;
+
+    return baseRoutes.map((r) => ({
+      ...r,
+      color:
+        isMonochromatic || !r.color
+          ? colors.get(r.id) || routeColor(r.id)
+          : r.color,
+    }));
   }, [region, usingOfficial, officialNetwork]);
   const regionStops = useMemo(
     () =>
-      usingOfficial
-        ? (officialNetwork?.stops ?? [])
+      usingOfficial && officialNetwork?.stops && officialNetwork.stops.length > 0
+        ? officialNetwork.stops
         : stops.filter((s) => s.region === region),
     [region, usingOfficial, officialNetwork],
   );
@@ -1576,6 +1592,7 @@ export default function GerakApp({
               setSelectedId(null);
               setSelectedStop(null);
               setFollow(false);
+              setFilter(null);
             }}
             follow={follow}
             routes={displayedRoutes}
@@ -1626,6 +1643,24 @@ export default function GerakApp({
                   <Layers3 size={15} />
                   3D
                   <span className="new-dot" />
+                </button>
+                <button
+                  type="button"
+                  title={tr(
+                    "Fit entire route network",
+                    "Muatkan seluruh rangkaian laluan",
+                  )}
+                  aria-label={tr("Overall network view", "Paparan keseluruhan")}
+                  onClick={() => {
+                    setSelectedId(null);
+                    setSelectedStop(null);
+                    setFollow(false);
+                    setFilter(null);
+                    window.dispatchEvent(new CustomEvent("gerak:overview"));
+                  }}
+                >
+                  <Maximize2 size={13} />
+                  {tr("Overall", "Semua")}
                 </button>
               </div>
               <button
@@ -2008,25 +2043,49 @@ export default function GerakApp({
           <div className="map-bottom">
             <div className="map-legend">
               {regionRoutes.length > 0 ? (
-                regionRoutes.slice(0, 4).map((r) => (
-                  <span
-                    key={r.id}
-                    onClick={() => setFilter(filter === r.id ? null : r.id)}
-                    style={{
-                      cursor: "pointer",
-                      opacity: filter && filter !== r.id ? 0.45 : 1,
-                      transition: "opacity 0.2s ease",
-                    }}
-                    title={
-                      filter === r.id
-                        ? tr("Show all routes", "Tunjuk semua laluan")
-                        : `${tr("Filter route", "Tapis laluan")}: ${r.name}`
-                    }
-                  >
-                    <i style={{ background: r.color }} />
-                    {r.name}
-                  </span>
-                ))
+                <>
+                  {(filter
+                    ? [
+                        regionRoutes.find((r) => r.id === filter)!,
+                        ...regionRoutes.filter((r) => r.id !== filter).slice(0, 4),
+                      ].filter(Boolean)
+                    : regionRoutes.slice(0, 5)
+                  ).map((r) => (
+                    <span
+                      key={r.id}
+                      onClick={() => setFilter(filter === r.id ? null : r.id)}
+                      style={{
+                        cursor: "pointer",
+                        opacity: filter && filter !== r.id ? 0.45 : 1,
+                        transition: "opacity 0.2s ease",
+                      }}
+                      title={
+                        filter === r.id
+                          ? tr("Show all routes", "Tunjuk semua laluan")
+                          : `${tr("Filter route", "Tapis laluan")}: ${r.name}`
+                      }
+                    >
+                      <i style={{ background: r.color }} />
+                      {r.name}
+                    </span>
+                  ))}
+                  {regionRoutes.length > 5 && (
+                    <span
+                      onClick={() => setView("routes")}
+                      style={{
+                        cursor: "pointer",
+                        opacity: 0.75,
+                        fontSize: "9px",
+                      }}
+                      title={tr(
+                        "View all routes in panel",
+                        "Lihat semua laluan di panel",
+                      )}
+                    >
+                      +{regionRoutes.length - 5} {tr("more", "lagi")}
+                    </span>
+                  )}
+                </>
               ) : (
                 <>
                   <span>
