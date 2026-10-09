@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LocateFixed, Maximize2 } from "lucide-react";
 import type { CurrentWeather } from "@/lib/weather";
 import { MapWeather } from "./map-weather";
+import TrafficLayers from "./traffic-layers";
 import { createDayPalette } from "./map-day-palette";
 import { updateFleetClusters } from "./fleet-clusters";
 import MalaysiaBoundaries, {
@@ -26,17 +27,17 @@ import "./transport-map.css";
 const BUS_SVG =
   '<svg viewBox="0 0 32 40" width="34" height="34" fill="none" aria-hidden="true">' +
   '<path d="M16 1.5 L19.5 5.5 H12.5 Z" fill="currentColor"/>' +
-  '<rect x="7" y="6" width="18" height="30" rx="4.5" fill="#132219" stroke="currentColor" stroke-width="1.8"/>' +
-  '<path d="M8.8 13.5 C8.8 8.8, 23.2 8.8, 23.2 13.5 Z" fill="#0b1711" stroke="currentColor" stroke-width="0.9"/>' +
+  '<rect x="7" y="6" width="18" height="30" rx="4.5" fill="#131822" stroke="currentColor" stroke-width="1.8"/>' +
+  '<path d="M8.8 13.5 C8.8 8.8, 23.2 8.8, 23.2 13.5 Z" fill="#0b0f17" stroke="currentColor" stroke-width="0.9"/>' +
   '<path d="M12 9.5 L15 13" stroke="#ffffff" stroke-width="0.8" stroke-linecap="round" opacity="0.65"/>' +
   '<rect x="11" y="6.8" width="10" height="2" rx="0.5" fill="currentColor" opacity="0.9"/>' +
   '<rect x="7.8" y="6.2" width="2.6" height="1.6" rx="0.6" fill="#fff9b8"/>' +
   '<rect x="21.6" y="6.2" width="2.6" height="1.6" rx="0.6" fill="#fff9b8"/>' +
   '<path d="M7 9.5 H4.5 C4.2 9.5 4 9.8 4 10.2 L4.2 12 C4.3 12.3 4.6 12.5 4.9 12.4 L7 11.6 Z" fill="currentColor"/>' +
   '<path d="M25 9.5 H27.5 C27.8 9.5 28 9.8 28 10.2 L27.8 12 C27.7 12.3 27.4 12.5 27.1 12.4 L25 11.6 Z" fill="currentColor"/>' +
-  '<rect x="7.8" y="16" width="1.8" height="16" rx="0.7" fill="#08110b" stroke="currentColor" stroke-width="0.5"/>' +
-  '<rect x="22.4" y="16" width="1.8" height="16" rx="0.7" fill="#08110b" stroke="currentColor" stroke-width="0.5"/>' +
-  '<rect x="11.2" y="18" width="9.6" height="9.5" rx="1.8" fill="#182c20" stroke="currentColor" stroke-width="0.8"/>' +
+  '<rect x="7.8" y="16" width="1.8" height="16" rx="0.7" fill="#080b11" stroke="currentColor" stroke-width="0.5"/>' +
+  '<rect x="22.4" y="16" width="1.8" height="16" rx="0.7" fill="#080b11" stroke="currentColor" stroke-width="0.5"/>' +
+  '<rect x="11.2" y="18" width="9.6" height="9.5" rx="1.8" fill="#181f2c" stroke="currentColor" stroke-width="0.8"/>' +
   '<line x1="13.2" y1="20.5" x2="18.8" y2="20.5" stroke="currentColor" stroke-width="0.7" opacity="0.8"/>' +
   '<line x1="13.2" y1="22.8" x2="18.8" y2="22.8" stroke="currentColor" stroke-width="0.7" opacity="0.8"/>' +
   '<line x1="13.2" y1="25.1" x2="18.8" y2="25.1" stroke="currentColor" stroke-width="0.7" opacity="0.8"/>' +
@@ -118,7 +119,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
             <path
               d="M 5 0 L 0 0 0 5"
               fill="none"
-              stroke="#24342f"
+              stroke="#242a34"
               strokeWidth="0.08"
             />
           </pattern>
@@ -177,17 +178,17 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
             >
               <circle
                 r="0.65"
-                fill="#e7f2e8"
-                stroke="#15251d"
+                fill="#e7ebf2"
+                stroke="#151b25"
                 strokeWidth="0.3"
               />
               <text
                 y="-1.7"
                 textAnchor="middle"
-                fill="#b6c5bd"
+                fill="#b6bcc5"
                 fontSize="1.5"
                 paintOrder="stroke"
-                stroke="#101a16"
+                stroke="#10141a"
                 strokeWidth="0.6"
               >
                 {stop.name}
@@ -202,7 +203,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
             return (
               <g key={report.id} transform={`translate(${x} ${y})`}>
                 <circle r="1" fill="#f5b65a" />
-                <text textAnchor="middle" y=".55" fontSize="1.7" fill="#191a14">
+                <text textAnchor="middle" y=".55" fontSize="1.7" fill="#14161a">
                   !
                 </text>
               </g>
@@ -212,7 +213,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
           const [x, y] = projection.project(vehicle.coordinate);
           const color =
             props.routes.find((route) => route.id === vehicle.routeId)?.color ??
-            "#bafa45";
+            "#518bee";
           return (
             <g
               key={vehicle.id}
@@ -255,7 +256,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
                 />
                 <path
                   d="M-1.2 -1.7 C-1.2 -2.1, 1.2 -2.1, 1.2 -1.7 L1.1 -.8 H-1.1 Z"
-                  fill="#0e1b13"
+                  fill="#0e131b"
                 />
                 <circle cx="-1.2" cy="-2.2" r=".3" fill="#fff9b8" />
                 <circle cx="1.2" cy="-2.2" r=".3" fill="#fff9b8" />
@@ -265,7 +266,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
                   width="1.6"
                   height="1.4"
                   rx=".4"
-                  fill="#0e1b13"
+                  fill="#0e131b"
                   opacity="0.7"
                 />
                 <rect
@@ -292,7 +293,7 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
                 fontSize="1.9"
                 fontWeight="bold"
                 paintOrder="stroke"
-                stroke="#101a16"
+                stroke="#10141a"
                 strokeWidth=".6"
               >
                 {vehicle.label}
@@ -323,21 +324,25 @@ function FlatMap(props: TransportMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const motionStatus = useRef<HTMLDivElement>(null);
   const lastFocus = useRef("");
-  const [lightingChoice, setLighting] = useState<
-    "auto" | "day" | "dusk" | "night"
-  >("auto");
-  const [weather, setWeather] = useState<CurrentWeather | null>(null);
-  const lighting =
-    lightingChoice === "auto"
-      ? weather && !weather.stale
-        ? weather.isDay
-          ? "day"
-          : "night"
-        : "day"
-      : lightingChoice;
-  const [viewAngle, setViewAngle] = useState<"right" | "left" | "front">(
-    "right",
+  const [lightingChoice, setLighting] = useState<"day" | "dusk" | "night">(
+    "night",
   );
+  const [weather, setWeather] = useState<CurrentWeather | null>(null);
+  useEffect(() => {
+    const syncAppearance = () =>
+      setLighting(
+        document.documentElement.dataset.theme === "light" ? "day" : "night",
+      );
+    syncAppearance();
+    const observer = new MutationObserver(syncAppearance);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
+  const lighting = lightingChoice;
+  const [viewAngle] = useState<"right" | "left" | "front">("right");
   const angleRef = useRef(viewAngle);
   angleRef.current = viewAngle;
   const weatherRef = useRef(weather);
@@ -400,8 +405,10 @@ function FlatMap(props: TransportMapProps) {
             latest.current.region === "uthm" ||
             latest.current.region === "uthm-pagoh"
               ? 15
-              : isInitial3D ? 14 : 12.5,
-          pitch: isInitial3D ? 55 : 0,
+              : isInitial3D
+                ? 16
+                : 12.5,
+          pitch: isInitial3D ? 58 : 0,
           bearing: isInitial3D ? -15 : 0,
           attributionControl: false,
           maxZoom: 22,
@@ -456,11 +463,11 @@ function FlatMap(props: TransportMapProps) {
                   ["linear"],
                   ["coalesce", ["get", "render_height"], 6],
                   0,
-                  "#719b9b",
+                  "#71809b",
                   15,
-                  "#99b7b0",
+                  "#99a4b7",
                   60,
-                  "#c5c9b3",
+                  "#b3bbc9",
                   160,
                   "#e0d5bb",
                 ],
@@ -485,9 +492,9 @@ function FlatMap(props: TransportMapProps) {
               "source-layer": "building",
               minzoom: 14,
               paint: {
-                "fill-color": "#6a9185",
+                "fill-color": "#6a7891",
                 "fill-opacity": 0.24,
-                "fill-outline-color": "#7a9c8c",
+                "fill-outline-color": "#7a869c",
               },
             });
             instance.addSource("bus-models", {
@@ -513,9 +520,7 @@ function FlatMap(props: TransportMapProps) {
                 () => ({
                   ...latest.current,
                   lighting: lightingRef.current,
-                  weatherCode: weatherRef.current?.stale
-                    ? undefined
-                    : weatherRef.current?.code,
+                  weatherCode: undefined,
                   vehicles: latest.current.vehicles.filter((v) =>
                     allowedRef.current.has(v.id),
                   ),
@@ -550,6 +555,17 @@ function FlatMap(props: TransportMapProps) {
           if (event.originalEvent) latest.current.onFollowChange?.(false);
         });
         instance.on("click", (event) => {
+          const trafficLayers = ["traffic-cameras", "traffic-signals"].filter(
+            (id) => !!instance.getLayer(id),
+          );
+          if (
+            !latest.current.picking &&
+            trafficLayers.length &&
+            instance.queryRenderedFeatures(event.point, {
+              layers: trafficLayers,
+            }).length
+          )
+            return;
           if (
             !latest.current.picking &&
             instance.getZoom() < 13 &&
@@ -699,12 +715,12 @@ function FlatMap(props: TransportMapProps) {
                   const desiredAngle =
                     sample.bearing +
                     (angleRef.current === "right"
-                      ? -90
+                      ? -125
                       : angleRef.current === "left"
-                        ? 90
+                        ? 125
                         : 180);
                   const headingDelta =
-                    (((desiredAngle - instance.getBearing() + 540) % 360) - 180);
+                    ((desiredAngle - instance.getBearing() + 540) % 360) - 180;
                   const turnDamping = 1 - Math.exp(-dt * 5);
                   targetBearing =
                     (instance.getBearing() + headingDelta * turnDamping + 360) %
@@ -813,7 +829,7 @@ function FlatMap(props: TransportMapProps) {
         source: "routes",
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#06130c",
+          "line-color": "#060b13",
           "line-width": [
             "interpolate",
             ["linear"],
@@ -888,6 +904,11 @@ function FlatMap(props: TransportMapProps) {
       (vehicle) => vehicle.source === "gtfs-rt",
     );
     const fitKey = `${props.region}:${official.length ? "official" : "demo"}`;
+    // A late feed refresh must not replace an explicitly chosen stop/report.
+    if (props.focusLocation) {
+      regionAtFit.current = fitKey;
+      return;
+    }
     if (regionAtFit.current === fitKey) return;
     const bounds = createProjection(props.routes, props.region).bounds;
     // A regional official feed extends beyond the compact demo corridor. Frame
@@ -905,6 +926,24 @@ function FlatMap(props: TransportMapProps) {
       ];
     }
     const is3d = props.mode === "3d";
+    // 3D opens at street-block scale; a nationwide fleet fit hides buildings.
+    // Keep the explicit Overall action for viewing the entire service area.
+    if (is3d) {
+      if (
+        !props.selectedVehicleId &&
+        regionAtFit.current?.split(":")[0] !== props.region
+      )
+        instance.easeTo({
+          center: REGION_CENTERS[props.region],
+          zoom: 16,
+          pitch: 58,
+          bearing: -25,
+          padding: { top: 0, bottom: 0, left: 0, right: 0 },
+          duration: regionAtFit.current ? 1100 : 0,
+        });
+      regionAtFit.current = fitKey;
+      return;
+    }
     const compact = instance.getContainer().clientHeight < 500;
     instance.fitBounds(bounds, {
       padding: {
@@ -924,7 +963,14 @@ function FlatMap(props: TransportMapProps) {
             : 13.8,
     });
     regionAtFit.current = fitKey;
-  }, [ready, unavailable, props.routes, props.region, props.vehicles, props.mode]);
+  }, [
+    ready,
+    unavailable,
+    props.routes,
+    props.region,
+    props.vehicles,
+    props.mode,
+  ]);
 
   useEffect(() => {
     if (!ready || !map.current || unavailable) return;
@@ -1004,7 +1050,7 @@ function FlatMap(props: TransportMapProps) {
         entry.element.style.setProperty(
           "--bus-color",
           props.routes.find((route) => route.id === vehicle.routeId)?.color ??
-            "#bafa45",
+            "#518bee",
         );
         entry.element.style.zIndex =
           props.selectedVehicleId === vehicle.id ? "5" : "2";
@@ -1090,8 +1136,8 @@ function FlatMap(props: TransportMapProps) {
           16,
           3.5,
         ],
-        "circle-color": "#c4d3c7",
-        "circle-stroke-color": "#172d24",
+        "circle-color": "#c4cad3",
+        "circle-stroke-color": "#171f2d",
         "circle-stroke-width": 1.5,
         "circle-opacity": 0.85,
       },
@@ -1114,8 +1160,8 @@ function FlatMap(props: TransportMapProps) {
         "text-optional": true,
       },
       paint: {
-        "text-color": "#c4d3c7",
-        "text-halo-color": "#10211c",
+        "text-color": "#c4cad3",
+        "text-halo-color": "#101621",
         "text-halo-width": 1.5,
       },
     });
@@ -1226,13 +1272,18 @@ function FlatMap(props: TransportMapProps) {
       (v) => v.id === latest.current.selectedVehicleId,
     );
     instance.easeTo({
-      pitch: is3d ? 55 : 0,
-      bearing: is3d ? -15 : 0,
-      duration: 1000,
+      padding: { top: 0, bottom: 0, left: 0, right: 0 },
+      pitch: is3d ? 58 : 0,
+      bearing: is3d ? -25 : 0,
+      duration: 1100,
       ...(is3d
         ? {
-            center: selected?.coordinate ?? instance.getCenter(),
-            zoom: Math.max(instance.getZoom(), 13.8),
+            center:
+              selected?.coordinate ??
+              (instance.getZoom() < 14
+                ? REGION_CENTERS[props.region]
+                : instance.getCenter()),
+            zoom: Math.max(instance.getZoom(), 16),
           }
         : {}),
     });
@@ -1241,8 +1292,16 @@ function FlatMap(props: TransportMapProps) {
   useEffect(() => {
     if (!ready) return;
     if (!props.selectedVehicleId) {
+      // setPadding stops an active camera transition, even for unchanged values.
+      // Only reset a previous vehicle framing; leave 3D entry animation running.
+      const padding = map.current?.getPadding();
+      if (
+        lastFocus.current &&
+        padding &&
+        Object.values(padding).some((value) => value !== 0)
+      )
+        map.current?.setPadding({ top: 0, right: 0, bottom: 0, left: 0 });
       lastFocus.current = "";
-      map.current?.setPadding({ top: 0, right: 0, bottom: 0, left: 0 });
       return;
     }
     const focusKey = `${props.selectedVehicleId}:${props.mode}:${viewAngle}`;
@@ -1259,14 +1318,22 @@ function FlatMap(props: TransportMapProps) {
       easingUntilRef.current = performance.now() + 850;
       map.current?.easeTo({
         center,
-        padding: { top: 0, left: 0, right: 0, bottom: 0 },
-        zoom: Math.max(map.current.getZoom(), props.mode === "3d" ? 17.5 : 16),
-        pitch: props.mode === "3d" ? 62 : 0,
+        // Reserve the details card's space so the ride remains in the clear.
+        padding:
+          window.innerWidth <= 960
+            ? { top: 90, left: 0, right: 0, bottom: 260 }
+            : { top: 90, left: 0, right: 340, bottom: 70 },
+        zoom: props.mode === "3d" ? 18.35 : Math.max(map.current.getZoom(), 16),
+        pitch: props.mode === "3d" ? 64 : 0,
         ...(props.mode === "3d"
           ? {
               bearing:
                 sample.bearing +
-                (viewAngle === "right" ? -90 : viewAngle === "left" ? 90 : 180),
+                (viewAngle === "right"
+                  ? -125
+                  : viewAngle === "left"
+                    ? 125
+                    : 180),
             }
           : {}),
         duration: 800,
@@ -1275,6 +1342,78 @@ function FlatMap(props: TransportMapProps) {
     // GPS updates are followed by the interpolation loop, not by restarting camera transitions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, props.follow, props.selectedVehicleId, props.mode, viewAngle]);
+
+  useEffect(() => {
+    const instance = map.current;
+    const focus = props.focusLocation;
+    const element = container.current;
+    if (!ready || unavailable || !instance || !element || !focus) return;
+    if (
+      !focus.coordinate.every(Number.isFinite) ||
+      Math.abs(focus.coordinate[0]) > 180 ||
+      Math.abs(focus.coordinate[1]) > 90
+    )
+      return;
+
+    latest.current.onFollowChange?.(false);
+    let applied = false;
+    let frame = 0;
+    const revealLocation = () => {
+      if (applied || !element.clientWidth || !element.clientHeight) return;
+      applied = true;
+      observer.disconnect();
+      instance.resize();
+      const compact = window.matchMedia("(max-width: 960px)").matches;
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      const is3d = latest.current.mode === "3d";
+      const height = element.clientHeight;
+      const width = element.clientWidth;
+      instance.easeTo({
+        center: focus.coordinate,
+        zoom: is3d ? 17 : 16,
+        pitch: is3d ? 50 : 0,
+        bearing: is3d ? -25 : 0,
+        // Leave the location visible above/beside the detail sheet.
+        padding: compact
+          ? {
+              top: 60,
+              bottom: Math.min(250, height * 0.38),
+              left: 20,
+              right: 20,
+            }
+          : {
+              top: 70,
+              bottom: 60,
+              left: 30,
+              right: Math.min(350, width * 0.4),
+            },
+        duration: reducedMotion ? 0 : 750,
+      });
+    };
+    // A mobile map can still be display:none when the selection is dispatched.
+    // Wait for measurable dimensions instead of framing a zero-sized canvas.
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(revealLocation);
+    });
+    observer.observe(element);
+    frame = requestAnimationFrame(revealLocation);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [ready, unavailable, props.focusLocation]);
+
+  useEffect(() => {
+    if (ready && map.current?.getLayer("transit-stop-names"))
+      map.current.setLayoutProperty(
+        "transit-stop-names",
+        "visibility",
+        props.mode === "3d" && props.follow ? "none" : "visible",
+      );
+  }, [ready, props.mode, props.follow, props.stops, boundary]);
 
   useEffect(() => {
     if (ready && map.current?.getLayer("johor-buildings-3d"))
@@ -1411,6 +1550,16 @@ function FlatMap(props: TransportMapProps) {
     >
       <div ref={container} className="gerak-map-canvas" data-testid="map-2d" />
       {ready && map.current && (
+        <TrafficLayers
+          map={map.current}
+          locale={props.locale}
+          region={props.region}
+          picking={props.picking}
+          onInspect={() => props.onFollowChange?.(false)}
+          onReport={props.onTrafficReport}
+        />
+      )}
+      {ready && map.current && (
         <MalaysiaBoundaries
           key={props.region}
           map={map.current}
@@ -1437,70 +1586,21 @@ function FlatMap(props: TransportMapProps) {
       >
         GPS observations · route estimates between updates
       </div>
-      {props.selectedVehicleId && (
-        <div className="gerak-follow-controls">
-          <button
-            type="button"
-            onClick={() => props.onFollowChange?.(!props.follow)}
-          >
-            {props.follow ? "Stop following" : "Follow bus"}
-          </button>
-          {props.mode === "3d" && (
-            <select
-              aria-label="Bus viewing angle"
-              value={viewAngle}
-              onChange={(event) =>
-                setViewAngle(event.target.value as typeof viewAngle)
-              }
-            >
-              <option value="right">Right side</option>
-              <option value="left">Left side</option>
-              <option value="front">Front view</option>
-            </select>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              props.onOverview?.();
-              map.current?.fitBounds(
-                createProjection(props.routes, props.region).bounds,
-                {
-                  padding: 55,
-                  pitch: props.mode === "3d" ? 35 : 0,
-                  bearing: 0,
-                  duration: 800,
-                },
-              );
-            }}
-          >
-            Overview
-          </button>
-        </div>
-      )}
       <MapWeather region={props.region} onWeather={setWeather} />
       <div className="gerak-map-navigation" aria-label="Map controls">
-        {
-          <button
-            type="button"
-            className="gerak-light-button"
-            aria-label={`Scene lighting: ${lightingChoice}. Change lighting`}
-            title={`Lighting: ${lightingChoice} (${lighting}) · click to cycle`}
-            onClick={() =>
-              setLighting(
-                lightingChoice === "auto"
-                  ? "day"
-                  : lightingChoice === "day"
-                    ? "dusk"
-                    : lightingChoice === "dusk"
-                      ? "night"
-                      : "auto",
-              )
-            }
-          >
-            {lighting === "day" ? "☀" : lighting === "night" ? "☾" : "◐"}
-            <small>{lightingChoice}</small>
-          </button>
-        }
+        <div className="gerak-mode-buttons" role="group" aria-label="Map mode">
+          {(["2d", "3d"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-label={mode.toUpperCase()}
+              aria-pressed={props.mode === mode}
+              onClick={() => props.onModeChange?.(mode)}
+            >
+              {mode.toUpperCase()}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           title="Zoom in"
@@ -1542,30 +1642,7 @@ function FlatMap(props: TransportMapProps) {
         >
           <Maximize2 size={16} />
         </button>
-        {props.region === "johor" && (
-          <button
-            type="button"
-            title="Johor State Overview"
-            aria-label="Show all Johor geography"
-            onClick={() => {
-              props.onOverview?.();
-              map.current?.fitBounds(
-                [
-                  [102.4, 1.15],
-                  [104.6, 2.9],
-                ],
-                {
-                  padding: 60,
-                  pitch: props.mode === "3d" ? 38 : 0,
-                  bearing: props.mode === "3d" ? -12 : 0,
-                  duration: 1000,
-                },
-              );
-            }}
-          >
-            JB
-          </button>
-        )}
+
         <button
           type="button"
           title="Recenter map"

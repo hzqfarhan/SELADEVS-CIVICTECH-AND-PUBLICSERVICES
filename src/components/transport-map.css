@@ -8,10 +8,14 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #101a16;
+  background: var(--light-base, #10141a);
 }
 .gerak-map-canvas {
-  background: radial-gradient(ellipse at 50% 50%, #1a2820, #101a16);
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    var(--light-surface, #1a1f28),
+    var(--light-base, #10141a)
+  );
 }
 .gerak-transport-map .maplibregl-canvas {
   outline: none;
@@ -26,18 +30,18 @@
 .gerak-transport-map .maplibregl-ctrl-attrib {
   font: 9px/17px inherit;
   background: rgba(16, 25, 22, 0.83);
-  color: #82928b;
+  color: var(--light-muted, #82928b);
   margin: 0 9px 8px 0;
 }
 .gerak-transport-map .maplibregl-ctrl-attrib a {
-  color: #a7b8ab;
+  color: var(--light-muted, #a7adb8);
 }
 .gerak-transport-map .maplibregl-ctrl-attrib-button {
   filter: invert(0.7);
 }
 .gerak-transport-map .maplibregl-ctrl-scale {
-  border-color: #6b7e72;
-  color: #8c9b91;
+  border-color: var(--light-line, #6b727e);
+  color: var(--light-muted, #8c9b91);
   background: transparent;
   font: 9px/16px inherit;
   margin: 0 14px 10px 0;
@@ -51,20 +55,20 @@
   justify-content: center;
   flex-direction: column;
   gap: 12px;
-  background: #101a16;
-  color: #ecf4e9;
+  background: var(--light-base, #10141a);
+  color: var(--light-ink, #e9edf4);
   font-size: 14px;
   z-index: 1;
 }
 .gerak-map-loading > span:last-child {
-  color: #7e9186;
+  color: var(--light-muted, #7e9186);
   font-size: 12px;
 }
 .gerak-map-loader {
   width: 28px;
   height: 28px;
-  border: 2px solid #344735;
-  border-top-color: #c6ff5a;
+  border: 2px solid var(--light-line, #343b47);
+  border-top-color: #699af0;
   border-radius: 50%;
   animation: gerak-spin 1s linear infinite;
 }
@@ -74,7 +78,7 @@
   }
 }
 .gerak-bus-marker {
-  --bus-color: #bafa45;
+  --bus-color: #518bee;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -82,7 +86,7 @@
   height: 32px;
   border: 2px solid var(--bus-color);
   border-radius: 10px;
-  background: #111d15f2;
+  background: var(--light-base, #11151df2);
   backdrop-filter: blur(8px);
   color: var(--bus-color);
   box-shadow:
@@ -133,10 +137,11 @@
   font: 700 11px/1.3 var(--font-mono, monospace, -apple-system, sans-serif);
   letter-spacing: 0.04em;
   padding: 2px 8px;
-  color: #f2faf4;
+  color: var(--light-ink, #f2f5fa);
   text-shadow: 0 1px 2px #000;
-  background: #08120cf6;
-  border: 1px solid color-mix(in srgb, var(--bus-color) 50%, #203628);
+  background: var(--light-base, #080c12f6);
+  border: 1px solid
+    color-mix(in srgb, var(--bus-color) 50%, var(--light-line, #202836));
   border-radius: 6px;
   box-shadow:
     0 4px 12px #000c,
@@ -149,7 +154,7 @@
 }
 .gerak-bus-marker.is-selected {
   background: var(--bus-color);
-  color: #0b170e;
+  color: #0b0f17;
   border: 2px solid #ffffff;
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--bus-color) 28%, transparent),
@@ -159,8 +164,8 @@
 }
 .gerak-bus-marker.is-selected .gerak-bus-marker-label {
   transform: translateX(-50%) scale(1.08);
-  background: #050e07;
-  color: #ffffff;
+  background: var(--light-base, #05080e);
+  color: var(--light-ink, #ffffff);
   border-color: var(--bus-color);
   box-shadow:
     0 0 14px color-mix(in srgb, var(--bus-color) 50%, transparent),
@@ -182,9 +187,9 @@
   height: 7px;
   width: 7px;
   border-radius: 50%;
-  background: #c4d3c7;
-  border: 2px solid #15271a;
-  box-shadow: 0 0 0 2px #7f9b8355;
+  background: #c4cad3;
+  border: 2px solid var(--light-line, #151c27);
+  box-shadow: 0 0 0 2px #7f899b55;
 }
 .gerak-stop-label {
   position: absolute;
@@ -193,7 +198,7 @@
   transform: translateX(-50%);
   white-space: nowrap;
   font: 500 10px/15px var(--font-body, Arial, sans-serif);
-  color: #a4b6ab;
+  color: var(--light-muted, #a4abb6);
   text-shadow:
     0 1px 2px #000,
     0 0 4px #000,
@@ -201,15 +206,15 @@
   pointer-events: none;
 }
 .gerak-stop-marker:hover .gerak-stop-label {
-  color: #edffda;
+  color: var(--light-ink, #dde8fc);
 }
 .gerak-report-marker {
   font: 800 12px/23px var(--font-body, Arial, sans-serif);
   width: 24px;
   height: 24px;
   text-align: center;
-  color: #ffe4ba;
-  background: #6d4826;
+  color: var(--light-ink, #ffe4ba);
+  background: var(--light-tint, #6d4826);
   border: 1px solid #d59b51;
   border-radius: 8px 8px 8px 0;
   transform: rotate(-10deg);
@@ -217,9 +222,9 @@
   cursor: help;
 }
 .gerak-report-marker.in-progress {
-  background: #265562;
+  background: var(--light-tint, #265562);
   border-color: #8dcfdc;
-  color: #caf3ff;
+  color: var(--light-ink, #caf3ff);
 }
 .gerak-map-navigation {
   position: absolute;
@@ -230,7 +235,7 @@
   padding: 5px;
   border: 1px solid #ffffff12;
   border-radius: 13px;
-  background: #17221ee8;
+  background: var(--light-base, #171b22e8);
   box-shadow: 0 4px 20px #0003;
   z-index: 3;
   backdrop-filter: blur(12px);
@@ -241,7 +246,7 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #c5d3c9;
+  color: var(--light-ink, #c5cad3);
   font: 24px/1 Arial;
   cursor: pointer;
   display: grid;
@@ -249,7 +254,7 @@
 }
 .gerak-map-navigation button:hover {
   background: #ffffff0c;
-  color: #cdff75;
+  color: #81abf3;
 }
 .gerak-map-navigation span {
   height: 1px;
@@ -265,7 +270,7 @@
   flex-direction: column;
   gap: 5px;
   pointer-events: none;
-  color: #82958a;
+  color: var(--light-muted, #828995);
   font-size: 9px;
 }
 .gerak-map-compass i {
@@ -274,22 +279,26 @@
   height: 0;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
-  border-bottom: 18px solid #b5c5b8;
+  border-bottom: 18px solid #b5bbc5;
 }
 .gerak-map-tile-notice {
   position: absolute;
   bottom: 30px;
   left: 20px;
-  background: #16251ce8;
-  border: 1px solid #435b35;
+  background: var(--light-base, #161c25e8);
+  border: 1px solid var(--light-line, #35435b);
   border-radius: 7px;
   padding: 6px 9px;
   font-size: 10px;
-  color: #bfc9a9;
+  color: var(--light-muted, #a9b5c9);
   max-width: 70%;
 }
 .gerak-schematic {
-  background: radial-gradient(ellipse at 45% 40%, #203127, #0e1713);
+  background: radial-gradient(
+    ellipse at 45% 40%,
+    var(--light-surface, #202631),
+    var(--light-base, #0e1117)
+  );
 }
 .gerak-schematic > svg {
   width: 100%;
@@ -312,11 +321,15 @@
   max-width: 70%;
   font-size: 10px;
   line-height: 1.6;
-  color: #9eb0a2;
+  color: var(--light-muted, #9ea5b0);
   pointer-events: none;
 }
 .gerak-city-scene {
-  background: radial-gradient(ellipse at 50% 20%, #263a35, #111e1a);
+  background: radial-gradient(
+    ellipse at 50% 20%,
+    var(--light-surface, #262d3a),
+    var(--light-base, #11161e)
+  );
 }
 .gerak-city-scene > canvas {
   touch-action: none;
@@ -324,18 +337,18 @@
 .gerak-city-label {
   font: 600 10px/1.4 var(--font-body, Arial, sans-serif);
   white-space: nowrap;
-  color: #e6f4ea;
-  background: #142820cf;
-  border: 1px solid #a7d5b329;
+  color: var(--light-ink, #e6ebf4);
+  background: var(--light-base, #141b28cf);
+  border: 1px solid #a7b8d529;
   padding: 4px 8px;
   border-radius: 6px;
   pointer-events: none;
   box-shadow: 0 2px 10px #0003;
 }
 .gerak-city-bus-label {
-  background: #13221cef;
-  color: #d9ffc0;
-  border: 1px solid #bafa4566;
+  background: var(--light-base, #131822ef);
+  color: var(--light-ink, #c6d9f9);
+  border: 1px solid #518bee66;
   border-radius: 5px;
   padding: 6px 9px;
   font: 600 12px/1.2 var(--font-body, Arial, sans-serif);
@@ -346,15 +359,15 @@
   cursor: pointer;
 }
 .gerak-city-bus-label.is-selected {
-  color: #c3ff54;
-  border-color: #c3ff54;
-  box-shadow: 0 0 15px #bdff5522;
+  color: #6397f0;
+  border-color: #6397f0;
+  box-shadow: 0 0 15px #6497f022;
 }
 .gerak-city-stop-label {
   font: 500 9px/1.25 var(--font-body, Arial, sans-serif);
   white-space: nowrap;
-  color: #c2d8cd;
-  background: #102419cc;
+  color: var(--light-ink, #c2cad8);
+  background: var(--light-base, #101724cc);
   padding: 3px 5px;
   border-radius: 4px;
   cursor: pointer;
@@ -364,7 +377,7 @@
   position: absolute;
   bottom: 29px;
   left: 20px;
-  color: #91a89b;
+  color: var(--light-muted, #9199a8);
   font-size: 10px;
   line-height: 1.7;
   pointer-events: none;
@@ -373,14 +386,14 @@
 .gerak-city-mode-note strong {
   display: block;
   font-weight: 500;
-  color: #bacbbf;
+  color: var(--light-ink, #bac0cb);
   letter-spacing: 0.02em;
 }
 .gerak-city-hint {
   position: absolute;
   bottom: 9px;
   left: 20px;
-  color: #6f8b7c;
+  color: var(--light-muted, #6f798b);
   font-size: 9px;
   pointer-events: none;
 }
@@ -388,7 +401,7 @@
   position: absolute;
   right: 28px;
   top: 95px;
-  color: #a9bfad;
+  color: var(--light-muted, #a9b1bf);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -405,7 +418,7 @@
   left: 20px;
   bottom: 52px;
   color: #f1be72;
-  background: #242719d9;
+  background: var(--light-surface, #191e27d9);
   padding: 5px 8px;
   border-radius: 6px;
   font-size: 10px;
@@ -428,7 +441,7 @@
 .gerak-city-picking {
   cursor: crosshair;
 }
-@media (max-width: 700px) {
+@media (max-width: 960px) {
   .gerak-stop-label {
     font-size: 8px;
   }
@@ -480,60 +493,10 @@
   }
 }
 
-/* In 3D view, display a sleek elevated billboard marker with the bus icon and plate floating over the 3D model */
+/* Three renders the vehicles and handles map picking. Never override the
+   transform on MapLibre's marker root: it owns geographic positioning. */
 .is-geographic-3d .gerak-bus-marker {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: auto !important;
-  height: auto !important;
-  padding: 3px 6px !important;
-  background: #08140df0 !important;
-  border: 1.5px solid color-mix(in srgb, var(--bus-color) 80%, #ffffff) !important;
-  border-radius: 10px !important;
-  box-shadow:
-    0 6px 20px #000000dc,
-    0 0 16px color-mix(in srgb, var(--bus-color) 50%, transparent) !important;
-  transform: translate3d(0, -16px, 0);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  pointer-events: auto !important;
-  cursor: pointer;
-}
-.is-geographic-3d .gerak-bus-marker:hover,
-.is-geographic-3d .gerak-bus-marker.is-selected {
-  transform: translate3d(0, -22px, 0) scale(1.1) !important;
-  border-color: #ffffff !important;
-  box-shadow:
-    0 8px 28px #000000fa,
-    0 0 24px color-mix(in srgb, var(--bus-color) 70%, transparent) !important;
-  z-index: 20 !important;
-}
-.is-geographic-3d .gerak-bus-marker .gerak-bus-marker-icon {
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  color: var(--bus-color);
-  filter: drop-shadow(0 2px 4px #000a);
-}
-.is-geographic-3d .gerak-bus-marker .gerak-bus-marker-icon svg {
-  width: 100%;
-  height: 100%;
-}
-.is-geographic-3d .gerak-bus-marker .gerak-bus-marker-label {
-  display: inline-flex !important;
-  position: static !important;
-  transform: none !important;
-  margin-top: 2px !important;
-  font-size: 8.5px !important;
-  line-height: 1.1 !important;
-  padding: 1px 5px !important;
-  background: #030804ee !important;
-  color: #f0faf2 !important;
-  border: 1px solid color-mix(in srgb, var(--bus-color) 45%, #182a1d) !important;
-  border-radius: 4px !important;
+  display: none !important;
 }
 
 /* Make plate label visible in 2D mode with clear Malaysian license plate styling */
@@ -558,9 +521,9 @@
   padding: 7px 12px;
   border: 1px solid #ffffff18;
   border-radius: 9px;
-  background: #14211eed;
+  background: var(--light-base, #141921ed);
   backdrop-filter: blur(12px);
-  color: #eff9ed;
+  color: var(--light-ink, #edf1f9);
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
@@ -569,7 +532,7 @@
   white-space: nowrap;
 }
 .gerak-boundary-trigger:hover {
-  background: #192d28;
+  background: var(--light-surface, #19202d);
   border-color: #ffffff2e;
   transform: translateY(-1px);
 }
@@ -583,7 +546,7 @@
 }
 .gerak-boundary-arrow {
   font-size: 9px;
-  color: #92aba0;
+  color: var(--light-muted, #929bab);
   margin-left: 2px;
 }
 .gerak-boundary-fields {
@@ -597,11 +560,11 @@
   display: grid;
   gap: 10px;
   padding: 14px;
-  border: 1px solid #3d5849;
+  border: 1px solid var(--light-line, #3d4758);
   border-radius: 12px;
-  background: #12221df7;
+  background: var(--light-base, #121822f7);
   backdrop-filter: blur(16px);
-  color: #eff9ed;
+  color: var(--light-ink, #edf1f9);
   box-shadow: 0 12px 36px #00000060;
   animation: gerak-slide-up 0.18s ease-out;
 }
@@ -614,14 +577,14 @@
 }
 .gerak-boundary-header strong {
   font-size: 11px;
-  color: #b7e69d;
+  color: var(--light-muted, #9db8e6);
   font-weight: 600;
   letter-spacing: 0.3px;
 }
 .gerak-boundary-close {
   background: transparent;
   border: none;
-  color: #8da499;
+  color: var(--light-muted, #8d95a4);
   font-size: 13px;
   cursor: pointer;
   padding: 2px 6px;
@@ -629,26 +592,26 @@
   line-height: 1;
 }
 .gerak-boundary-close:hover {
-  color: #eff9ed;
+  color: var(--light-ink, #edf1f9);
   background: #ffffff14;
 }
 .gerak-boundary-fields label {
   display: grid;
   gap: 5px;
   font-size: 11px;
-  color: #a4beaf;
+  color: var(--light-muted, #a4aebe);
 }
 .gerak-boundary-fields select {
   width: 100%;
-  background: #1b2e26;
-  color: #edf9e5;
-  border: 1px solid #436351;
+  background: var(--light-surface, #1b222e);
+  color: var(--light-ink, #e5ecf9);
+  border: 1px solid var(--light-line, #434f63);
   border-radius: 7px;
   padding: 7px 9px;
   font-size: 11.5px;
 }
 .gerak-boundary-fields small {
-  color: #839d90;
+  color: var(--light-muted, #838d9d);
   font-size: 9.5px;
   line-height: 1.4;
 }
@@ -672,7 +635,7 @@
     overflow-y: auto;
   }
 }
-@media (max-width: 700px) {
+@media (max-width: 960px) {
   .gerak-boundary-panel {
     left: 12px;
     bottom: 72px;
@@ -741,7 +704,7 @@
   justify-content: center;
   align-items: center;
   gap: 3px;
-  color: #f5d395;
+  color: var(--light-muted, #f5d395);
 }
 .gerak-light-button small {
   font-size: 8px;
@@ -803,18 +766,18 @@
 
 /* Locate button in map navigation */
 .gerak-map-navigation .gerak-locate-button {
-  color: #c5d3c9;
+  color: var(--light-ink, #c5cad3);
   transition: all 0.2s ease;
 }
 .gerak-map-navigation .gerak-locate-button:hover {
-  color: #38bdf8;
+  color: var(--light-accent, #38bdf8);
   background: #38bdf814;
 }
 .gerak-map-navigation .gerak-locate-button.is-active {
-  color: #38bdf8;
+  color: var(--light-accent, #38bdf8);
 }
 .gerak-map-navigation .gerak-locate-button.is-locating {
-  color: #38bdf8;
+  color: var(--light-accent, #38bdf8);
   animation: gerak-locate-pulse 1s infinite alternate ease-in-out;
 }
 @keyframes gerak-locate-pulse {
@@ -835,10 +798,10 @@
   z-index: 4;
   width: max-content;
   max-width: min(280px, calc(100% - 95px));
-  border: 1px solid #779b8650;
+  border: 1px solid var(--light-line, #77849b50);
   border-radius: 12px;
-  background: #152820f2;
-  color: #dceadb;
+  background: var(--light-base, #151c28f2);
+  color: var(--light-ink, #dbe0ea);
   box-shadow: 0 5px 20px #0003;
   font-size: 11px;
 }
@@ -854,10 +817,10 @@
   margin: 7px 0;
 }
 .gerak-weather a {
-  color: #b8ec8f;
+  color: var(--light-muted, #8fb1ec);
   text-decoration: underline;
 }
-@media (max-width: 700px) {
+@media (max-width: 960px) {
   .gerak-weather {
     right: 62px;
     bottom: 80px;
@@ -872,8 +835,8 @@
   left: 18px;
   display: flex;
   gap: 6px;
-  background: #142c25f0;
-  border: 1px solid #78976b;
+  background: var(--light-surface, #141d2cf0);
+  border: 1px solid var(--light-line, #6b7b97);
   padding: 6px;
   border-radius: 12px;
 }
@@ -881,14 +844,14 @@
 .gerak-follow-controls select {
   border: 0;
   border-radius: 7px;
-  background: #284b3e;
-  color: #e5f3dc;
+  background: var(--light-tint, #28354b);
+  color: var(--light-ink, #dce4f3);
   padding: 9px;
   font-size: 11px;
   min-height: 34px;
   cursor: pointer;
 }
-@media (max-width: 700px) {
+@media (max-width: 960px) {
   .gerak-follow-controls {
     top: 55px;
     left: 8px;
@@ -906,5 +869,29 @@
   }
   .gerak-motion-status {
     display: none;
+  }
+}
+
+/* Quiet, touch-friendly camera controls; selection stays visible to keyboard users. */
+.gerak-follow-controls {
+  box-shadow: 0 8px 28px #0003;
+  backdrop-filter: blur(16px);
+  border-color: var(--light-line, #64708466);
+}
+.gerak-follow-controls button[aria-pressed="true"] {
+  background: #7aa6f2;
+  color: #151d2c;
+}
+.gerak-follow-controls :is(button, select):focus-visible {
+  outline: 2px solid #7aa6f2;
+  outline-offset: 3px;
+}
+@media (max-width: 960px) {
+  .gerak-follow-controls {
+    max-width: calc(100% - 16px);
+  }
+  .gerak-follow-controls button,
+  .gerak-follow-controls select {
+    min-height: 38px;
   }
 }

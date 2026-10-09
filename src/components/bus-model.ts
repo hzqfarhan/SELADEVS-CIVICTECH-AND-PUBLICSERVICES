@@ -42,10 +42,10 @@ export function buildBus(
   };
   const paint = material(color),
     glass = material("#14323e"),
-    roof = material(variant % 2 ? "#f2f5ea" : "#293941"),
+    roof = material(variant % 2 ? "#eaeef5" : "#293941"),
     rubber = material("#151a20"),
     alloy = material("#b7cad0"),
-    white = material("#f5f9ef"),
+    white = material("#eff3f9"),
     red = material("#ff5e61");
   white.emissive.set("#ffe7ac");
   white.emissiveIntensity = 0.3;

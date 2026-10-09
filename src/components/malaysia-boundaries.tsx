@@ -108,7 +108,7 @@ export default function MalaysiaBoundaries({
         type: "fill",
         source: `my-${name}`,
         paint: {
-          "fill-color": name === "states" ? "#69d7bf" : "#bafa45",
+          "fill-color": name === "states" ? "#6991d7" : "#518bee",
           "fill-opacity": 0.06,
         },
       });
@@ -117,7 +117,7 @@ export default function MalaysiaBoundaries({
         type: "line",
         source: `my-${name}`,
         paint: {
-          "line-color": name === "states" ? "#8be4cd" : "#bdcd94",
+          "line-color": name === "states" ? "#8bace4" : "#94a9cd",
           "line-width": name === "states" ? 1.8 : 0.7,
           "line-opacity": 0.65,
         },
@@ -132,19 +132,19 @@ export default function MalaysiaBoundaries({
       id: "my-mask",
       type: "fill",
       source: "my-mask",
-      paint: { "fill-color": "#081817", "fill-opacity": 0.9 },
+      paint: { "fill-color": "#080e18", "fill-opacity": 0.9 },
     });
     map.addLayer({
       id: "my-selection-fill",
       type: "fill",
       source: "my-selection",
-      paint: { "fill-color": "#bafa45", "fill-opacity": 0.07 },
+      paint: { "fill-color": "#518bee", "fill-opacity": 0.07 },
     });
     map.addLayer({
       id: "my-selection-line",
       type: "line",
       source: "my-selection",
-      paint: { "line-color": "#c6ff6a", "line-width": 3 },
+      paint: { "line-color": "#77a4f2", "line-width": 3 },
     });
     return () => {
       if (!map.getStyle()) return;
@@ -253,12 +253,10 @@ export default function MalaysiaBoundaries({
         className="gerak-boundary-trigger"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        title="Explore Malaysia boundaries"
+        title={district || state || "Explore states and districts"}
+        aria-label="Explore states and districts"
       >
-        <span className="gerak-boundary-flag">🇲🇾</span>
-        <span className="gerak-boundary-label">
-          {district || state || "Malaysia"}
-        </span>
+        <span className="gerak-boundary-label">Areas</span>
         <span className="gerak-boundary-arrow" aria-hidden="true">
           {expanded ? "▴" : "▾"}
         </span>

@@ -23,6 +23,7 @@ export function createBusFleetLayer(
       bus: ReturnType<typeof buildBus>;
       coordinate?: [number, number];
       color: string;
+      travel: number;
     }
   >();
   // Shared geometry and instancing: illustrative stop lamps, no per-lamp lights.
@@ -151,7 +152,7 @@ export function createBusFleetLayer(
         const sample = motion ? sampleMotion(motion, now) : vehicle;
         const color =
           props.routes.find((r) => r.id === vehicle.routeId)?.color ??
-          "#bafa45";
+          "#518bee";
         let model = models.get(vehicle.id);
         if (model && model.color !== color) {
           scene.remove(model.bus.root);
@@ -164,7 +165,11 @@ export function createBusFleetLayer(
             (sum, char) => sum + char.charCodeAt(0),
             0,
           );
-          model = { bus: buildBus(color, variant, vehicle.vehicleKind), color };
+          model = {
+            bus: buildBus(color, variant, vehicle.vehicleKind),
+            color,
+            travel: 0,
+          };
           models.set(vehicle.id, model);
           scene.add(model.bus.root);
         }
@@ -190,7 +195,7 @@ export function createBusFleetLayer(
         if (!model.coordinate) {
           model.bus.root.rotation.z = targetHeading;
         } else {
-          model.bus.root.rotation.z += turn * Math.min(1, dt * 8);
+          model.bus.root.rotation.z += turn * (1 - Math.exp(-dt * 8));
         }
         const scale = Math.min(12, Math.max(2.4, 2 ** (16.5 - map.getZoom())));
         model.bus.root.scale.set(
@@ -206,15 +211,24 @@ export function createBusFleetLayer(
           const dy = (sample.coordinate[1] - model.coordinate[1]) * 111320;
           const distance = Math.hypot(dx, dy);
           const moving = distance / dt > 0.15 && distance < 200;
-          if (!reducedMotion) {
-            model.bus.body.position.z = moving
-              ? Math.sin(now * 0.008) * 0.025
+          // Suspension and wheel rotation follow actual displayed travel. A
+          // correction/teleport must not spin the tyres or kick the body.
+          const continuous = distance < Math.max(3, dt * 65);
+          if (continuous) model.travel += distance / scale;
+          const damping = 1 - Math.exp(-dt * 10);
+          const bounce =
+            !reducedMotion && moving && continuous
+              ? Math.sin(model.travel * 1.4) * 0.014
               : 0;
-            model.bus.body.rotation.y = moving
-              ? Math.max(-0.025, Math.min(0.025, turn * 0.12))
+          const lean =
+            !reducedMotion && moving && continuous
+              ? Math.max(-0.018, Math.min(0.018, turn * 0.08))
               : 0;
-          }
-          if (distance < 200)
+          model.bus.body.position.z +=
+            (bounce - model.bus.body.position.z) * damping;
+          model.bus.body.rotation.y +=
+            (lean - model.bus.body.rotation.y) * damping;
+          if (continuous && !reducedMotion)
             for (const wheel of model.bus.wheels)
               wheel.rotation.x -= wheelTurn(distance / scale);
         }

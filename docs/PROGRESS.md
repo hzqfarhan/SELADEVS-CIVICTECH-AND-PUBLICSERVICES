@@ -60,3 +60,118 @@ The shared conversation could not be fetched. The available CODEFEST archive was
 - [x] 3D click automatically follows from the bus right-hand side; tyres enlarged from radius 0.48 to 0.70 with matching wheel rotation. Ground route layers placed before building/fleet layers.
 - [x] Day mode now recolours the basemap and is available in both 2D/3D. Added service-area current weather from Open-Meteo with timestamps, caching, stale/unavailable states and source attribution. 38 tests and TypeScript pass.
 - [x] Production build completes and weather API returns validated HTTP 200 current model data for Johor Bahru and Kuching on port 3001. Browser visual verification remains pending. Full-repository formatting check reports seven concurrently modified files outside the weather/day-palette additions; these were not reformatted wholesale.
+
+### 2026-10-03 — 3D close-up and motion refinement
+
+- [x] Set a closer 18.35 zoom, 64-degree pitch and front-quarter right/left camera angles. Reserve space for the desktop detail card and phone bottom sheet.
+- [x] Remove 3D DOM billboards whose CSS transform displaced labels from geographic positions. Keep Three.js vehicle picking and hide stop names while following.
+- [x] Make steering damping frame-rate independent; tie subtle suspension to displayed travel, ease body lean and avoid wheel spin on position corrections. Respect reduced motion for decorative animation.
+- [x] Clarify active follow control and keyboard focus; enlarge phone camera touch targets.
+- [x] Production build and TypeScript pass; all 40 tests pass. Browser checks at 390x844 and 1440x1000 confirm framing, right/left camera angles, stop-follow behavior, official GPS display and moving demo buses. No console errors observed. Screenshot: `.runtime/closeup-refined.png`.
+- [x] Browser verification is now available; older entries reporting a browser restriction describe earlier sessions, not the current verification status. Production preview runs on port 3001.
+
+### 2026-10-03 — Direct sidebar vehicle selection
+
+- [x] Add bilingual Find your bus panel with individual plate-labelled vehicle rows, route colours, selected state, route dropdown and periodically refreshed GPS freshness.
+- [x] Extend search to vehicle plates, labels and route destinations; preserve stable alphabetical ordering while observations refresh.
+- [x] Route cards filter the fleet rather than automatically selecting the first vehicle. Direct selection retains 3D auto-follow and phone sidebar collapse.
+- [x] TypeScript and production build pass. Desktop and phone browser checks confirm route filtering, plate search and selecting JXE5242 opens that vehicle's details. No console errors observed; proof saved to `.runtime/sidebar-bus-picker.png`.
+
+### 2026-10-03 — Compact sidebar and city-scale 3D entry
+
+- [x] Separate Vehicles and Routes in the sidebar. Route selection opens its matching vehicle list. Compact the header, journey action and provenance to leave more space for browsing.
+- [x] Make the phone sidebar scroll as one panel with reachable fleet controls and retain automatic collapse on vehicle selection.
+- [x] Enter 3D at zoom 16 / pitch 58, preserving closer user zoom. Initial/region 3D views centre on the service city rather than fitting every distant vehicle; Overall remains available explicitly.
+- [x] Fix redundant camera-padding resets interrupting the 2D-to-3D animation. Improve city-title contrast over daylight buildings.
+- [x] Production build and TypeScript pass. Browser checks confirm visible city buildings on initial load and after mode switching, route-to-fleet navigation, phone scrolling and exact vehicle selection with auto-follow. No console errors observed. Screenshot: `.runtime/city-sidebar-refined.png`.
+
+### 2026-10-08 — Fare estimates, transport budgets and blue theme
+
+- [x] Implement pure fare/distance engines, BAS.MY source configuration, concession eligibility, exact-table override support, integer arithmetic and explicit unknown fares.
+- [x] Preserve GTFS trip patterns, original shapes, ordered stop occurrences and raw shape distances; refresh legacy caches. Distance units remain unknown until verified.
+- [x] Add bilingual journey fare breakdowns, passenger profile and recurring monthly budgets under Saved; validate versioned local persistence, return directions and partial totals.
+- [x] Implement dated pass-comparison engine; public UI keeps comparisons unavailable until city coverage is verified. Actual-spend tracking remains deferred.
+- [x] Replace green UI accents with blue/navy and amber, update PWA icons, default lighting to night and remove automatic time/weather lighting changes. Day/dusk remain manual.
+- [x] Fix expanded planner overflowing its sidebar. Browser checks verify priced and unavailable journeys, RM0.94 x 20 = RM18.80, mixed incomplete totals, reload persistence and reachable phone controls at 390x844 without horizontal overflow.
+- [x] Official Johor static data refreshed successfully; 21 routes / 40 patterns. Live vehicle observations also refreshed. Final production build (including TypeScript) and all 65 tests pass. No browser console errors observed during final checks.
+- [x] Changed files formatted. Full format check still reports four pre-existing files: city-scene.tsx, uthm-live.ts, scrape-uthm.ts and transit.test.ts.
+- [x] Production preview remains on port 3001. Detailed limits and file map: FARES_AND_BUDGET.md.
+
+### 2026-10-08 — Bus overview and iOS icon
+
+- [x] Replace numbered fleet circles with collision-aware bus symbols; stacked backplates distinguish groups. Add the previously missing singleton overview layer used by the existing vehicle click handler. Group taps retain expansion zoom behavior.
+- [x] Generate a blue road-ribbon GERAK iOS icon, preserve the source and export opaque 1024px/180px assets. Configure Apple touch metadata; native iOS install remains unverified.
+- [x] Production build and TypeScript pass. Desktop browser shows number-free bus overview with no console errors observed. Screenshot: .runtime/bus-overview-refined.png.
+- [x] Document a phased civic expansion plan in CIVIC_EXPANSION_PLAN.md. These are proposed features, not claims of delivered council integrations.
+
+### 2026-10-08 — Traffic and CCTV feasibility
+- [x] Research MBJB i-Trafik, DBKL, LLM, OSM signal mapping and Singapore camera API. Inspect a real camera metadata response.
+- [x] Save source matrix, UI refinement, schema/API design, rollout gates and civic integration in TRAFFIC_AND_CCTV_PLAN.md. This turn is planning only; no traffic feed or signal-state feature deployed.
+
+### 2026-10-08 — Traffic first increment and latest icon rollout
+
+- [x] Add bilingual Layers panel with route visibility, Singapore border snapshot list, one selected real image, captured-time freshness, official viewer links and explicit Inspect location action that stops bus follow. Preserve layer preferences locally.
+- [x] Add validated, rate-limited camera and signal endpoints with bounded requests and process-local coalesced caches. Add source inventory entries and TRAFFIC_IMPLEMENTATION.md.
+- [x] Connect imported signal selection to the civic form with selected coordinates and node context, without replacing an unrelated saved draft. Current upstream inventory is unavailable (primary HTTP 406, alternative HTTP 500); real signal marker/report UI could not be exercised end-to-end. No synthetic signals or live phases shown.
+- [x] Apply generated GERAK icon to header/sidebar, favicon, Apple touch, PWA any/maskable sizes and offline page. Update service-worker asset version. Native iOS installation remains untested.
+- [x] 70 tests and final production build/TypeScript pass. Browser loaded an actual 1920x1080 LTA image with its source timestamp. Phone check at 390x844 confirmed no horizontal overflow; fixed overlay stacking, isolated card scrolling and mobile wordmark wrapping.
+- [x] Approval-review usage failure during diagnostics resolved on continuation. Subsequent diagnostics and final builds ran through approved commands.
+- [x] Production preview remains on port 3001. Camera metadata and imagery are Singapore-side, not Johor city CCTV. Malaysian viewers remain official outbound links.
+
+### 2026-10-09 — Mobile header fix
+
+- [x] Keep icon/name on one row, remove the redundant phone arrow, compact operator control to an accessible icon button, and provide 44px touch targets with safe-area padding.
+- [x] Final production build and TypeScript pass. Browser verification at the active 394px phone viewport confirms a 60px single-row header, no horizontal overflow, working sidebar toggle and English/Bahasa Melayu labels. Requested viewport override did not replace the browser's active device width; no narrower-device result is claimed.
+- [x] Screenshot: .runtime/mobile-header-fixed.png. Production preview remains on port 3001.
+
+### 2026-10-09 — Improvement brief: journey-search increment
+
+- [x] Reviewed the supplied website improvement brief and mapped existing foundations, gaps, dependencies and release gates in IMPROVEMENT_BACKLOG.md. Full roadmap remains open.
+- [x] Replace From/To native stop dropdowns with a reusable bilingual combobox: name/ID token search, keyboard selection, bounded suggestions, no-match feedback and isolated keyboard list scrolling.
+- [x] Reject missing, removed and identical stop IDs; editing invalidates old results. Keep official connection estimates clearly separate from departure/timetable routing.
+- [x] 72 tests pass; final production build and TypeScript pass. Browser verified official Johor suggestions, arrows/Enter/Escape, no-match state, same-stop blocking, successful route connections and BM labels. At measured 327px viewport there is no document horizontal overflow. Keyboard selection scrolls the suggestion list.
+- [x] Production preview running on port 3001. Screenshot: .runtime/journey-search-mobile.png. Public gerak.hyun.my deployment not changed or verified.
+- [ ] Continue with route detail/direction and shareable state, unified data status, opt-in nearest-stop origin, then timetable ingestion and the remaining backlog. No address geocoder or scheduled departure engine added in this increment.
+
+### 2026-10-09 — Mobile workspace usability repair
+
+- [x] Replace competing split-screen panel heights with explicit mobile Browse/Map surfaces. Keep bottom navigation and safe-area sizing; remove redundant sidebar toggles on phones.
+- [x] Give lists/forms one full-height scroll container. Keep search suggestions in form flow, remove nested vehicle-list scrolling and increase input/touch sizes. Remove obsolete 35/48/50% mobile height overrides.
+- [x] Separate Layers from follow controls; hide auxiliary navigation behind vehicle details and hide details while traffic tools are open. Keep vehicle detail independently scrollable.
+- [x] Bus/stop/journey selections open the map; operator shortcut opens its panel. Report map picking clears vehicle selection and camera follow.
+- [x] Final production build and TypeScript pass. Browser tested 320x640 and 390x844 with no document horizontal overflow, keyboard/search layout, bus selection, Layers, community dialog/picking/cancel, operator navigation and Malay labels. At 1280x800 desktop retains map/sidebar and hides the mobile switch. Viewport override reset after verification.
+- [x] Preview running on port 3001. Screenshot .runtime/mobile-workspace-fixed.png. Actual device soft-keyboard and iOS safe-area behaviour still require physical-device checks; no external deployment performed.
+
+### 2026-10-09 — Planned mobile, tablet and desktop navigation refinement
+
+- [x] Plan and verification recorded in NAVIGATION_REFINEMENT_PLAN.md; audited task entry points, map return, route selection and responsive conflicts before implementation.
+- [x] Five passenger destinations: Live buses, Plan journey, Routes, Community, Saved. Operator access stays separate. Added section headings, contextual surface labels, current-page semantics and section focus.
+- [x] Centralized navigation; Home reveals content; search clears on task/region changes. Preserve mounted panel, typed search and scroll on list/map round trips. Journey-result selection keeps its results/section (browser verified three results and scroll position retained).
+- [x] Explicit selected-route reset / View buses / Show on map; selection retains Routes context. Stop/report camera focus waits for a visible map and respects reduced motion. Stop title visible in phone detail card.
+- [x] Compact single-surface layout extends to 960px. Desktop has one panel scroll owner and compact keyboard-accessible route legend. Separated desktop Layers from vehicle detail close button; hide competing overlays while details/tools are open.
+- [x] Named dialogs, pressed map modes, honest no-position empty state. No new data sources or dependencies.
+- [x] 72 tests passed; final production build and TypeScript passed. Browser checked 320x640, 390x844, 820x700, 1024x600, 1440x900, English/BM, planner/route/map return, stop centering, operator/community/saved entry, Home and panel restoration. No document overflow at checked sizes; final browser error log empty. Viewport override reset.
+- [x] Screenshots: .runtime/navigation-mobile.png and .runtime/navigation-desktop.png. Local production preview on port 3001; no public deployment. Physical device keyboard/safe-area QA remains outstanding.
+
+### 2026-10-09 — Consistent tab refinement
+
+- [x] Refined shared sidebar spacing, typography, route/stop cards, save controls and empty states across passenger tabs. Contextual search and counts reflect filtered routes/stops.
+- [x] Saved keeps its transport budget in an expandable drawer; added Browse routes guidance. Community promotion appears only in Live buses.
+- [x] Community and Operator reports have All/Open/Resolved filters with pressed states and contextual empty feedback. Community totals use equal columns; Operator metrics use two readable columns and chart labels use short route names.
+- [x] Preserved compact vehicle details and removal of the floating camera toolbar from the preceding requests.
+- [x] Production build and TypeScript passed. Scoped diff whitespace check passed. Browser verified route no-results/clear, budget expansion, report filters, journey form and live fleet; checked layouts at 320px, 390px and 1280px with no document horizontal overflow. Operator metrics measured two columns; Community totals equal widths. Final browser error log empty and viewport override reset.
+- [x] Screenshot: .runtime/tabs-community-refined.png. Production preview running on port 3001. No report submission or status mutation tested against the empty report inbox; physical-device keyboard/safe-area testing remains outstanding. No public deployment.
+
+### 2026-10-09 — Light, Dark and System appearance
+
+- [x] Header appearance selector with English/BM labels, stored preference, cross-tab sync and system colour-scheme listener. Dark remains the default; persisted appearance is applied before hydration.
+- [x] White-based Light theme with blue live mobility, purple journey/operator, cyan routes, rose community and amber Saved accents. Shared colour tokens cover forms, report dialogs, cards, map overlays, weather and traffic panels while preserving existing Dark colours as fallbacks.
+- [x] Appearance changes set map day/night lighting; manual scene lighting remains available independently until appearance changes again. No weather/time auto-theme switching.
+- [x] Production build and TypeScript passed. Browser checked Light/Dark switching, System matching the current OS preference, reload persistence, 320px/390px/1280px widths, journey/Saved/Community/report form and daytime map. No document overflow at checked widths; final browser console error log empty. Physical OS theme-change and device testing remain manual QA.
+- [x] Screenshots: .runtime/light-mobile.png and .runtime/light-desktop.png. Local production preview remains on port 3001; no external deployment.
+
+### 2026-10-09 — Simple appearance toggle
+
+- [x] Replaced the three-choice dropdown with a 44px sun/moon button. Only Light and Dark remain; removed OS theme listeners and System bootstrap handling. Older System preferences fall back to Dark.
+- [x] Preserved local preference persistence, cross-tab updates, bilingual accessible action labels and map appearance synchronization.
+- [x] Production build passed; browser verified both toggle directions, reload persistence and 390px layout without horizontal overflow. Screenshot: .runtime/simple-theme-toggle.png. Preview on port 3001.

@@ -92,3 +92,5 @@ The public page https://uthm.katsana.com/ supplies three campus route paths and 
 
 ## Open-Meteo weather
 https://api.open-meteo.com/v1/forecast supplies modelled current conditions at registered service centres. See https://open-meteo.com/en/docs. Weather card attributes the provider, shows model time in MYT and labels stale data. City/service selection changes the requested location. This is not a station observation or official severe-weather alert. Commercial deployments must review provider API terms.
+
+Traffic cameras and static signal source details: [Traffic implementation](TRAFFIC_IMPLEMENTATION.md). Camera imagery is Singapore-side; Malaysian providers currently open as official external viewers.

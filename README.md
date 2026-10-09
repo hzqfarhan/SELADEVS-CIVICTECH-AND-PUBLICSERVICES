@@ -102,6 +102,8 @@ Docker/PostGIS deployment has not been provisioned or integration-tested here. N
 
 ## Project guide
 
+Journey results include source-labelled BAS.MY fare estimates when a reliable GTFS route distance is available. Save journeys under **Saved → Transport budget** to plan recurring monthly travel. Passenger preferences and budgets stay on this device. Unsupported fares remain unavailable; pass savings require verified city coverage. See [fare and budget implementation](docs/FARES_AND_BUDGET.md) for eligibility rules, calculation details and limitations. The interface now uses blue accents and defaults to dark map lighting; day/dusk are manual choices and weather does not change lighting.
+
 | Document | Purpose |
 | --- | --- |
 | [MASTER_PLAN](docs/MASTER_PLAN.md) | Scope and acceptance gates |
@@ -115,3 +117,9 @@ Docker/PostGIS deployment has not been provisioned or integration-tested here. N
 | [DEPLOYMENT](docs/DEPLOYMENT.md) / [ROADMAP](docs/ROADMAP.md) | Operations and remaining work |
 
 The shared prior conversation and a separate CODEFEST judging brief were unavailable. The detailed user requirements guided implementation; no unseen rubric or partnership was assumed.
+
+New design and planning artifacts: [Civic expansion plan](docs/CIVIC_EXPANSION_PLAN.md) · [iOS icon design and exports](docs/ICON_DESIGN.md).
+
+[Traffic lights and CCTV feasibility / implementation plan](docs/TRAFFIC_AND_CCTV_PLAN.md).
+
+Traffic layers are available from **Layers** on the map. See [implementation and source limits](docs/TRAFFIC_IMPLEMENTATION.md).

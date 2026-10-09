@@ -1,8 +1,20 @@
 "use client";
+
+import { LocationSearch } from "./location-search";
+import { AppearancePicker } from "./appearance-picker";
+import { journeyInputIssue } from "@/lib/stop-search";
+import { VehiclePicker } from "./vehicle-picker";
+import {
+  BudgetPanel,
+  JourneyFare,
+  PassengerSelector,
+  useFarePreferences,
+} from "./fare-budget";
+import { ft } from "@/lib/fare-copy";
 import { RideStatus } from "./ride-status";
 import { SERVICES, serviceFor } from "@/lib/feeds";
 import { uniqueRouteColors, routeColor } from "@/lib/route-colors";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useId } from "react";
 import dynamic from "next/dynamic";
 import {
   ArrowDownUp,
@@ -124,6 +136,11 @@ export default function GerakApp({
 }: {
   initialView?: View;
 }) {
+  const farePreferences = useFarePreferences();
+  const [trafficReportContext, setTrafficReportContext] = useState("");
+  const [reportFilter, setReportFilter] = useState<"all" | "open" | "resolved">(
+    "all",
+  );
   const [locale, setLocale] = useState<Locale>("en"),
     [view, setView] = useState<View>(initialView),
     [region, setRegion] = useState<Region>("johor"),
@@ -151,6 +168,11 @@ export default function GerakApp({
     [showInfo, setShowInfo] = useState(false),
     [panelOpen, setPanelOpen] = useState(true),
     [heatmap, setHeatmap] = useState(false);
+  const panelRef = useRef<HTMLElement>(null);
+  const [focusLocation, setFocusLocation] = useState<{
+    coordinate: Coordinate;
+    key: number;
+  } | null>(null);
   const [authenticated, setAuthenticated] = useState(false),
     [demoAvailable, setDemoAvailable] = useState(false),
     [showLogin, setShowLogin] = useState(false),
@@ -168,6 +190,34 @@ export default function GerakApp({
     feed,
   );
   const tr = (en: string, ms: string) => (locale === "en" ? en : ms);
+  const visibleReports = reports.filter(
+    (report) =>
+      reportFilter === "all" ||
+      (reportFilter === "resolved"
+        ? report.status === "resolved"
+        : report.status !== "resolved"),
+  );
+  const reportFilters = (
+    <div
+      className="report-filters"
+      role="group"
+      aria-label={tr("Filter reports", "Tapis laporan")}
+    >
+      {(["all", "open", "resolved"] as const).map((value) => (
+        <button
+          key={value}
+          aria-pressed={reportFilter === value}
+          onClick={() => setReportFilter(value)}
+        >
+          {value === "all"
+            ? tr("All", "Semua")
+            : value === "open"
+              ? tr("Open", "Terbuka")
+              : tr("Resolved", "Selesai")}
+        </button>
+      ))}
+    </div>
+  );
   const [officialNetwork, setOfficialNetwork] = useState<{
     routes: TransitRoute[];
     stops: Stop[];
@@ -201,7 +251,9 @@ export default function GerakApp({
   }, [region, usingOfficial, officialNetwork]);
   const regionStops = useMemo(
     () =>
-      usingOfficial && officialNetwork?.stops && officialNetwork.stops.length > 0
+      usingOfficial &&
+      officialNetwork?.stops &&
+      officialNetwork.stops.length > 0
         ? officialNetwork.stops
         : stops.filter((s) => s.region === region),
     [region, usingOfficial, officialNetwork],
@@ -370,8 +422,53 @@ export default function GerakApp({
     const timer = setTimeout(() => setToast(""), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
+  const planning = view === "explore" && showPlanner;
+  const sectionTitle =
+    view === "operator"
+      ? tr("Operator dashboard", "Papan operator")
+      : view === "community"
+        ? tr("Community", "Komuniti")
+        : view === "saved"
+          ? tr("Saved journeys", "Perjalanan disimpan")
+          : view === "routes"
+            ? tr("Routes & stops", "Laluan & hentian")
+            : planning
+              ? tr("Plan your journey", "Rancang perjalanan")
+              : tr("Live buses", "Bas langsung");
+  const sectionLabel = planning
+    ? tr("Journey", "Perjalanan")
+    : view === "explore"
+      ? tr("Buses", "Bas")
+      : view === "routes"
+        ? tr("Routes", "Laluan")
+        : view === "community"
+          ? tr("Community", "Komuniti")
+          : view === "saved"
+            ? tr("Saved", "Disimpan")
+            : tr("Operator", "Operator");
+  const navigateTo = (next: View, journey = false) => {
+    const changed = next !== view || journey !== showPlanner;
+    setView(next);
+    setShowPlanner(journey);
+    setPanelOpen(true);
+    setPicking(false);
+    if (changed) setSearch("");
+    requestAnimationFrame(() => {
+      if (changed && panelRef.current) panelRef.current.scrollTop = 0;
+      panelRef.current
+        ?.querySelector<HTMLElement>("h1")
+        ?.focus({ preventScroll: true });
+    });
+  };
+  const showLocation = (coordinate: Coordinate) => {
+    setFollow(false);
+    setFocusLocation({ coordinate, key: Date.now() });
+    if (window.matchMedia("(max-width: 960px)").matches) setPanelOpen(false);
+  };
   const changeRegion = (next: Region) => {
     setRegion(next);
+    setSearch("");
+    setFocusLocation(null);
     setFeed(next === "uthm" || next === "uthm-pagoh" ? "demo" : "live");
     setFilter(null);
     setSelectedId(null);
@@ -387,7 +484,8 @@ export default function GerakApp({
     );
   };
   const selectVehicle = (id: string) => {
-    if (window.matchMedia("(max-width: 700px)").matches) setPanelOpen(false);
+    setFocusLocation(null);
+    if (window.matchMedia("(max-width: 960px)").matches) setPanelOpen(false);
     if (mode === "3d") setFollow(true);
     setSelectedId(id);
     setSelectedStop(null);
@@ -518,16 +616,21 @@ export default function GerakApp({
         <button
           className="brand-symbol"
           title="GERAK"
-          onClick={() => setView("explore")}
+          onClick={() => navigateTo("explore")}
           aria-label="GERAK home"
         >
-          <span>g</span>
-          <i />
+          <img src="/icons/gerak-app-192.png" alt="" width={43} height={43} />
         </button>
         <div className="rail-links">
           {(
             [
-              { id: "explore", icon: Compass, en: "Explore", ms: "Teroka" },
+              { id: "explore", icon: BusFront, en: "Live buses", ms: "Bas" },
+              {
+                id: "plan",
+                icon: Navigation,
+                en: "Plan journey",
+                ms: "Rancang",
+              },
               { id: "routes", icon: Route, en: "Routes", ms: "Laluan" },
               {
                 id: "community",
@@ -542,10 +645,23 @@ export default function GerakApp({
               key={item.id}
               aria-label={tr(item.en, item.ms)}
               title={tr(item.en, item.ms)}
-              className={`rail-button ${view === item.id ? "active" : ""}`}
+              aria-current={
+                (
+                  item.id === "plan"
+                    ? planning
+                    : item.id === "explore"
+                      ? view === "explore" && !planning
+                      : view === item.id
+                )
+                  ? "page"
+                  : undefined
+              }
+              className={`rail-button ${(item.id === "plan" ? planning : item.id === "explore" ? view === "explore" && !planning : view === item.id) ? "active" : ""}`}
               onClick={() => {
-                setView(item.id);
-                setPanelOpen(true);
+                navigateTo(
+                  item.id === "plan" ? "explore" : item.id,
+                  item.id === "plan",
+                );
               }}
             >
               <item.icon size={22} />
@@ -556,11 +672,11 @@ export default function GerakApp({
         <div className="rail-bottom">
           <button
             className={`rail-button ${view === "operator" ? "active" : ""}`}
+            aria-current={view === "operator" ? "page" : undefined}
             aria-label={tr("Operator dashboard", "Papan pemuka operator")}
             title="Operator"
             onClick={() => {
-              setView("operator");
-              setPanelOpen(true);
+              navigateTo("operator");
             }}
           >
             <LayoutDashboard size={21} />
@@ -580,6 +696,8 @@ export default function GerakApp({
           <button
             type="button"
             className="sidebar-rail-toggle-btn"
+            aria-expanded={panelOpen}
+            aria-controls="journey-panel"
             onClick={() => setPanelOpen((open) => !open)}
             aria-label={
               panelOpen
@@ -598,7 +716,14 @@ export default function GerakApp({
               <PanelLeftOpen size={18} />
             )}
           </button>
-          <button className="wordmark" onClick={() => setView("explore")}>
+          <button className="wordmark" onClick={() => navigateTo("explore")}>
+            <img
+              className="brand-app-icon"
+              src="/icons/gerak-app-192.png"
+              alt=""
+              width={30}
+              height={30}
+            />
             gerak<span>↗</span>
           </button>
           <span className="brand-divider" />
@@ -607,16 +732,7 @@ export default function GerakApp({
           </span>
         </div>
         <div className="topbar-right">
-          <span className={`connection ${!online ? "offline" : ""}`}>
-            <span className="status-dot" />
-            {!online
-              ? tr("Offline", "Luar talian")
-              : feed === "demo"
-                ? tr("Demo network", "Rangkaian demo")
-                : snapshot.stale
-                  ? tr("Awaiting fresh GPS", "Menunggu GPS baharu")
-                  : tr("Live network", "Rangkaian langsung")}
-          </span>
+          <AppearancePicker locale={locale} />
           <button
             className="language-button"
             onClick={() => setLocale((l) => (l === "en" ? "ms" : "en"))}
@@ -627,9 +743,19 @@ export default function GerakApp({
           </button>
           <button
             className="top-operator"
-            onClick={() =>
-              setView(view === "operator" ? "explore" : "operator")
+            aria-label={
+              view === "operator"
+                ? tr("Passenger view", "Paparan penumpang")
+                : tr("Operator console", "Konsol operator")
             }
+            title={
+              view === "operator"
+                ? tr("Passenger view", "Paparan penumpang")
+                : tr("Operator console", "Konsol operator")
+            }
+            onClick={() => {
+              navigateTo(view === "operator" ? "explore" : "operator");
+            }}
           >
             {view === "operator" ? (
               <Compass size={15} />
@@ -645,194 +771,230 @@ export default function GerakApp({
           </button>
         </div>
       </header>
+      <div
+        className="mobile-view-switch"
+        role="group"
+        aria-label={tr("Passenger workspace", "Paparan penumpang")}
+      >
+        <button aria-pressed={panelOpen} onClick={() => setPanelOpen(true)}>
+          <Route size={17} />
+          {sectionLabel}
+        </button>
+        <button aria-pressed={!panelOpen} onClick={() => setPanelOpen(false)}>
+          <MapPin size={17} />
+          {tr("Map", "Peta")}
+        </button>
+      </div>
       <main className={`workspace ${panelOpen ? "" : "panel-collapsed"}`}>
-        {panelOpen && (
-          <section
-            className="side-panel"
-            aria-label={tr(
-              "Journey and network details",
-              "Butiran perjalanan dan rangkaian",
-            )}
-          >
-            <div className="panel-heading">
-              <div className="panel-heading-row">
-                <span className="eyebrow">
-                  <span className="tiny-star">✳</span>{" "}
-                  {view === "operator"
-                    ? tr("CONTROL CENTRE", "PUSAT KAWALAN")
-                    : tr("YOUR CITY, CONNECTED", "BANDAR ANDA, TERHUBUNG")}
-                </span>
-                <button
-                  type="button"
-                  className="sidebar-toggle-btn"
-                  onClick={() => setPanelOpen(false)}
-                  aria-label={tr("Collapse sidebar", "Kecilkan panel sisi")}
-                  title={tr("Collapse sidebar (minimize)", "Kecilkan panel sisi")}
-                >
-                  <PanelLeftClose size={16} />
-                </button>
-              </div>
-              <h1>
+        <section
+          id="journey-panel"
+          ref={panelRef}
+          hidden={!panelOpen}
+          className={`side-panel tab-${view} ${planning ? "planning-panel" : ""} ${view === "explore" || view === "routes" ? "browse-panel" : ""}`}
+          aria-label={tr(
+            "Journey and network details",
+            "Butiran perjalanan dan rangkaian",
+          )}
+        >
+          <div className="panel-heading">
+            <div className="panel-heading-row">
+              <span className="eyebrow">
+                <span className="tiny-star">✳</span>{" "}
                 {view === "operator"
-                  ? tr("Keep your city moving.", "Pastikan bandar bergerak.")
-                  : view === "community"
-                    ? tr(
-                        "Better streets. Together.",
-                        "Jalan lebih baik. Bersama.",
-                      )
-                    : view === "saved"
-                      ? tr("Your everyday journeys.", "Perjalanan harian anda.")
-                      : tr("Jom, let’s go.", "Jom, kita gerak.")}
-                <span className="heading-dot">.</span>
-              </h1>
-              <p>
-                {view === "operator"
-                  ? tr(
-                      "One view. Every vehicle. Every voice.",
-                      "Satu paparan. Setiap kenderaan. Setiap suara.",
-                    )
-                  : view === "community"
-                    ? tr(
-                        "A small report can make a big difference.",
-                        "Laporan kecil membawa perubahan besar.",
-                      )
-                    : view === "saved"
-                      ? tr(
-                          "The places and routes that matter to you.",
-                          "Tempat dan laluan yang penting untuk anda.",
-                        )
-                      : tr(
-                          "A little less waiting. A lot more living.",
-                          "Kurang menunggu. Lebih menikmati hidup.",
-                        )}
-              </p>
-            </div>
-            <div className="region-picker">
-              <MapPin size={17} />
-              <select
-                aria-label={tr("Choose region", "Pilih kawasan")}
-                value={region}
-                onChange={(e) => changeRegion(e.target.value as Region)}
+                  ? tr("CONTROL CENTRE", "PUSAT KAWALAN")
+                  : tr("YOUR CITY, CONNECTED", "BANDAR ANDA, TERHUBUNG")}
+              </span>
+              <button
+                type="button"
+                className="sidebar-toggle-btn"
+                onClick={() => setPanelOpen(false)}
+                aria-label={tr("Collapse sidebar", "Kecilkan panel sisi")}
+                title={tr("Collapse sidebar (minimize)", "Kecilkan panel sisi")}
               >
-                {SERVICES.map((s) => {
-                  const label =
-                    s.operator === "BAS.MY" ||
-                    s.kind === "pilot" ||
-                    s.name.startsWith(s.operator)
-                      ? s.name
-                      : `${s.operator} · ${s.name}`;
-                  return (
-                    <option key={s.id} value={s.id}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-              <ChevronDown size={15} />
+                <PanelLeftClose size={16} />
+              </button>
             </div>
-            {view !== "operator" && view !== "community" && (
-              <>
-                <button
-                  className={`journey-cta ${showPlanner ? "open" : ""}`}
-                  onClick={() => setShowPlanner((v) => !v)}
-                >
-                  <div className="journey-cta-icon">
-                    <Navigation size={19} />
-                  </div>
-                  <span>
-                    <strong>
-                      {tr("Where are we heading?", "Ke mana kita?")}
-                    </strong>
-                    <small>
-                      {tr("Plan your next journey", "Rancang perjalanan anda")}
-                    </small>
-                  </span>
-                  <ArrowRight size={18} />
-                </button>
-                {showPlanner && (
-                  <div className="planner">
-                    <label>
-                      {tr("From", "Dari")}
-                      <select
-                        value={origin}
-                        onChange={(e) => {
-                          setOrigin(e.target.value);
-                          setPlanned(false);
-                        }}
-                      >
-                        {regionStops.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      className="swap-button icon-button"
-                      aria-label="Swap origin and destination"
-                      onClick={() => {
-                        setOrigin(destination);
-                        setDestination(origin);
-                        setPlanned(false);
-                      }}
-                    >
-                      <ArrowDownUp size={15} />
-                    </button>
-                    <label>
-                      {tr("To", "Ke")}
-                      <select
-                        value={destination}
-                        onChange={(e) => {
-                          setDestination(e.target.value);
-                          setPlanned(false);
-                        }}
-                      >
-                        {regionStops.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="check-label">
-                      <input
-                        type="checkbox"
-                        checked={accessible}
-                        onChange={(e) => {
-                          setAccessible(e.target.checked);
-                          setPlanned(false);
-                        }}
-                      />
-                      <Wheelchair size={14} />
-                      {tr("Step-free stops", "Hentian tanpa tangga")}
-                    </label>
-                    <button
-                      className="primary-button"
-                      onClick={() => setPlanned(true)}
-                    >
-                      {tr("Find a journey", "Cari perjalanan")}
-                      <ArrowRight size={16} />
-                    </button>
-                    <p className="fineprint">
-                      {usingOfficial
+            <h1 tabIndex={-1}>{sectionTitle}</h1>
+            <p>
+              {planning
+                ? tr(
+                    "Choose two stops to compare route connections.",
+                    "Pilih dua hentian untuk bandingkan sambungan laluan.",
+                  )
+                : view === "explore"
+                  ? tr(
+                      "Find a bus, then select it to follow on the map.",
+                      "Pilih bas untuk mengikutinya di peta.",
+                    )
+                  : view === "routes"
+                    ? tr(
+                        "Choose a route to explore its buses and stops.",
+                        "Pilih laluan untuk teroka bas dan hentian.",
+                      )
+                    : view === "community"
+                      ? tr(
+                          "Report a local issue and follow its progress.",
+                          "Laporkan isu setempat dan ikuti perkembangannya.",
+                        )
+                      : view === "saved"
                         ? tr(
-                            "Connections from published GTFS stop order. Ride time is a proportional estimate; excludes waiting and transfers. Representative direction only, not a departure timetable.",
-                            "Sambungan daripada urutan hentian GTFS. Masa perjalanan ialah anggaran berkadar; tidak termasuk masa menunggu dan pertukaran. Satu arah contoh, bukan jadual berlepas.",
+                            "Your favourite stops, routes and travel budget.",
+                            "Hentian, laluan kegemaran dan bajet perjalanan.",
                           )
                         : tr(
-                            "Illustrative corridor planner · no published timetable or fares. Accessibility is demo data.",
-                            "Perancang koridor contoh · bukan jadual atau tambang rasmi. Aksesibiliti ialah data demo.",
+                            "Fleet operations and the community inbox.",
+                            "Operasi armada dan peti masuk komuniti.",
+                          )}
+            </p>
+          </div>
+          <div className="region-picker">
+            <MapPin size={17} />
+            <select
+              aria-label={tr("Choose region", "Pilih kawasan")}
+              value={region}
+              onChange={(e) => changeRegion(e.target.value as Region)}
+            >
+              {SERVICES.map((s) => {
+                const label =
+                  s.operator === "BAS.MY" ||
+                  s.kind === "pilot" ||
+                  s.name.startsWith(s.operator)
+                    ? s.name
+                    : `${s.operator} · ${s.name}`;
+                return (
+                  <option key={s.id} value={s.id}>
+                    {label}
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown size={15} />
+          </div>
+          {view !== "operator" && view !== "community" && (
+            <>
+              <button
+                className={`journey-cta ${showPlanner ? "open" : ""}`}
+                onClick={() => navigateTo("explore", true)}
+                aria-expanded={planning}
+              >
+                <div className="journey-cta-icon">
+                  <Navigation size={19} />
+                </div>
+                <span>
+                  <strong>{tr("Plan a journey", "Rancang perjalanan")}</strong>
+                  <small>
+                    {tr("Plan your next journey", "Rancang perjalanan anda")}
+                  </small>
+                </span>
+                <ArrowRight size={18} />
+              </button>
+              {planning && (
+                <div className="planner">
+                  <LocationSearch
+                    label={tr("From", "Dari")}
+                    stops={regionStops}
+                    value={origin}
+                    locale={locale}
+                    onChange={(id) => {
+                      setOrigin(id);
+                      setPlanned(false);
+                    }}
+                  />
+                  <button
+                    className="swap-button icon-button"
+                    aria-label={tr(
+                      "Swap origin and destination",
+                      "Tukar asal dan destinasi",
+                    )}
+                    onClick={() => {
+                      setOrigin(destination);
+                      setDestination(origin);
+                      setPlanned(false);
+                    }}
+                  >
+                    <ArrowDownUp size={15} />
+                  </button>
+                  <LocationSearch
+                    label={tr("To", "Ke")}
+                    stops={regionStops}
+                    value={destination}
+                    locale={locale}
+                    onChange={(id) => {
+                      setDestination(id);
+                      setPlanned(false);
+                    }}
+                  />
+                  {journeyInputIssue(regionStops, origin, destination) && (
+                    <p className="planner-validation" role="status">
+                      {journeyInputIssue(regionStops, origin, destination) ===
+                      "same"
+                        ? tr(
+                            "Choose a different destination.",
+                            "Pilih destinasi yang berbeza.",
+                          )
+                        : tr(
+                            "Select both stops from the suggestions.",
+                            "Pilih kedua-dua hentian daripada cadangan.",
                           )}
                     </p>
-                    {planned &&
-                      (journey.length ? (
-                        journey.map((j, i) => (
+                  )}
+                  <label className="check-label">
+                    <input
+                      type="checkbox"
+                      checked={accessible}
+                      onChange={(e) => {
+                        setAccessible(e.target.checked);
+                        setPlanned(false);
+                      }}
+                    />
+                    <Wheelchair size={14} />
+                    {tr("Step-free stops", "Hentian tanpa tangga")}
+                  </label>
+                  <button
+                    className="primary-button"
+                    disabled={Boolean(
+                      journeyInputIssue(regionStops, origin, destination),
+                    )}
+                    onClick={() => setPlanned(true)}
+                  >
+                    {tr("Find a journey", "Cari perjalanan")}
+                    <ArrowRight size={16} />
+                  </button>
+                  <p className="fineprint">
+                    {usingOfficial
+                      ? tr(
+                          "Connections from published GTFS stop order. Ride time is a proportional estimate; excludes waiting and transfers. Route connections only; service dates and departure times are not checked.",
+                          "Sambungan daripada urutan hentian GTFS. Masa perjalanan ialah anggaran berkadar; tidak termasuk masa menunggu dan pertukaran. Sambungan laluan sahaja; tarikh perkhidmatan dan masa berlepas tidak disemak.",
+                        )
+                      : tr(
+                          "Illustrative corridor planner · no published timetable or fares. Accessibility is demo data.",
+                          "Perancang koridor contoh · bukan jadual atau tambang rasmi. Aksesibiliti ialah data demo.",
+                        )}
+                  </p>
+                  <PassengerSelector
+                    profile={farePreferences.profile}
+                    onChange={farePreferences.saveProfile}
+                    locale={locale}
+                  />
+                  {planned &&
+                    (journey.length ? (
+                      journey.map((j, i) => (
+                        <div key={i} className="fare-journey-card">
                           <button
                             className="journey-result"
                             key={i}
                             onClick={() => {
                               setFilter(j.routes[0].id);
-                              setShowPlanner(false);
+                              setSelectedId(null);
+                              setSelectedStop(null);
+                              const departure = regionStops.find(
+                                (stop) => stop.id === origin,
+                              );
+                              if (departure) showLocation(departure.coordinate);
+                              if (
+                                window.matchMedia("(max-width: 960px)").matches
+                              )
+                                setPanelOpen(false);
                             }}
                           >
                             <span>
@@ -859,263 +1021,466 @@ export default function GerakApp({
                               ))}
                             </span>
                           </button>
-                        ))
-                      ) : (
-                        <p className="empty-inline">
-                          {tr(
-                            "No matching journey. Try different stops or accessibility settings.",
-                            "Tiada perjalanan sepadan. Cuba hentian atau tetapan lain.",
-                          )}
-                        </p>
-                      ))}
-                  </div>
-                )}
-                <div className="search-input">
-                  <Search size={17} />
-                  <input
-                    placeholder={tr(
-                      "Search routes or stops",
-                      "Cari laluan atau hentian",
-                    )}
-                    aria-label={tr(
-                      "Search routes or stops",
-                      "Cari laluan atau hentian",
-                    )}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                  {search && (
-                    <button
-                      className="icon-button"
-                      aria-label="Clear search"
-                      onClick={() => setSearch("")}
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-            {usingOfficial && (
-              <div className="data-provenance">
-                <Radio size={14} />
-                <div>
-                  <strong>
-                    {tr(
-                      `${service.operator} · ${service.name} official data`,
-                      `Data rasmi ${service.operator} · ${service.name}`,
-                    )}
-                  </strong>
-                  <span>
-                    {snapshot.updatedAt
-                      ? new Date(snapshot.updatedAt).toLocaleTimeString(
-                          "en-MY",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
-                            timeZone: "Asia/Kuala_Lumpur",
-                          },
-                        ) + " MYT"
-                      : tr(
-                          "Waiting for official observations",
-                          "Menunggu pemerhatian rasmi",
-                        )}{" "}
-                    ·{" "}
-                    <a href="/sources" target="_blank" rel="noreferrer">
-                      {tr("Sources", "Sumber")}
-                    </a>
-                  </span>
-                  {networkNotice && <small>{networkNotice}</small>}
-                </div>
-              </div>
-            )}
-            <div className="panel-scroll">
-              {(view === "explore" ||
-                view === "routes" ||
-                view === "saved") && (
-                <>
-                  <div className="section-title">
-                    <h2>
-                      {view === "saved"
-                        ? tr("Saved routes", "Laluan disimpan")
-                        : tr("Around your city", "Sekitar bandar anda")}
-                    </h2>
-                    <span>
-                      {regionRoutes.length} {tr("routes", "laluan")}
-                    </span>
-                  </div>
-                  <div className="route-list">
-                    {searchedRoutes
-                      .filter((r) => view !== "saved" || favourite(r.id))
-                      .map((route) => {
-                        const fleet = snapshot.vehicles.filter(
-                          (v) => v.routeId === route.id,
-                        );
-                        const eta = fleet
-                          .map((v) => etaForVehicle(v, route.stops[0]))
-                          .filter((v): v is number => v !== null)
-                          .sort((a, b) => a - b)[0];
-                        return (
-                          <div
-                            key={route.id}
-                            className={`route-card ${filter === route.id ? "selected" : ""}`}
-                            style={
-                              {
-                                "--route-color": route.color,
-                              } as React.CSSProperties
-                            }
-                          >
-                            <button
-                              className="route-main"
-                              onClick={() => {
-                                setFilter((f) =>
-                                  f === route.id ? null : route.id,
-                                );
-                                if (fleet[0]) selectVehicle(fleet[0].id);
-                              }}
-                            >
-                              <div className="route-card-top">
-                                <span className="route-badge">
-                                  <BusFront size={13} />
-                                  {route.id}
-                                </span>
-                                <span className="route-arrival">
-                                  {eta
-                                    ? `${eta} min`
-                                    : route.source === "official"
-                                      ? tr("Official route", "Laluan rasmi")
-                                      : tr("Demo route", "Laluan demo")}
-                                  <span className="signal-bars">
-                                    <i />
-                                    <i />
-                                    <i />
-                                  </span>
-                                </span>
-                              </div>
-                              <strong>{route.name}</strong>
-                              <p>{route.destination}</p>
-                              <div className="route-card-meta">
-                                <span>
-                                  <span className="status-dot" />
-                                  {fleet.length}{" "}
-                                  {tr(
-                                    "vehicles reporting",
-                                    "kenderaan melapor",
-                                  )}
-                                </span>
-                                <span>
-                                  {route.stops.length} {tr("stops", "hentian")}
-                                </span>
-                                {route.source === "demo" && (
-                                  <Wheelchair size={13} />
-                                )}
-                              </div>
-                            </button>
-                            <button
-                              className={`save-route ${favourite(route.id) ? "is-saved" : ""}`}
-                              aria-label={`${favourite(route.id) ? "Unsave" : "Save"} ${route.id}`}
-                              onClick={() => toggleFavourite(route.id)}
-                            >
-                              <Bookmark
-                                size={16}
-                                fill={
-                                  favourite(route.id) ? "currentColor" : "none"
-                                }
-                              />
-                            </button>
-                          </div>
-                        );
-                      })}
-                  </div>
-                  {view === "saved" &&
-                    !regionRoutes.some((r) => favourite(r.id)) && (
-                      <div className="empty-state">
-                        <Bookmark size={28} />
-                        <h3>
-                          {tr("Make it your own", "Jadikan ia milik anda")}
-                        </h3>
-                        <p>
-                          {tr(
-                            "Tap the bookmark on any route or stop. Your favourites stay on this device.",
-                            "Tekan penanda buku pada laluan atau hentian. Pilihan disimpan pada peranti ini.",
-                          )}
-                        </p>
-                      </div>
-                    )}
-                  <div className="section-title">
-                    <h2>
-                      {view === "saved"
-                        ? tr("Saved stops", "Hentian disimpan")
-                        : tr("Stops to know", "Hentian pilihan")}
-                    </h2>
-                    <span>{tr("EXPLORE", "TEROKA")}</span>
-                  </div>
-                  {searchedStops
-                    .filter((s) => view !== "saved" || favourite(s.id))
-                    .slice(
-                      0,
-                      search || view === "routes" || view === "saved" ? 100 : 5,
-                    )
-                    .map((stop) => (
-                      <div
-                        className={`stop-row ${selectedStop === stop.id ? "selected" : ""}`}
-                        key={stop.id}
-                      >
-                        <button
-                          className="stop-main"
-                          onClick={() => {
-                            setSelectedStop(stop.id);
-                            setSelectedId(null);
-                          }}
-                        >
-                          <span className="stop-icon">
-                            <MapPin size={17} />
-                          </span>
-                          <span>
-                            <strong>{stop.name}</strong>
-                            <small>
-                              {userLocation && (
-                                <span className="stop-distance">
-                                  {(() => {
-                                    const d = Math.round(
-                                      distance(userLocation, stop.coordinate),
-                                    );
-                                    return d < 1000
-                                      ? `${d}m`
-                                      : `${(d / 1000).toFixed(1)}km`;
-                                  })()}{" "}
-                                  ·{" "}
-                                </span>
-                              )}
-                              {regionRoutes
-                                .filter((r) => r.stops.includes(stop.id))
-                                .map((r) => r.id)
-                                .join(" · ")}
-                              {stop.accessible
-                                ? " · " +
-                                  (usingOfficial
-                                    ? tr(
-                                        "Step-free (GTFS)",
-                                        "Tanpa tangga (GTFS)",
-                                      )
-                                    : tr("Step-free*", "Tanpa tangga*"))
-                                : ""}
-                            </small>
-                          </span>
-                        </button>
-                        <button
-                          className={`icon-button ${favourite(stop.id) ? "is-saved" : ""}`}
-                          aria-label={`Save stop ${stop.name}`}
-                          onClick={() => toggleFavourite(stop.id)}
-                        >
-                          <Bookmark
-                            size={15}
-                            fill={favourite(stop.id) ? "currentColor" : "none"}
+                          <JourneyFare
+                            journey={j}
+                            from={origin}
+                            to={destination}
+                            stops={regionStops}
+                            profile={farePreferences.profile}
+                            locale={locale}
+                            onAdd={() => {
+                              farePreferences.saveBudget({
+                                ...farePreferences.budget,
+                                recurringTrips: [
+                                  ...farePreferences.budget.recurringTrips,
+                                  {
+                                    id: crypto.randomUUID(),
+                                    region,
+                                    from: origin,
+                                    to: destination,
+                                    routeIds: j.routes.map((r) => r.id),
+                                    patternIds: j.routes.map(
+                                      (r) => r.patterns?.[0]?.id ?? null,
+                                    ),
+                                    tripsPerDay: 1,
+                                    days: 0,
+                                    direction: "one_way",
+                                    enabled: true,
+                                  },
+                                ],
+                              });
+                              notify(ft(locale, "saved"));
+                            }}
                           />
-                        </button>
-                      </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="empty-inline">
+                        {tr(
+                          "No matching journey. Try different stops or accessibility settings.",
+                          "Tiada perjalanan sepadan. Cuba hentian atau tetapan lain.",
+                        )}
+                      </p>
                     ))}
+                </div>
+              )}
+              <div className="search-input">
+                <Search size={17} />
+                <input
+                  placeholder={tr(
+                    view === "routes"
+                      ? "Search routes or stops"
+                      : view === "saved"
+                        ? "Search your saved routes or stops"
+                        : "Search plate, route or stop",
+                    view === "routes"
+                      ? "Cari laluan atau hentian"
+                      : view === "saved"
+                        ? "Cari laluan atau hentian disimpan"
+                        : "Cari plat, laluan atau hentian",
+                  )}
+                  aria-label={tr(
+                    view === "routes"
+                      ? "Search routes or stops"
+                      : view === "saved"
+                        ? "Search your saved routes or stops"
+                        : "Search plate, route or stop",
+                    view === "routes"
+                      ? "Cari laluan atau hentian"
+                      : view === "saved"
+                        ? "Cari laluan atau hentian disimpan"
+                        : "Cari plat, laluan atau hentian",
+                  )}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search && (
+                  <button
+                    className="icon-button"
+                    aria-label={tr("Clear search", "Padam carian")}
+                    onClick={() => setSearch("")}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+          {filter && !planning && (
+            <div className="active-route-context">
+              <span>
+                <small>{tr("Selected route", "Laluan dipilih")}</small>
+                <strong>
+                  {regionRoutes.find((r) => r.id === filter)?.name ?? filter}
+                </strong>
+              </span>
+              <button
+                aria-label={tr("Clear route filter", "Padam penapis laluan")}
+                onClick={() => {
+                  setFilter(null);
+                  setFocusLocation(null);
+                }}
+              >
+                <X size={16} />
+              </button>
+              <button
+                className="route-context-action"
+                onClick={() => navigateTo("explore")}
+              >
+                <BusFront size={15} />
+                {tr("View buses", "Lihat bas")}
+              </button>
+              <button
+                className="route-context-action"
+                onClick={() => {
+                  setSelectedId(null);
+                  setSelectedStop(null);
+                  const route = regionRoutes.find((r) => r.id === filter);
+                  if (route?.path.length)
+                    showLocation(route.path[Math.floor(route.path.length / 2)]);
+                }}
+              >
+                <MapPin size={15} />
+                {tr("Show on map", "Lihat peta")}
+              </button>
+            </div>
+          )}
+          {usingOfficial && (
+            <div className="data-provenance">
+              <Radio size={14} />
+              <div>
+                <strong>
+                  {tr(
+                    `${service.operator} · ${service.name} official data`,
+                    `Data rasmi ${service.operator} · ${service.name}`,
+                  )}
+                </strong>
+                <span>
+                  {snapshot.updatedAt
+                    ? new Date(snapshot.updatedAt).toLocaleTimeString("en-MY", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        timeZone: "Asia/Kuala_Lumpur",
+                      }) + " MYT"
+                    : tr(
+                        "Waiting for official observations",
+                        "Menunggu pemerhatian rasmi",
+                      )}{" "}
+                  ·{" "}
+                  <a href="/sources" target="_blank" rel="noreferrer">
+                    {tr("Sources", "Sumber")}
+                  </a>
+                </span>
+                {networkNotice && <small>{networkNotice}</small>}
+              </div>
+            </div>
+          )}
+          <div className="panel-scroll">
+            {view === "saved" && (
+              <details className="saved-budget-disclosure">
+                <summary>
+                  <span>{tr("Transport budget", "Bajet pengangkutan")}</span>
+                  <small>
+                    {tr(
+                      "Estimate your monthly travel costs",
+                      "Anggar kos perjalanan bulanan",
+                    )}
+                  </small>
+                </summary>
+                <BudgetPanel
+                  budget={farePreferences.budget}
+                  profile={farePreferences.profile}
+                  onChange={farePreferences.saveBudget}
+                  onProfile={farePreferences.saveProfile}
+                  locale={locale}
+                  routes={regionRoutes}
+                  stops={regionStops}
+                  storageError={farePreferences.storageError}
+                />
+              </details>
+            )}
+            {(view === "explore" || view === "routes" || view === "saved") && (
+              <>
+                {view === "explore" && (
+                  <VehiclePicker
+                    vehicles={snapshot.vehicles}
+                    routes={regionRoutes}
+                    selectedId={selectedId}
+                    filter={filter}
+                    search={search}
+                    locale={locale}
+                    onSelect={selectVehicle}
+                    onFilter={(id) => {
+                      setFilter(id);
+                      setSelectedId(null);
+                      setFollow(false);
+                    }}
+                  />
+                )}
+                {view !== "explore" && (
+                  <>
+                    <div className="section-title">
+                      <h2>
+                        {view === "saved"
+                          ? tr("Saved routes", "Laluan disimpan")
+                          : tr("Around your city", "Sekitar bandar anda")}
+                      </h2>
+                      <span>
+                        {
+                          searchedRoutes.filter(
+                            (r) => view !== "saved" || favourite(r.id),
+                          ).length
+                        }{" "}
+                        {tr("routes", "laluan")}
+                      </span>
+                    </div>
+                    {!searchedRoutes.filter(
+                      (r) => view !== "saved" || favourite(r.id),
+                    ).length &&
+                      (view !== "saved" || search) && (
+                        <div className="tab-empty">
+                          <Route size={22} />
+                          <strong>
+                            {tr("No matching routes", "Tiada laluan sepadan")}
+                          </strong>
+                          <p>
+                            {search
+                              ? tr(
+                                  "Try a route number or a different destination.",
+                                  "Cuba nombor laluan atau destinasi lain.",
+                                )
+                              : tr(
+                                  "Route information is not available for this service yet.",
+                                  "Maklumat laluan belum tersedia untuk perkhidmatan ini.",
+                                )}
+                          </p>
+                          {search && (
+                            <button
+                              className="secondary-button"
+                              onClick={() => setSearch("")}
+                            >
+                              {tr("Clear search", "Padam carian")}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    <div className="route-list">
+                      {searchedRoutes
+                        .filter((r) => view !== "saved" || favourite(r.id))
+                        .map((route) => {
+                          const fleet = snapshot.vehicles.filter(
+                            (v) => v.routeId === route.id,
+                          );
+                          const eta = fleet
+                            .map((v) => etaForVehicle(v, route.stops[0]))
+                            .filter((v): v is number => v !== null)
+                            .sort((a, b) => a - b)[0];
+                          return (
+                            <div
+                              key={route.id}
+                              className={`route-card ${filter === route.id ? "selected" : ""}`}
+                              style={
+                                {
+                                  "--route-color": route.color,
+                                } as React.CSSProperties
+                              }
+                            >
+                              <button
+                                className="route-main"
+                                aria-pressed={filter === route.id}
+                                onClick={() => {
+                                  setFilter((f) =>
+                                    f === route.id ? null : route.id,
+                                  );
+                                  setSelectedId(null);
+                                  setFollow(false);
+                                  setSelectedStop(null);
+                                  setFocusLocation(null);
+                                  requestAnimationFrame(() => {
+                                    if (panelRef.current)
+                                      panelRef.current.scrollTop = 0;
+                                  });
+                                }}
+                              >
+                                <div className="route-card-top">
+                                  <span className="route-badge">
+                                    <BusFront size={13} />
+                                    {route.name.split(/\s+\u00b7\s+/)[0]}
+                                  </span>
+                                  <span className="route-arrival">
+                                    {eta
+                                      ? `${eta} min`
+                                      : route.source === "official"
+                                        ? tr("Official route", "Laluan rasmi")
+                                        : tr("Demo route", "Laluan demo")}
+                                    <span className="signal-bars">
+                                      <i />
+                                      <i />
+                                      <i />
+                                    </span>
+                                  </span>
+                                </div>
+                                <strong>{route.name}</strong>
+                                <p>{route.destination}</p>
+                                <div className="route-card-meta">
+                                  <span>
+                                    <span className="status-dot" />
+                                    {fleet.length}{" "}
+                                    {tr(
+                                      "vehicles reporting",
+                                      "kenderaan melapor",
+                                    )}
+                                  </span>
+                                  <span>
+                                    {route.stops.length}{" "}
+                                    {tr("stops", "hentian")}
+                                  </span>
+                                  {route.source === "demo" && (
+                                    <Wheelchair size={13} />
+                                  )}
+                                </div>
+                              </button>
+                              <button
+                                className={`save-route ${favourite(route.id) ? "is-saved" : ""}`}
+                                aria-label={`${favourite(route.id) ? tr("Unsave", "Buang simpanan") : tr("Save", "Simpan")} ${route.name}`}
+                                aria-pressed={favourite(route.id)}
+                                onClick={() => toggleFavourite(route.id)}
+                              >
+                                <Bookmark
+                                  size={16}
+                                  fill={
+                                    favourite(route.id)
+                                      ? "currentColor"
+                                      : "none"
+                                  }
+                                />
+                              </button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </>
+                )}
+                {view === "saved" &&
+                  !regionRoutes.some((r) => favourite(r.id)) && (
+                    <div className="empty-state">
+                      <Bookmark size={28} />
+                      <h3>{tr("Make it your own", "Jadikan ia milik anda")}</h3>
+                      <p>
+                        {tr(
+                          "Tap the bookmark on any route or stop. Your favourites stay on this device.",
+                          "Tekan penanda buku pada laluan atau hentian. Pilihan disimpan pada peranti ini.",
+                        )}
+                      </p>
+                      <button
+                        className="secondary-button"
+                        onClick={() => navigateTo("routes")}
+                      >
+                        {tr("Browse routes", "Lihat laluan")}
+                        <ArrowRight size={15} />
+                      </button>
+                    </div>
+                  )}
+                <div className="section-title">
+                  <h2>
+                    {view === "saved"
+                      ? tr("Saved stops", "Hentian disimpan")
+                      : tr("Stops to know", "Hentian pilihan")}
+                  </h2>
+                  <span>
+                    {
+                      searchedStops.filter(
+                        (s) => view !== "saved" || favourite(s.id),
+                      ).length
+                    }
+                  </span>
+                </div>
+                {!searchedStops.filter(
+                  (s) => view !== "saved" || favourite(s.id),
+                ).length && (
+                  <p className="tab-empty-hint">
+                    {view === "saved"
+                      ? tr(
+                          "Save a stop using its bookmark button. Your favourites stay on this device.",
+                          "Simpan hentian dengan butang penanda buku. Pilihan kekal pada peranti ini.",
+                        )
+                      : tr(
+                          "No stops match this search. Try another name.",
+                          "Tiada hentian sepadan. Cuba nama lain.",
+                        )}
+                  </p>
+                )}
+                {searchedStops
+                  .filter((s) => view !== "saved" || favourite(s.id))
+                  .slice(
+                    0,
+                    search || view === "routes" || view === "saved" ? 100 : 5,
+                  )
+                  .map((stop) => (
+                    <div
+                      className={`stop-row ${selectedStop === stop.id ? "selected" : ""}`}
+                      key={stop.id}
+                    >
+                      <button
+                        className="stop-main"
+                        onClick={() => {
+                          setSelectedStop(stop.id);
+                          setSelectedId(null);
+                          showLocation(stop.coordinate);
+                          if (window.matchMedia("(max-width: 960px)").matches)
+                            setPanelOpen(false);
+                        }}
+                      >
+                        <span className="stop-icon">
+                          <MapPin size={17} />
+                        </span>
+                        <span>
+                          <strong>{stop.name}</strong>
+                          <small>
+                            {userLocation && (
+                              <span className="stop-distance">
+                                {(() => {
+                                  const d = Math.round(
+                                    distance(userLocation, stop.coordinate),
+                                  );
+                                  return d < 1000
+                                    ? `${d}m`
+                                    : `${(d / 1000).toFixed(1)}km`;
+                                })()}{" "}
+                                ·{" "}
+                              </span>
+                            )}
+                            {regionRoutes
+                              .filter((r) => r.stops.includes(stop.id))
+                              .map((r) => r.id)
+                              .join(" · ")}
+                            {stop.accessible
+                              ? " · " +
+                                (usingOfficial
+                                  ? tr(
+                                      "Step-free (GTFS)",
+                                      "Tanpa tangga (GTFS)",
+                                    )
+                                  : tr("Step-free*", "Tanpa tangga*"))
+                              : ""}
+                          </small>
+                        </span>
+                      </button>
+                      <button
+                        className={`icon-button ${favourite(stop.id) ? "is-saved" : ""}`}
+                        aria-label={`${favourite(stop.id) ? tr("Unsave stop", "Buang hentian") : tr("Save stop", "Simpan hentian")} ${stop.name}`}
+                        aria-pressed={favourite(stop.id)}
+                        onClick={() => toggleFavourite(stop.id)}
+                      >
+                        <Bookmark
+                          size={15}
+                          fill={favourite(stop.id) ? "currentColor" : "none"}
+                        />
+                      </button>
+                    </div>
+                  ))}
+                {view === "explore" && (
                   <div className="community-promo">
                     <span className="promo-icon">
                       <MessageSquare size={21} />
@@ -1142,425 +1507,435 @@ export default function GerakApp({
                       <Plus size={15} />
                     </button>
                   </div>
-                </>
-              )}
-              {view === "community" && (
-                <>
+                )}
+              </>
+            )}
+            {view === "community" && (
+              <>
+                <button
+                  className="primary-button wide"
+                  onClick={() => {
+                    setPicked(null);
+                    setShowReport(true);
+                  }}
+                >
+                  <Plus size={18} />
+                  {tr("Make a community report", "Buat laporan komuniti")}
+                </button>
+                <div className="community-totals">
+                  <div>
+                    <strong>{reports.length}</strong>
+                    <span>{tr("reports", "laporan")}</span>
+                  </div>
+                  <div>
+                    <strong>
+                      {reports.filter((r) => r.status === "in-progress").length}
+                    </strong>
+                    <span>{tr("in progress", "dalam tindakan")}</span>
+                  </div>
+                  <div>
+                    <strong>
+                      {reports.filter((r) => r.status === "resolved").length}
+                    </strong>
+                    <span>{tr("resolved", "selesai")}</span>
+                  </div>
+                </div>
+                <div className="section-title">
+                  <h2>{tr("From the community", "Daripada komuniti")}</h2>
+                  <span>{tr("LATEST", "TERKINI")}</span>
+                </div>
+                {reportFilters}
+                {visibleReports.length === 0 ? (
+                  <div className="empty-state">
+                    <MessageSquare />
+                    <h3>
+                      {reports.length
+                        ? tr(
+                            "No reports in this view",
+                            "Tiada laporan dalam paparan ini",
+                          )
+                        : tr("Be the first voice", "Jadi suara pertama")}
+                    </h3>
+                    <p>
+                      {tr(
+                        "Submit an issue and follow its progress here.",
+                        "Hantar isu dan ikuti perkembangannya di sini.",
+                      )}
+                    </p>
+                  </div>
+                ) : (
+                  visibleReports.map((report) => (
+                    <ReportCard
+                      key={report.id}
+                      report={report}
+                      locale={locale}
+                      onSelect={() => {
+                        setSelectedId(null);
+                        setSelectedStop(null);
+                        showLocation(report.coordinate);
+                        notify(
+                          `${report.location} · ${report.coordinate.map((c) => c.toFixed(5)).join(", ")}`,
+                        );
+                      }}
+                    />
+                  ))
+                )}
+              </>
+            )}
+            {view === "operator" && (
+              <>
+                <div
+                  className={`operator-session ${authenticated ? "signed-in" : ""}`}
+                >
+                  <ShieldCheck size={19} />
+                  <span>
+                    <strong>
+                      {authenticated
+                        ? tr("Operator connected", "Operator bersambung")
+                        : tr("Public overview", "Gambaran awam")}
+                    </strong>
+                    <small>
+                      {authenticated
+                        ? tr(
+                            "Incident management enabled",
+                            "Pengurusan insiden diaktifkan",
+                          )
+                        : tr(
+                            "Sign in to manage reports",
+                            "Log masuk untuk urus laporan",
+                          )}
+                    </small>
+                  </span>
                   <button
-                    className="primary-button wide"
+                    className="icon-button"
+                    aria-label={authenticated ? "Sign out" : "Operator sign in"}
                     onClick={() => {
-                      setPicked(null);
-                      setShowReport(true);
+                      if (authenticated) {
+                        void fetch("/api/session", { method: "DELETE" }).then(
+                          () => setAuthenticated(false),
+                        );
+                      } else setShowLogin(true);
                     }}
                   >
-                    <Plus size={18} />
-                    {tr("Make a community report", "Buat laporan komuniti")}
+                    {authenticated ? (
+                      <LogOut size={17} />
+                    ) : (
+                      <LockKeyhole size={17} />
+                    )}
                   </button>
-                  <div className="community-totals">
-                    <div>
-                      <strong>{reports.length}</strong>
-                      <span>{tr("reports", "laporan")}</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {
-                          reports.filter((r) => r.status === "in-progress")
-                            .length
-                        }
-                      </strong>
-                      <span>{tr("in progress", "dalam tindakan")}</span>
-                    </div>
-                    <div>
-                      <strong>
-                        {reports.filter((r) => r.status === "resolved").length}
-                      </strong>
-                      <span>{tr("resolved", "selesai")}</span>
-                    </div>
-                  </div>
-                  <div className="section-title">
-                    <h2>{tr("From the community", "Daripada komuniti")}</h2>
-                    <span>{tr("LATEST", "TERKINI")}</span>
-                  </div>
-                  {reports.length === 0 ? (
-                    <div className="empty-state">
-                      <MessageSquare />
-                      <h3>{tr("Be the first voice", "Jadi suara pertama")}</h3>
-                      <p>
-                        {tr(
-                          "Submit an issue and follow its progress here.",
-                          "Hantar isu dan ikuti perkembangannya di sini.",
-                        )}
-                      </p>
-                    </div>
-                  ) : (
-                    reports.map((report) => (
-                      <ReportCard
-                        key={report.id}
-                        report={report}
-                        locale={locale}
-                        onSelect={() => {
-                          setPicked(report.coordinate);
-                          notify(
-                            `${report.location} · ${report.coordinate.map((c) => c.toFixed(5)).join(", ")}`,
-                          );
-                        }}
-                      />
-                    ))
-                  )}
-                </>
-              )}
-              {view === "operator" && (
-                <>
-                  <div
-                    className={`operator-session ${authenticated ? "signed-in" : ""}`}
-                  >
-                    <ShieldCheck size={19} />
+                </div>
+                <div className="operator-stats">
+                  <div>
                     <span>
-                      <strong>
-                        {authenticated
-                          ? tr("Operator connected", "Operator bersambung")
-                          : tr("Public overview", "Gambaran awam")}
-                      </strong>
-                      <small>
-                        {authenticated
-                          ? tr(
-                              "Incident management enabled",
-                              "Pengurusan insiden diaktifkan",
-                            )
-                          : tr(
-                              "Sign in to manage reports",
-                              "Log masuk untuk urus laporan",
-                            )}
-                      </small>
+                      <BusFront size={15} />
+                      {tr("Active", "Aktif")}
                     </span>
+                    <strong>
+                      {fresh.toString().padStart(2, "0")}
+                      <small> / {snapshot.vehicles.length}</small>
+                    </strong>
+                    <i>{tr("Reporting vehicles", "Kenderaan melapor")}</i>
+                  </div>
+                  <div>
+                    <span>
+                      <Clock3 size={15} />
+                      {tr("Delayed", "Lewat")}
+                    </span>
+                    <strong className="amber">
+                      {usingOfficial
+                        ? "—"
+                        : delayed.toString().padStart(2, "0")}
+                    </strong>
+                    <i>
+                      {usingOfficial
+                        ? tr("No TripUpdates feed", "Tiada data kelewatan")
+                        : tr("Simulated schedule", "Jadual simulasi")}
+                    </i>
+                  </div>
+                  <div>
+                    <span>
+                      <WifiOff size={15} />
+                      {tr("Stale", "Lapuk")}
+                    </span>
+                    <strong>{snapshot.vehicles.length - fresh}</strong>
+                    <i>
+                      {tr("No fresh GPS > 2 min", "Tiada GPS segar > 2 min")}
+                    </i>
+                  </div>
+                  <div>
+                    <span>
+                      <MessageSquare size={15} />
+                      {tr("Open reports", "Laporan terbuka")}
+                    </span>
+                    <strong>
+                      {reports.filter((r) => r.status !== "resolved").length}
+                    </strong>
+                    <i>{tr("Community issues", "Isu komuniti")}</i>
+                  </div>
+                </div>
+                <div className="segmented ops-tabs">
+                  {(["fleet", "reports", "analytics"] as const).map((t) => (
                     <button
-                      className="icon-button"
-                      aria-label={
-                        authenticated ? "Sign out" : "Operator sign in"
-                      }
-                      onClick={() => {
-                        if (authenticated) {
-                          void fetch("/api/session", { method: "DELETE" }).then(
-                            () => setAuthenticated(false),
-                          );
-                        } else setShowLogin(true);
-                      }}
+                      aria-pressed={opsTab === t}
+                      className={opsTab === t ? "active" : ""}
+                      key={t}
+                      onClick={() => setOpsTab(t)}
                     >
-                      {authenticated ? (
-                        <LogOut size={17} />
-                      ) : (
-                        <LockKeyhole size={17} />
-                      )}
+                      {t === "fleet"
+                        ? tr("Fleet", "Armada")
+                        : t === "reports"
+                          ? tr("Reports", "Laporan")
+                          : tr("Insights", "Analitik")}
                     </button>
-                  </div>
-                  <div className="operator-stats">
-                    <div>
+                  ))}
+                </div>
+                {opsTab === "fleet" && (
+                  <>
+                    <div className="section-title">
+                      <h2>{tr("On the road", "Di jalan raya")}</h2>
                       <span>
-                        <BusFront size={15} />
-                        {tr("Active", "Aktif")}
+                        {snapshot.source === "simulator"
+                          ? "SIMULATED"
+                          : "GTFS-RT"}
                       </span>
-                      <strong>
-                        {fresh.toString().padStart(2, "0")}
-                        <small> / {snapshot.vehicles.length}</small>
-                      </strong>
-                      <i>{tr("Reporting vehicles", "Kenderaan melapor")}</i>
                     </div>
-                    <div>
-                      <span>
-                        <Clock3 size={15} />
-                        {tr("Delayed", "Lewat")}
-                      </span>
-                      <strong className="amber">
-                        {usingOfficial
-                          ? "—"
-                          : delayed.toString().padStart(2, "0")}
-                      </strong>
-                      <i>
-                        {usingOfficial
-                          ? tr("No TripUpdates feed", "Tiada data kelewatan")
-                          : tr("Simulated schedule", "Jadual simulasi")}
-                      </i>
-                    </div>
-                    <div>
-                      <span>
-                        <WifiOff size={15} />
-                        {tr("Stale", "Lapuk")}
-                      </span>
-                      <strong>{snapshot.vehicles.length - fresh}</strong>
-                      <i>
-                        {tr("No fresh GPS > 2 min", "Tiada GPS segar > 2 min")}
-                      </i>
-                    </div>
-                    <div>
-                      <span>
-                        <MessageSquare size={15} />
-                        {tr("Open reports", "Laporan terbuka")}
-                      </span>
-                      <strong>
-                        {reports.filter((r) => r.status !== "resolved").length}
-                      </strong>
-                      <i>{tr("Community issues", "Isu komuniti")}</i>
-                    </div>
-                  </div>
-                  <div className="segmented ops-tabs">
-                    {(["fleet", "reports", "analytics"] as const).map((t) => (
+                    {snapshot.vehicles.map((v) => (
                       <button
-                        className={opsTab === t ? "active" : ""}
-                        key={t}
-                        onClick={() => setOpsTab(t)}
+                        key={v.id}
+                        className={`fleet-row ${selectedId === v.id ? "selected" : ""}`}
+                        onClick={() => selectVehicle(v.id)}
                       >
-                        {t === "fleet"
-                          ? tr("Fleet", "Armada")
-                          : t === "reports"
-                            ? tr("Reports", "Laporan")
-                            : tr("Insights", "Analitik")}
+                        <span className="fleet-icon">
+                          <BusFront size={19} />
+                        </span>
+                        <span>
+                          <strong
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                            }}
+                          >
+                            <span className="mini-plate">
+                              {v.licensePlate || v.label}
+                            </span>
+                          </strong>
+                          <small>
+                            {v.routeId} ·{" "}
+                            {v.speedKnown === false ? "—" : Math.round(v.speed)}{" "}
+                            km/h
+                          </small>
+                        </span>
+                        <span className={v.delay ? "text-amber" : "text-green"}>
+                          {Date.now() - v.timestamp > 120000
+                            ? tr("Stale GPS", "GPS lapuk")
+                            : v.delay
+                              ? `+${v.delay} min`
+                              : tr("Reporting", "Melapor")}
+                        </span>
+                        <ChevronRight size={14} />
                       </button>
                     ))}
-                  </div>
-                  {opsTab === "fleet" && (
-                    <>
-                      <div className="section-title">
-                        <h2>{tr("On the road", "Di jalan raya")}</h2>
-                        <span>
-                          {snapshot.source === "simulator"
-                            ? "SIMULATED"
-                            : "GTFS-RT"}
-                        </span>
-                      </div>
-                      {snapshot.vehicles.map((v) => (
-                        <button
-                          key={v.id}
-                          className={`fleet-row ${selectedId === v.id ? "selected" : ""}`}
-                          onClick={() => selectVehicle(v.id)}
-                        >
-                          <span className="fleet-icon">
-                            <BusFront size={19} />
-                          </span>
-                          <span>
-                            <strong
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "6px",
-                              }}
-                            >
-                              <span className="mini-plate">
-                                {v.licensePlate || v.label}
-                              </span>
-                            </strong>
-                            <small>
-                              {v.routeId} ·{" "}
-                              {v.speedKnown === false
-                                ? "—"
-                                : Math.round(v.speed)}{" "}
-                              km/h
-                            </small>
-                          </span>
-                          <span
-                            className={v.delay ? "text-amber" : "text-green"}
-                          >
-                            {Date.now() - v.timestamp > 120000
-                              ? tr("Stale GPS", "GPS lapuk")
-                              : v.delay
-                                ? `+${v.delay} min`
-                                : tr("Reporting", "Melapor")}
-                          </span>
-                          <ChevronRight size={14} />
-                        </button>
-                      ))}
-                      <div className="dispatch-box">
-                        <span className="eyebrow">
-                          {tr("DISPATCH SANDBOX", "SIMULASI DISPATCH")}
-                        </span>
-                        <h3>
-                          {tr(
-                            "A little breathing room.",
-                            "Sedikit ruang bernafas.",
-                          )}
-                        </h3>
-                        <p>
-                          {tr(
-                            "Select a vehicle, then simulate a 2-minute holding instruction. No message is sent to a real driver.",
-                            "Pilih kenderaan, kemudian simulasi arahan menunggu 2 minit. Tiada mesej dihantar kepada pemandu sebenar.",
-                          )}
-                        </p>
-                        <button
-                          className="secondary-button wide"
-                          disabled={!vehicle}
-                          onClick={() => {
-                            const item = {
-                              id: crypto.randomUUID(),
-                              vehicle: vehicle!.label,
-                              time: new Date().toLocaleTimeString("en-MY", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }),
-                            };
-                            setDispatches((d) => [item, ...d]);
-                            notify(
-                              tr(
-                                `Simulated hold queued for ${vehicle!.label}`,
-                                `Arahan simulasi menunggu untuk ${vehicle!.label}`,
-                              ),
-                            );
-                          }}
-                        >
-                          <Radio size={15} />
-                          {tr("Simulate holding", "Simulasi menunggu")}
-                        </button>
-                        {dispatches.slice(0, 3).map((d) => (
-                          <p className="dispatch-log" key={d.id}>
-                            <Check size={13} />
-                            {d.vehicle} · {tr("2 min hold", "tunggu 2 min")}
-                            <span>{d.time}</span>
-                          </p>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {opsTab === "reports" && (
-                    <>
-                      <div className="section-title">
-                        <h2>{tr("Community inbox", "Peti masuk komuniti")}</h2>
-                        <span>{reports.length}</span>
-                      </div>
-                      {reports.length === 0 && (
-                        <div className="empty-state">
-                          <CheckCircle2 />
-                          <h3>{tr("All caught up", "Semua selesai")}</h3>
-                          <p>
-                            {tr(
-                              "Passenger reports appear here automatically.",
-                              "Laporan penumpang muncul di sini secara automatik.",
-                            )}
-                          </p>
-                        </div>
-                      )}
-                      {reports.map((report) => (
-                        <div key={report.id}>
-                          <ReportCard report={report} locale={locale} />
-                          {authenticated && (
-                            <div className="report-action">
-                              <span>{tr("Move to", "Tukar kepada")}</span>
-                              <select
-                                aria-label={`Update ${report.title}`}
-                                value={report.status}
-                                onChange={(e) =>
-                                  void updateStatus(
-                                    report,
-                                    e.target.value as ReportStatus,
-                                  )
-                                }
-                              >
-                                <option value={report.status}>
-                                  {reportStatus(report.status)}
-                                </option>
-                                {(report.status === "submitted"
-                                  ? ["acknowledged"]
-                                  : report.status === "acknowledged"
-                                    ? ["in-progress", "resolved"]
-                                    : report.status === "in-progress"
-                                      ? ["resolved"]
-                                      : ["acknowledged"]
-                                ).map((s) => (
-                                  <option key={s} value={s}>
-                                    {reportStatus(s as ReportStatus)}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </>
-                  )}
-                  {opsTab === "analytics" && (
-                    <>
-                      <div className="insight-card">
-                        <span className="eyebrow">
-                          {tr("FLEET DISTRIBUTION", "TABURAN ARMADA")}
-                        </span>
-                        <h3>
-                          {tr(
-                            "Every route, in balance.",
-                            "Setiap laluan, seimbang.",
-                          )}
-                        </h3>
-                        {regionRoutes.map((r) => {
-                          const count = snapshot.vehicles.filter(
-                            (v) => v.routeId === r.id,
-                          ).length;
-                          return (
-                            <div className="chart-row" key={r.id}>
-                              <span>{r.id}</span>
-                              <div>
-                                <i
-                                  style={{
-                                    width: `${Math.max(3, (count / Math.max(1, snapshot.vehicles.length)) * 100)}%`,
-                                    background: r.color,
-                                  }}
-                                />
-                              </div>
-                              <b>{count}</b>
-                            </div>
-                          );
-                        })}
-                        <small>
-                          {tr(
-                            "Current positions · not historical ridership",
-                            "Kedudukan semasa · bukan sejarah penumpang",
-                          )}
-                        </small>
-                      </div>
-                      <div className="insight-card">
-                        <span className="eyebrow">
-                          {tr("PASSENGER COMFORT", "KESELESAAN PENUMPANG")}
-                        </span>
-                        <strong className="insight-number">
-                          {snapshot.source === "simulator" ? occupancy : "—"}
-                          <small>
-                            {tr("buses with space", "bas dengan ruang")}
-                          </small>
-                        </strong>
-                        <p>
-                          {tr(
-                            "Demonstration occupancy. The official feed does not guarantee crowd data.",
-                            "Kapasiti demonstrasi. Data rasmi tidak menjamin maklumat kesesakan.",
-                          )}
-                        </p>
-                      </div>
-                      <button
-                        className={`secondary-button wide ${heatmap ? "enabled" : ""}`}
-                        onClick={() => setHeatmap((h) => !h)}
-                      >
-                        <Layers3 size={16} />
-                        {heatmap
-                          ? tr("Hide fleet heatmap", "Sembunyikan peta haba")
-                          : tr("Show fleet heatmap", "Papar peta haba")}
-                      </button>
-                      <p className="fineprint">
+                    <div className="dispatch-box">
+                      <span className="eyebrow">
+                        {tr("DISPATCH SANDBOX", "SIMULASI DISPATCH")}
+                      </span>
+                      <h3>
                         {tr(
-                          "Position density from the current fleet. Switch to 2D for the heatmap.",
-                          "Kepadatan kedudukan daripada armada semasa. Tukar ke 2D untuk peta haba.",
+                          "A little breathing room.",
+                          "Sedikit ruang bernafas.",
+                        )}
+                      </h3>
+                      <p>
+                        {tr(
+                          "Select a vehicle, then simulate a 2-minute holding instruction. No message is sent to a real driver.",
+                          "Pilih kenderaan, kemudian simulasi arahan menunggu 2 minit. Tiada mesej dihantar kepada pemandu sebenar.",
                         )}
                       </p>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-            <div className="panel-footer">
-              <span className="malaysia-flag">🇲🇾</span>
-              <span>
-                {tr(
-                  "Made for the way Malaysia moves.",
-                  "Untuk cara Malaysia bergerak.",
+                      <button
+                        className="secondary-button wide"
+                        disabled={!vehicle}
+                        onClick={() => {
+                          const item = {
+                            id: crypto.randomUUID(),
+                            vehicle: vehicle!.label,
+                            time: new Date().toLocaleTimeString("en-MY", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }),
+                          };
+                          setDispatches((d) => [item, ...d]);
+                          notify(
+                            tr(
+                              `Simulated hold queued for ${vehicle!.label}`,
+                              `Arahan simulasi menunggu untuk ${vehicle!.label}`,
+                            ),
+                          );
+                        }}
+                      >
+                        <Radio size={15} />
+                        {tr("Simulate holding", "Simulasi menunggu")}
+                      </button>
+                      {dispatches.slice(0, 3).map((d) => (
+                        <p className="dispatch-log" key={d.id}>
+                          <Check size={13} />
+                          {d.vehicle} · {tr("2 min hold", "tunggu 2 min")}
+                          <span>{d.time}</span>
+                        </p>
+                      ))}
+                    </div>
+                  </>
                 )}
-              </span>
-              <span>2026</span>
-            </div>
-          </section>
-        )}
+                {opsTab === "reports" && (
+                  <>
+                    <div className="section-title">
+                      <h2>{tr("Community inbox", "Peti masuk komuniti")}</h2>
+                      <span>{reports.length}</span>
+                    </div>
+                    {reportFilters}
+                    {visibleReports.length === 0 && (
+                      <div className="empty-state">
+                        <CheckCircle2 />
+                        <h3>
+                          {tr(
+                            "No reports in this view",
+                            "Tiada laporan dalam paparan ini",
+                          )}
+                        </h3>
+                        <p>
+                          {tr(
+                            "Passenger reports appear here automatically.",
+                            "Laporan penumpang muncul di sini secara automatik.",
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    {visibleReports.map((report) => (
+                      <div key={report.id}>
+                        <ReportCard report={report} locale={locale} />
+                        {authenticated && (
+                          <div className="report-action">
+                            <span>{tr("Move to", "Tukar kepada")}</span>
+                            <select
+                              aria-label={`Update ${report.title}`}
+                              value={report.status}
+                              onChange={(e) =>
+                                void updateStatus(
+                                  report,
+                                  e.target.value as ReportStatus,
+                                )
+                              }
+                            >
+                              <option value={report.status}>
+                                {reportStatus(report.status)}
+                              </option>
+                              {(report.status === "submitted"
+                                ? ["acknowledged"]
+                                : report.status === "acknowledged"
+                                  ? ["in-progress", "resolved"]
+                                  : report.status === "in-progress"
+                                    ? ["resolved"]
+                                    : ["acknowledged"]
+                              ).map((s) => (
+                                <option key={s} value={s}>
+                                  {reportStatus(s as ReportStatus)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                )}
+                {opsTab === "analytics" && (
+                  <>
+                    <div className="insight-card">
+                      <span className="eyebrow">
+                        {tr("FLEET DISTRIBUTION", "TABURAN ARMADA")}
+                      </span>
+                      <h3>
+                        {tr(
+                          "Every route, in balance.",
+                          "Setiap laluan, seimbang.",
+                        )}
+                      </h3>
+                      {regionRoutes.map((r) => {
+                        const count = snapshot.vehicles.filter(
+                          (v) => v.routeId === r.id,
+                        ).length;
+                        return (
+                          <div className="chart-row" key={r.id}>
+                            <span title={r.name}>
+                              {r.name.split(/\s+\u00b7\s+/)[0]}
+                            </span>
+                            <div>
+                              <i
+                                style={{
+                                  width: `${Math.max(3, (count / Math.max(1, snapshot.vehicles.length)) * 100)}%`,
+                                  background: r.color,
+                                }}
+                              />
+                            </div>
+                            <b>{count}</b>
+                          </div>
+                        );
+                      })}
+                      <small>
+                        {tr(
+                          "Current positions · not historical ridership",
+                          "Kedudukan semasa · bukan sejarah penumpang",
+                        )}
+                      </small>
+                    </div>
+                    <div className="insight-card">
+                      <span className="eyebrow">
+                        {tr("PASSENGER COMFORT", "KESELESAAN PENUMPANG")}
+                      </span>
+                      <strong className="insight-number">
+                        {snapshot.source === "simulator" ? occupancy : "—"}
+                        <small>
+                          {tr("buses with space", "bas dengan ruang")}
+                        </small>
+                      </strong>
+                      <p>
+                        {tr(
+                          "Demonstration occupancy. The official feed does not guarantee crowd data.",
+                          "Kapasiti demonstrasi. Data rasmi tidak menjamin maklumat kesesakan.",
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      className={`secondary-button wide ${heatmap ? "enabled" : ""}`}
+                      onClick={() => setHeatmap((h) => !h)}
+                    >
+                      <Layers3 size={16} />
+                      {heatmap
+                        ? tr("Hide fleet heatmap", "Sembunyikan peta haba")
+                        : tr("Show fleet heatmap", "Papar peta haba")}
+                    </button>
+                    <p className="fineprint">
+                      {tr(
+                        "Position density from the current fleet. Switch to 2D for the heatmap.",
+                        "Kepadatan kedudukan daripada armada semasa. Tukar ke 2D untuk peta haba.",
+                      )}
+                    </p>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+          <div className="panel-footer">
+            <span className="malaysia-flag">🇲🇾</span>
+            <span>
+              {tr(
+                "Made for the way Malaysia moves.",
+                "Untuk cara Malaysia bergerak.",
+              )}
+            </span>
+            <span>2026</span>
+          </div>
+        </section>
         <section
           className="map-workspace"
           aria-label={tr(
@@ -1573,14 +1948,31 @@ export default function GerakApp({
               type="button"
               className="sidebar-floating-restore-btn"
               onClick={() => setPanelOpen(true)}
-              aria-label={tr("Expand sidebar", "Buka panel")}
+              aria-label={tr(
+                `Back to ${sectionLabel.toLowerCase()}`,
+                `Kembali ke ${sectionLabel.toLowerCase()}`,
+              )}
               title={tr("Expand sidebar", "Buka panel")}
             >
               <PanelLeftOpen size={16} />
-              <span>{tr("Show panel", "Buka panel")}</span>
+              <span>
+                {tr(
+                  `Back to ${sectionLabel.toLowerCase()}`,
+                  `Kembali ke ${sectionLabel.toLowerCase()}`,
+                )}
+              </span>
             </button>
           )}
           <TransportMap
+            onModeChange={setMode}
+            locale={locale}
+            focusLocation={focusLocation}
+            onTrafficReport={(coordinate, context) => {
+              setTrafficReportContext(context);
+              setPicked(coordinate);
+              setPicking(false);
+              setShowReport(true);
+            }}
             mode={mode}
             region={region}
             vehicles={displayedVehicles}
@@ -1588,7 +1980,9 @@ export default function GerakApp({
             onSelectVehicle={selectVehicle}
             onFollowChange={setFollow}
             onOverview={() => {
-              setPanelOpen(true);
+              setFocusLocation(null);
+              if (!window.matchMedia("(max-width: 960px)").matches)
+                setPanelOpen(true);
               setSelectedId(null);
               setSelectedStop(null);
               setFollow(false);
@@ -1619,50 +2013,6 @@ export default function GerakApp({
           />
           <div className="map-top-controls">
             <div className="map-control-right">
-              <div className="mode-toggle" role="group" aria-label="Map mode">
-                <button
-                  className={mode === "2d" ? "active" : ""}
-                  onClick={() => setMode("2d")}
-                >
-                  <Compass size={15} />
-                  2D
-                </button>
-                <button
-                  className={mode === "3d" ? "active" : ""}
-                  onClick={() => {
-                    setMode("3d");
-                    if (usingOfficial)
-                      notify(
-                        tr(
-                          "3D buildings are illustrative. Routes and GPS are from the official feed.",
-                          "Bangunan 3D ialah ilustrasi. Laluan dan GPS daripada data rasmi.",
-                        ),
-                      );
-                  }}
-                >
-                  <Layers3 size={15} />
-                  3D
-                  <span className="new-dot" />
-                </button>
-                <button
-                  type="button"
-                  title={tr(
-                    "Fit entire route network",
-                    "Muatkan seluruh rangkaian laluan",
-                  )}
-                  aria-label={tr("Overall network view", "Paparan keseluruhan")}
-                  onClick={() => {
-                    setSelectedId(null);
-                    setSelectedStop(null);
-                    setFollow(false);
-                    setFilter(null);
-                    window.dispatchEvent(new CustomEvent("gerak:overview"));
-                  }}
-                >
-                  <Maximize2 size={13} />
-                  {tr("Overall", "Semua")}
-                </button>
-              </div>
               <button
                 className="map-square"
                 title={tr("Data and map information", "Maklumat data dan peta")}
@@ -1802,11 +2152,15 @@ export default function GerakApp({
               </div>
             )}
           {vehicle && (
-            <div className="vehicle-detail" aria-live="polite">
+            <div
+              className="vehicle-detail ride-detail"
+              data-source={vehicle.source}
+              aria-live="polite"
+            >
               <div className="detail-top">
                 <span
                   className="route-badge"
-                  style={{ color: vehicleRoute?.color ?? "#b3f56b" }}
+                  style={{ color: vehicleRoute?.color ?? "#6f9ff1" }}
                 >
                   <BusFront size={14} />
                   {vehicle.routeId || tr("Live vehicle", "Kenderaan langsung")}
@@ -2047,11 +2401,19 @@ export default function GerakApp({
                   {(filter
                     ? [
                         regionRoutes.find((r) => r.id === filter)!,
-                        ...regionRoutes.filter((r) => r.id !== filter).slice(0, 4),
+                        ...regionRoutes
+                          .filter((r) => r.id !== filter)
+                          .slice(0, 4),
                       ].filter(Boolean)
                     : regionRoutes.slice(0, 5)
                   ).map((r) => (
-                    <span
+                    <button
+                      className="legend-route"
+                      aria-label={tr(
+                        `Filter route ${r.name}`,
+                        `Tapis laluan ${r.name}`,
+                      )}
+                      aria-pressed={filter === r.id}
                       key={r.id}
                       onClick={() => setFilter(filter === r.id ? null : r.id)}
                       style={{
@@ -2066,12 +2428,13 @@ export default function GerakApp({
                       }
                     >
                       <i style={{ background: r.color }} />
-                      {r.name}
-                    </span>
+                      {r.name.split(/\s+\u00b7\s+/)[0]}
+                    </button>
                   ))}
                   {regionRoutes.length > 5 && (
-                    <span
-                      onClick={() => setView("routes")}
+                    <button
+                      className="legend-route"
+                      onClick={() => navigateTo("routes")}
                       style={{
                         cursor: "pointer",
                         opacity: 0.75,
@@ -2083,13 +2446,13 @@ export default function GerakApp({
                       )}
                     >
                       +{regionRoutes.length - 5} {tr("more", "lagi")}
-                    </span>
+                    </button>
                   )}
                 </>
               ) : (
                 <>
                   <span>
-                    <i style={{ background: "#b3f56b" }} />
+                    <i style={{ background: "#6f9ff1" }} />
                     {tr("Route 1", "Laluan 1")}
                   </span>
                   <span>
@@ -2099,7 +2462,12 @@ export default function GerakApp({
                 </>
               )}
               {filter && (
-                <button onClick={() => setFilter(null)}>
+                <button
+                  onClick={() => {
+                    setFilter(null);
+                    setFocusLocation(null);
+                  }}
+                >
                   <X size={12} />
                   {tr("Clear filter", "Padam penapis")}
                 </button>
@@ -2107,13 +2475,15 @@ export default function GerakApp({
             </div>
             <button
               className="report-fab"
+              aria-label={tr("Report an issue", "Laporkan isu")}
+              title={tr("Report an issue", "Laporkan isu")}
               onClick={() => {
                 setPicked(null);
                 setShowReport(true);
               }}
             >
               <Plus size={17} />
-              <span>{tr("Report an issue", "Laporkan isu")}</span>
+              <span>{tr("Report", "Lapor")}</span>
             </button>
           </div>
           <div className="network-strip">
@@ -2138,46 +2508,34 @@ export default function GerakApp({
                       "Perintis · laluan ilustrasi",
                     )}
             </span>
-            <button
-              onClick={() => {
-                setFeed((f) => (f === "demo" ? "live" : "demo"));
-                if (region === "uthm" || region === "uthm-pagoh")
-                  changeRegion("johor");
-                else if (region !== "johor") {
-                  changeRegion("johor");
-                  setFeed("demo");
-                }
-                setFilter(null);
-                setSelectedId(null);
-                setFollow(false);
-                setSelectedStop(null);
-                setShowPlanner(false);
-              }}
-            >
-              <Radio size={12} />
-              {feed === "demo"
-                ? tr("Try official feed", "Cuba data rasmi")
-                : tr("Use separate demo", "Guna demo berasingan")}
-              <ChevronRight size={12} />
-            </button>
           </div>
         </section>
       </main>
       {showReport && (
         <ReportDialog
+          trafficContext={trafficReportContext}
           locale={locale}
           region={region}
           networkStops={regionStops}
           picked={picked}
           online={online}
-          onClose={() => setShowReport(false)}
+          onClose={() => {
+            setShowReport(false);
+            setTrafficReportContext("");
+          }}
           onPick={() => {
             setShowReport(false);
             setPicking(true);
+            setSelectedId(null);
+            setSelectedStop(null);
+            setFollow(false);
+            if (window.matchMedia("(max-width: 960px)").matches)
+              setPanelOpen(false);
             setMode("2d");
           }}
           onSubmit={() => {
             setShowReport(false);
+            setTrafficReportContext("");
             void refreshReports();
             notify(
               tr(
@@ -2350,6 +2708,7 @@ function Dialog({
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
@@ -2360,6 +2719,7 @@ function Dialog({
   return (
     <dialog
       className="modal"
+      aria-labelledby={titleId}
       ref={ref}
       onCancel={(e) => {
         e.preventDefault();
@@ -2380,7 +2740,7 @@ function Dialog({
             <X size={21} />
           </button>
         </div>
-        <h2>{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         {children}
       </div>
     </dialog>
@@ -2430,6 +2790,7 @@ function ReportCard({
   );
 }
 function ReportDialog({
+  trafficContext = "",
   locale,
   region,
   networkStops,
@@ -2439,6 +2800,7 @@ function ReportDialog({
   onPick,
   onSubmit,
 }: {
+  trafficContext?: string;
   locale: Locale;
   region: Region;
   networkStops: Stop[];
@@ -2450,9 +2812,17 @@ function ReportDialog({
 }) {
   const tr = (en: string, ms: string) => (locale === "en" ? en : ms);
   const availableStops = networkStops;
-  const [category, setCategory] = useState<ReportCategory>("damaged-stop"),
-    [title, setTitle] = useState(""),
-    [description, setDescription] = useState(""),
+  const [category, setCategory] = useState<ReportCategory>(
+      trafficContext ? "infrastructure" : "damaged-stop",
+    ),
+    [title, setTitle] = useState(
+      trafficContext
+        ? tr("Signal / crossing problem", "Masalah isyarat / lintasan")
+        : "",
+    ),
+    [description, setDescription] = useState(
+      trafficContext ? `${trafficContext}\n` : "",
+    ),
     [locationId, setLocationId] = useState(availableStops[0]?.id ?? ""),
     [image, setImage] = useState<string | undefined>(),
     [busy, setBusy] = useState(false),
@@ -2460,6 +2830,7 @@ function ReportDialog({
     [draftSaved, setDraftSaved] = useState(false);
   const stop = availableStops.find((s) => s.id === locationId)!;
   useEffect(() => {
+    if (trafficContext) return;
     try {
       const saved = JSON.parse(
         localStorage.getItem("gerak:report-draft") ?? "null",

@@ -8,6 +8,55 @@ export interface SourceEntry {
 }
 export const sources: SourceEntry[] = [
   {
+    name: "LTA / data.gov.sg traffic snapshots",
+    url: "https://data.gov.sg/datasets/d_6cdb6b405b25aaaacbaf7689bcc6fae0/view",
+    purpose:
+      "Timestamped Singapore-side border camera snapshots, coordinates and camera IDs.",
+    kind: "runtime",
+    notes:
+      "api.data.gov.sg/v1/transport/traffic-images; 60-second metadata cache, selected image only. Images are not live video. Open Data Licence. Unknown camera names retain provider IDs; do not infer queue times.",
+  },
+  {
+    name: "OpenStreetMap signal junctions / Overpass",
+    url: "https://wiki.openstreetmap.org/wiki/Overpass_API",
+    purpose:
+      "Community-mapped static signal junction inventory for the Johor Bahru pilot.",
+    kind: "runtime",
+    notes:
+      "Queries overpass-api.de/api/interpreter within a fixed Johor-area box. ODbL attribution to OpenStreetMap contributors. Provider returned HTTP 406 during verification; UI reports unavailable. No live phase, countdown or surveyed pole geometry is supplied.",
+  },
+  {
+    name: "MBJB i-Trafik",
+    url: "https://itrafik.mbjb.gov.my/itrafik/list_cctv",
+    purpose: "Official Johor CCTV directory linked from the Layers panel.",
+    kind: "standard",
+    notes:
+      "External viewer only. No embedded playback, scraping contract or reuse permission claimed.",
+  },
+  {
+    name: "DBKL KLCCC",
+    url: "https://klccc.dbkl.gov.my/",
+    purpose: "Official Kuala Lumpur traffic viewer link.",
+    kind: "standard",
+    notes: "External viewer only; no public signal phase integration verified.",
+  },
+  {
+    name: "LLM traffic cameras / Tuju",
+    url: "https://www.llm.gov.my/cctv1/get_traffic_cctv",
+    purpose: "Official highway CCTV information link.",
+    kind: "standard",
+    notes:
+      "External viewer only; the portal directs users to Tuju for full camera views.",
+  },
+  {
+    name: "BAS.MY fare and pass rules",
+    url: "https://bas.my/pasperjalanan.php",
+    kind: "standard",
+    purpose: "Estimated BAS.MY fares and pass eligibility.",
+    notes:
+      "Checked 2026-10-08. RM0.94 first 2 km, RM0.094 per additional km or part; RM30 / 30 days Malaysian-citizen pass. Route tables take priority. City pass coverage remains unconfirmed; nearest-sen half-up rounding is GERAK estimate policy, not a verified official rounding rule.",
+  },
+  {
     name: "Open-Meteo current weather",
     url: "https://open-meteo.com/en/docs",
     purpose: "Current modelled conditions at the selected service-area centre.",

@@ -84,3 +84,9 @@ All official adapters share a four-request/minute budget within one Node process
 
 ## Current weather
 GET /api/weather?region=johor returns temperature (C), feelsLike (C), humidity (%), precipitation (mm per provider current interval), wind (km/h), WMO code, isDay, observedAt/fetchedAt (Unix milliseconds), location and stale. Uses the selected service-area centre, not the user's precise location. 15-minute server cache, deduplicated in-flight requests, bounded response size, 8-second timeout and request limiting. Returns 503 if unavailable without cached data; never synthesizes readings.
+
+### Fare-supporting network fields
+
+Official routes optionally include `patterns`: deduplicated trip/direction/shape records with ordered stop occurrences, original full shape geometry and raw stop-time shape distances. Imported distance units remain `unknown` until independently verified. Legacy caches refresh to schema version 2; they remain usable for maps but cannot supply pattern-based fares. The planner can use these published stop patterns for direct/one-transfer corridors, but is not timetable-aware. Fare and budget calculations run on the client; no new monetary API or payment endpoint is introduced.
+
+Traffic endpoints and caching contracts: [Traffic implementation](TRAFFIC_IMPLEMENTATION.md).

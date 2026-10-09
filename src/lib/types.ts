@@ -8,6 +8,16 @@ export interface Stop {
   accessible: boolean;
   region: Region;
 }
+export interface TripPattern {
+  id: string;
+  tripId: string;
+  shapeId: string | null;
+  direction: string | null;
+  path: Coordinate[];
+  geometrySource: "gtfs_shape" | "unavailable";
+  distanceUnit: "metres" | "kilometres" | "unknown";
+  stops: { stopId: string; sequence: number; shapeDistance: number | null }[];
+}
 export interface TransitRoute {
   id: string;
   name: string;
@@ -18,6 +28,7 @@ export interface TransitRoute {
   duration: number;
   region: Region;
   operator: string;
+  patterns?: TripPattern[];
   source: "demo" | "official";
 }
 export interface Vehicle {

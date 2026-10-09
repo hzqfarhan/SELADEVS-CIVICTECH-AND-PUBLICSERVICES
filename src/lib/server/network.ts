@@ -8,6 +8,7 @@ import { readResponseBytes } from "./upstream";
 import { reserveOfficialRequest } from "./upstream-budget";
 export const JOHOR_STATIC_URL = serviceFor("johor").endpoints[0].staticUrl;
 export interface TransitNetwork {
+  schemaVersion?: number;
   routes: TransitRoute[];
   stops: Stop[];
   source: "official" | "demo";
@@ -36,11 +37,22 @@ export function namespaceNetwork(
 ): TransitNetwork {
   return {
     ...network,
+    schemaVersion: 2,
     routes: network.routes.map((r) => ({
       ...r,
       region,
       id: feedId(endpoint.id, r.id),
       stops: r.stops.map((s) => feedId(endpoint.id, s)),
+      patterns: r.patterns?.map((p) => ({
+        ...p,
+        id: feedId(endpoint.id, p.id),
+        tripId: feedId(endpoint.id, p.tripId),
+        shapeId: p.shapeId ? feedId(endpoint.id, p.shapeId) : null,
+        stops: p.stops.map((s) => ({
+          ...s,
+          stopId: feedId(endpoint.id, s.stopId),
+        })),
+      })),
     })),
     stops: network.stops.map((s) => ({
       ...s,
@@ -85,7 +97,8 @@ async function loadEndpoint(
       );
     } catch {}
   if (
-    cache.network?.importedAt &&
+    cache.network?.schemaVersion === 2 &&
+    cache.network.importedAt &&
     Date.now() - Date.parse(cache.network.importedAt) < 86400000
   )
     return cache.network;

@@ -133,6 +133,53 @@ export function parseStaticGtfs(
         times.at(-1)?.arrival_time || times.at(-1)?.departure_time,
       );
       return {
+        patterns: [
+          ...new Map(
+            trips
+              .filter((t) => t.route_id === route.route_id)
+              .map((t) => {
+                const times = tripTimes.get(t.trip_id) || [];
+                const key = JSON.stringify([
+                  t.direction_id,
+                  t.shape_id,
+                  times.map((x) => [
+                    x.stop_id,
+                    x.stop_sequence,
+                    x.shape_dist_traveled,
+                  ]),
+                ]);
+                return [
+                  key,
+                  {
+                    id: t.trip_id,
+                    tripId: t.trip_id,
+                    shapeId: t.shape_id || null,
+                    direction: t.direction_id || null,
+                    geometrySource: shapes.has(t.shape_id)
+                      ? ("gtfs_shape" as const)
+                      : ("unavailable" as const),
+                    distanceUnit: "unknown" as const,
+                    path: (shapes.get(t.shape_id) || []).map(
+                      (x) =>
+                        [
+                          Number(x.shape_pt_lon),
+                          Number(x.shape_pt_lat),
+                        ] as Coordinate,
+                    ),
+                    stops: times.map((x) => ({
+                      stopId: x.stop_id,
+                      sequence: Number(x.stop_sequence),
+                      shapeDistance:
+                        x.shape_dist_traveled?.trim() &&
+                        Number.isFinite(Number(x.shape_dist_traveled))
+                          ? Number(x.shape_dist_traveled)
+                          : null,
+                    })),
+                  },
+                ];
+              }),
+          ).values(),
+        ],
         id: route.route_id,
         name:
           [route.route_short_name, route.route_long_name]

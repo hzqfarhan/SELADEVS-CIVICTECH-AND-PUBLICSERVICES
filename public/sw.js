@@ -1,6 +1,6 @@
 /* GERAK: network-first navigation, cache-only-on-success assets. Never cache API writes or auth. */
-const VERSION='gerak-v2';
-const CORE=['/','/offline.html','/icon.svg','/icons/icon-192.png','/icons/icon-512.png'];
+const VERSION='gerak-v3';
+const CORE=['/','/offline.html','/icons/gerak-app-32.png','/icons/gerak-app-192.png','/icons/gerak-app-512.png','/icons/gerak-maskable-512.png','/icons/gerak-ios-180.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(CORE)));self.skipWaiting();});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('gerak-')&&k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',event=>{
@@ -16,3 +16,4 @@ self.addEventListener('message',event=>{
  const urls=event.data.urls.slice(0,100).filter(value=>{try{const url=new URL(value,self.location.origin);return url.origin===self.location.origin&&(url.pathname.startsWith('/_next/static/')||url.pathname.startsWith('/vendor/'));}catch{return false;}});
  event.waitUntil(caches.open(VERSION).then(cache=>Promise.allSettled(urls.map(url=>cache.add(url)))));
 });
+

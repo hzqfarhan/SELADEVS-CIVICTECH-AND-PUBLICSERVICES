@@ -8,11 +8,16 @@ import type {
 } from "@/lib/types";
 
 export interface TransportMapProps {
+  locale?: "en" | "ms";
+  onTrafficReport?: (coordinate: Coordinate, context: string) => void;
   mode: "2d" | "3d";
+  onModeChange?: (mode: "2d" | "3d") => void;
   lighting?: "day" | "dusk" | "night";
   region: Region;
   vehicles: Vehicle[];
   selectedVehicleId: string | null;
+  /** Increment key to focus a stop/report again, including the same coordinate. */
+  focusLocation?: { coordinate: Coordinate; key: number } | null;
   onSelectVehicle: (id: string) => void;
   follow: boolean;
   onFollowChange?: (follow: boolean) => void;

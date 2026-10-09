@@ -23,7 +23,7 @@ export function createBuildingDetails(
     limit,
   );
   const trimMaterial = new THREE.MeshStandardMaterial({
-    color: "#c0cabc",
+    color: "#bcc1ca",
     roughness: 0.8,
   });
   const trims = new THREE.InstancedMesh(

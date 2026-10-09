@@ -286,7 +286,8 @@ const additionalCampusStops: Stop[] = [
 
 export const stops: Stop[] = [
   ...illustrativeStops.filter(
-    (stop) => stop.region !== "uthm" && (stop.region as string) !== "uthm-pagoh",
+    (stop) =>
+      stop.region !== "uthm" && (stop.region as string) !== "uthm-pagoh",
   ),
   ...additionalCampusStops,
   ...campusDefinitions.flatMap(({ campus, region }) =>
@@ -310,7 +311,8 @@ export const stops: Stop[] = [
 ];
 export const routes: TransitRoute[] = [
   ...illustrativeRoutes.filter(
-    (route) => route.region !== "uthm" && (route.region as string) !== "uthm-pagoh",
+    (route) =>
+      route.region !== "uthm" && (route.region as string) !== "uthm-pagoh",
   ),
   ...campusDefinitions.flatMap(({ campus, region }, campusIdx) =>
     campus.routes.map((route, routeIdx): TransitRoute => {
@@ -413,7 +415,9 @@ export function simulateVehicles(region: Region, time = Date.now()): Vehicle[] {
           .reduce((s, p, j) => s + distance(route.path[j], p), 0);
         const plate =
           region === "uthm"
-            ? UTHM_PARIT_RAJA_PLATES[(ri * 3 + i) % UTHM_PARIT_RAJA_PLATES.length]
+            ? UTHM_PARIT_RAJA_PLATES[
+                (ri * 3 + i) % UTHM_PARIT_RAJA_PLATES.length
+              ]
             : region === "uthm-pagoh"
               ? UTHM_PAGOH_PLATES[(ri * 3 + i) % UTHM_PAGOH_PLATES.length]
               : `JHR ${String(ri * 4 + i + 101)}`;
@@ -479,7 +483,17 @@ export function planJourney(
   if (!origin || !destination || origin.region !== destination.region)
     return [];
   if (accessible && (!origin.accessible || !destination.accessible)) return [];
-  const available = networkRoutes.filter((r) => r.region === origin.region),
+  const available = networkRoutes
+      .filter((r) => r.region === origin.region)
+      .flatMap((r) =>
+        r.patterns?.length
+          ? r.patterns.map((p) => ({
+              ...r,
+              stops: p.stops.map((s) => s.stopId),
+              patterns: [p],
+            }))
+          : [r],
+      ),
     results: Journey[] = [];
   const leg = (route: TransitRoute, a: string, b: string) => {
     const start = route.stops.indexOf(a),

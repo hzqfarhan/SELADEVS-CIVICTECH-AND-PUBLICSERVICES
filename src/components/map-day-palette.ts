@@ -22,25 +22,25 @@ export function createDayPalette() {
       const sourceLayer = "source-layer" in layer ? layer["source-layer"] : "";
       const changes: [PaintProperty, string][] = [];
       if (layer.type === "background")
-        changes.push(["background-color", "#e6ede1"]);
+        changes.push(["background-color", "#e1e5ed"]);
       if (layer.type === "fill")
         changes.push([
           "fill-color",
           sourceLayer === "water"
             ? "#aad2df"
             : sourceLayer === "building"
-              ? "#b7c3b5"
+              ? "#b5bac3"
               : sourceLayer === "landcover" || sourceLayer === "park"
-                ? "#c5d7b6"
-                : "#e1e8d9",
+                ? "#b6c2d7"
+                : "#d9dee8",
         ]);
       if (layer.type === "line" && sourceLayer === "transportation")
         changes.push([
           "line-color",
-          layer.id.includes("casing") ? "#bdc8b8" : "#fcfaf0",
+          layer.id.includes("casing") ? "#b8bec8" : "#fcfaf0",
         ]);
       if (layer.type === "symbol" && layer.layout?.["text-field"])
-        changes.push(["text-color", "#405747"], ["text-halo-color", "#f3f6eb"]);
+        changes.push(["text-color", "#404857"], ["text-halo-color", "#ebeff6"]);
       for (const [property, value] of changes) {
         const key = `${layer.id}:${property}`;
         if (!original.has(key))
@@ -52,7 +52,23 @@ export function createDayPalette() {
         map.setPaintProperty(
           layer.id,
           property,
-          day ? value : original.get(key)!.value,
+          day
+            ? value
+            : property === "background-color"
+              ? "#101722"
+              : property === "fill-color"
+                ? sourceLayer === "water"
+                  ? "#080f1a"
+                  : sourceLayer === "building"
+                    ? "#26354a"
+                    : "#172334"
+                : property === "line-color"
+                  ? layer.id.includes("casing")
+                    ? "#172334"
+                    : "#35455b"
+                  : property === "text-color"
+                    ? "#aab7ca"
+                    : "#101722",
         );
       }
     }
@@ -60,7 +76,7 @@ export function createDayPalette() {
       map.setPaintProperty(
         "my-mask",
         "fill-color",
-        day ? "#d0ddd3" : "#081817",
+        day ? "#d0d5dd" : "#080f1a",
       );
   };
 }

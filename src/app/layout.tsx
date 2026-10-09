@@ -13,12 +13,19 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "GERAK",
   },
-  icons: { icon: "/icon.svg", apple: "/icons/icon-192.png" },
+  icons: {
+    icon: [
+      { url: "/icons/gerak-app-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icons/gerak-ios-180.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#111b1b",
+  themeColor: "#11151b",
 };
 export default function RootLayout({
   children,
@@ -26,8 +33,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{document.documentElement.dataset.theme=localStorage.getItem('gerak-appearance')==='light'?'light':'dark'}catch{}`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
