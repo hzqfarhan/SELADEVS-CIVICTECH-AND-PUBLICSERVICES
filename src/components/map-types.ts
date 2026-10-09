@@ -16,9 +16,12 @@ export interface TransportMapProps {
   region: Region;
   vehicles: Vehicle[];
   selectedVehicleId: string | null;
+  previewVehicleId?: string | null;
   /** Increment key to focus a stop/report again, including the same coordinate. */
   focusLocation?: { coordinate: Coordinate; key: number } | null;
   onSelectVehicle: (id: string) => void;
+  onOpenVehicleDetails?: (id: string) => void;
+  vehicleDetailsOpen?: boolean;
   follow: boolean;
   onFollowChange?: (follow: boolean) => void;
   onOverview?: () => void;

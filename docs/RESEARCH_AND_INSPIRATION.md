@@ -80,3 +80,9 @@ GERAK's principles: installable manifest with valid icons; versioned shell cache
 ## Geographic 3D update — 30 September 2026
 
 The active 3D mode now shares the MapLibre geographic basemap with 2D, replacing the procedural miniature city described in earlier sections. OpenFreeMap/OpenStreetMap supply real Johor coastline, roads and building footprints. Extrusions use provider render heights or an estimated minimum height, not surveyed elevation. GPS-anchored bus footprints animate with observed headings; model size is exaggerated at regional zoom for readability. The MY overview control frames Johor, while follow zooms to the selected bus. Sources: https://openfreemap.org/quick_start/ and https://maplibre.org/maplibre-gl-js/docs/examples/display-buildings-in-3d/. A Johor Bahru z14 tile was verified to contain 70 building features, 7 water features and 1,140 transportation features.
+
+## Malaysian bus model refinements (9 October 2026)
+
+Operator references: [Mayang Sari Express](https://www.mayangsariexpress.com.my/), [PAJ / Bas Muafakat Johor](https://paj.com.my/), and [MBIP Bas Muafakat Johor](https://mbip.gov.my/bas-muafakat-johor). Consulted to distinguish express-coach and municipal-service identities. The meshes and simplified red/white coach, blue/red municipal and pink BAS.MY palettes are original illustrative designs, not verified replicas of any particular vehicle or copied assets.
+
+Livery selection uses the route's operator metadata only; unknown operators retain route-colour styling. No Mayang Sari or Muafakat realtime feed was added in this visual change. Do not infer a real bus make, exact paint scheme or operator from its registration plate. Existing tyre animation is retained; added body seams, left-side doors, wipers and coach luggage details.

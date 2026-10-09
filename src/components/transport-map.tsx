@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LocateFixed, Maximize2 } from "lucide-react";
 import type { CurrentWeather } from "@/lib/weather";
 import { MapWeather } from "./map-weather";
+import { SatelliteControl } from "./satellite-control";
 import TrafficLayers from "./traffic-layers";
-import { createDayPalette } from "./map-day-palette";
 import { updateFleetClusters } from "./fleet-clusters";
 import MalaysiaBoundaries, {
   boundaryContains,
@@ -13,6 +13,7 @@ import MalaysiaBoundaries, {
 } from "./malaysia-boundaries";
 import type { GeoJSONSource, Map as LibreMap, Marker } from "maplibre-gl";
 import type { Coordinate } from "@/lib/types";
+import { distance } from "@/lib/transit";
 import type { TransportMapProps } from "./map-types";
 import {
   createProjection,
@@ -321,6 +322,18 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
 }
 
 function FlatMap(props: TransportMapProps) {
+  const previewLabel = useRef<HTMLButtonElement>(null);
+  const previewVehicle = useRef<string | null>(null);
+  useEffect(() => {
+    previewVehicle.current = null;
+  }, [props.region]);
+  useEffect(() => {
+    if (props.selectedVehicleId || props.focusLocation || props.picking)
+      previewVehicle.current = null;
+  }, [props.selectedVehicleId, props.focusLocation, props.picking]);
+  const modeFocus = useRef<{ coordinate: Coordinate; bearing: number } | null>(
+    null,
+  );
   const container = useRef<HTMLDivElement>(null);
   const motionStatus = useRef<HTMLDivElement>(null);
   const lastFocus = useRef("");
@@ -347,7 +360,6 @@ function FlatMap(props: TransportMapProps) {
   angleRef.current = viewAngle;
   const weatherRef = useRef(weather);
   weatherRef.current = weather;
-  const dayPalette = useRef(createDayPalette());
   const lightingRef = useRef(lighting);
   lightingRef.current = lighting;
   const map = useRef<LibreMap | null>(null);
@@ -414,7 +426,7 @@ function FlatMap(props: TransportMapProps) {
           maxZoom: 22,
           minZoom: 3,
           maxPitch: 70,
-          style: "https://tiles.openfreemap.org/styles/dark",
+          style: "https://tiles.openfreemap.org/styles/liberty",
         });
         if (disposed) {
           instance.remove();
@@ -463,13 +475,13 @@ function FlatMap(props: TransportMapProps) {
                   ["linear"],
                   ["coalesce", ["get", "render_height"], 6],
                   0,
-                  "#71809b",
+                  "#c8c3b9",
                   15,
-                  "#99a4b7",
+                  "#d6d1c7",
                   60,
-                  "#b3bbc9",
+                  "#e2ddd4",
                   160,
-                  "#e0d5bb",
+                  "#efeae0",
                 ],
                 "fill-extrusion-vertical-gradient": true,
                 "fill-extrusion-height": [
@@ -492,9 +504,9 @@ function FlatMap(props: TransportMapProps) {
               "source-layer": "building",
               minzoom: 14,
               paint: {
-                "fill-color": "#6a7891",
+                "fill-color": "#c8c3b9",
                 "fill-opacity": 0.24,
-                "fill-outline-color": "#7a869c",
+                "fill-outline-color": "#b9b3a9",
               },
             });
             instance.addSource("bus-models", {
@@ -519,6 +531,7 @@ function FlatMap(props: TransportMapProps) {
               createBusFleetLayer(
                 () => ({
                   ...latest.current,
+                  previewVehicleId: previewVehicle.current,
                   lighting: lightingRef.current,
                   weatherCode: undefined,
                   vehicles: latest.current.vehicles.filter((v) =>
@@ -552,7 +565,10 @@ function FlatMap(props: TransportMapProps) {
           if (!disposed) setUnavailable(true);
         });
         instance.on("dragstart", (event) => {
-          if (event.originalEvent) latest.current.onFollowChange?.(false);
+          if (event.originalEvent) {
+            previewVehicle.current = null;
+            latest.current.onFollowChange?.(false);
+          }
         });
         instance.on("click", (event) => {
           const trafficLayers = ["traffic-cameras", "traffic-signals"].filter(
@@ -689,15 +705,18 @@ function FlatMap(props: TransportMapProps) {
           }
 
           // Follow selected vehicle in 60fps lockstep without micro-stutter
-          const selectedId = latest.current.selectedVehicleId;
-          if (latest.current.follow && selectedId) {
+          const previewId = !latest.current.selectedVehicleId
+            ? previewVehicle.current
+            : null;
+          const selectedId = latest.current.selectedVehicleId ?? previewId;
+          if ((latest.current.follow || previewId) && selectedId) {
             const motion = motions.current.get(selectedId);
             const vehicle = latest.current.vehicles.find(
               (v) => v.id === selectedId,
             );
             if (motion || vehicle) {
               const sample = motion ? sampleMotion(motion, now) : vehicle!;
-              if (now < easingUntilRef.current) {
+              if (now < easingUntilRef.current || instance.isZooming()) {
                 // Initial easeTo transition active: let camera glide smoothly to vehicle
                 previousFollow = now;
               } else {
@@ -714,11 +733,13 @@ function FlatMap(props: TransportMapProps) {
                 if (latest.current.mode === "3d") {
                   const desiredAngle =
                     sample.bearing +
-                    (angleRef.current === "right"
-                      ? -125
-                      : angleRef.current === "left"
-                        ? 125
-                        : 180);
+                    (previewId
+                      ? 70
+                      : angleRef.current === "right"
+                        ? -125
+                        : angleRef.current === "left"
+                          ? 125
+                          : 180);
                   const headingDelta =
                     ((desiredAngle - instance.getBearing() + 540) % 360) - 180;
                   const turnDamping = 1 - Math.exp(-dt * 5);
@@ -737,6 +758,58 @@ function FlatMap(props: TransportMapProps) {
             }
           }
 
+          const label = previewLabel.current;
+          const labelVehicleId =
+            latest.current.selectedVehicleId ?? previewVehicle.current;
+          const preview =
+            !latest.current.vehicleDetailsOpen && labelVehicleId
+              ? latest.current.vehicles.find((v) => v.id === labelVehicleId)
+              : undefined;
+          if (label) {
+            label.hidden = !preview;
+            if (preview) {
+              const motion = motions.current.get(preview.id);
+              const sample = motion ? sampleMotion(motion, now) : preview;
+              const point = instance.project(sample.coordinate);
+              const route = latest.current.routes.find(
+                (r) => r.id === preview.routeId,
+              );
+              const routeName =
+                route?.name.split(/\s+\u00b7\s+/)[0] ?? preview.routeId;
+              const title = `${routeName} · ${preview.licensePlate || preview.label}`;
+              const hint =
+                latest.current.locale === "ms"
+                  ? "Lihat butiran"
+                  : "View details";
+              const text = `${title}  ›`;
+              if (label.textContent !== text) label.textContent = text;
+              label.setAttribute("aria-label", `${hint}: ${title}`);
+              label.title = hint;
+              // Match the model's zoom-dependent world scale, with a gentler
+              // label response so its text stays useful at both extremes.
+              const zoom = instance.getZoom();
+              const is3d = latest.current.mode === "3d";
+              const modelScale = Math.min(
+                12,
+                Math.max(2.4, 2 ** (16.5 - zoom)),
+              );
+              const relativeSize = is3d
+                ? (2 ** (zoom - 16.8) * modelScale) / 2.4
+                : 2 ** (zoom - 15.3);
+              const labelScale = Math.min(
+                1.45,
+                Math.max(0.78, relativeSize ** 0.35),
+              );
+              label.style.setProperty("--label-scale", String(labelScale));
+              label.style.left = `${point.x}px`;
+              label.style.top = `${point.y - (is3d ? Math.min(160, Math.max(22, 38 * relativeSize ** 0.65)) : 24 * labelScale)}px`;
+              label.hidden =
+                point.x < 0 ||
+                point.y < 0 ||
+                point.x > instance.getCanvas().clientWidth ||
+                point.y > instance.getCanvas().clientHeight;
+            }
+          }
           if (motionStatus.current && now - previousStatus > 500) {
             motionStatus.current.textContent =
               latest.current.vehicles.length > 0 &&
@@ -1271,21 +1344,33 @@ function FlatMap(props: TransportMapProps) {
     const selected = latest.current.vehicles.find(
       (v) => v.id === latest.current.selectedVehicleId,
     );
+    const focus = modeFocus.current;
+    modeFocus.current = null;
+    if (focus) easingUntilRef.current = performance.now() + 1100;
     instance.easeTo({
       padding: { top: 0, bottom: 0, left: 0, right: 0 },
       pitch: is3d ? 58 : 0,
       bearing: is3d ? -25 : 0,
       duration: 1100,
-      ...(is3d
+      ...(focus
         ? {
-            center:
-              selected?.coordinate ??
-              (instance.getZoom() < 14
-                ? REGION_CENTERS[props.region]
-                : instance.getCenter()),
-            zoom: Math.max(instance.getZoom(), 16),
+            center: focus.coordinate,
+            zoom: is3d ? 16.8 : 15.3,
+            bearing: is3d ? focus.bearing + 70 : 0,
+            duration: matchMedia("(prefers-reduced-motion: reduce)").matches
+              ? 0
+              : 1000,
           }
-        : {}),
+        : is3d
+          ? {
+              center:
+                selected?.coordinate ??
+                (instance.getZoom() < 14
+                  ? REGION_CENTERS[props.region]
+                  : instance.getCenter()),
+              zoom: Math.max(instance.getZoom(), 16),
+            }
+          : {}),
     });
   }, [ready, unavailable, props.mode, props.region]);
 
@@ -1426,17 +1511,14 @@ function FlatMap(props: TransportMapProps) {
 
   useEffect(() => {
     if (!ready || !map.current) return;
-    dayPalette.current(map.current, lighting === "day");
+    // Keep the geographic road palette independent of the app chrome theme.
+    if (map.current.getLayer("my-mask"))
+      map.current.setPaintProperty("my-mask", "fill-color", "#dce5de");
     map.current.setLight({
       anchor: "map",
-      color:
-        lighting === "day"
-          ? "#ffffff"
-          : lighting === "night"
-            ? "#9ab6e5"
-            : "#ffe2b1",
-      intensity: lighting === "day" ? 0.65 : lighting === "night" ? 0.2 : 0.55,
-      position: [1.5, 210, lighting === "day" ? 28 : 65],
+      color: "#fff8ed",
+      intensity: 0.45,
+      position: [1.5, 210, 38],
     });
   }, [ready, lighting, boundary]);
 
@@ -1495,6 +1577,7 @@ function FlatMap(props: TransportMapProps) {
   };
 
   const handleOverall = () => {
+    previewVehicle.current = null;
     props.onOverview?.();
     const is3d = props.mode === "3d";
     const points = [
@@ -1586,7 +1669,20 @@ function FlatMap(props: TransportMapProps) {
       >
         GPS observations · route estimates between updates
       </div>
+      <button
+        ref={previewLabel}
+        hidden
+        type="button"
+        className="gerak-follow-label"
+        onClick={() => {
+          const id = props.selectedVehicleId ?? previewVehicle.current;
+          if (id) (props.onOpenVehicleDetails ?? props.onSelectVehicle)(id);
+        }}
+      />
       <MapWeather region={props.region} onWeather={setWeather} />
+      {ready && map.current && (
+        <SatelliteControl map={map.current} locale={props.locale} />
+      )}
       <div className="gerak-map-navigation" aria-label="Map controls">
         <div className="gerak-mode-buttons" role="group" aria-label="Map mode">
           {(["2d", "3d"] as const).map((mode) => (
@@ -1595,7 +1691,47 @@ function FlatMap(props: TransportMapProps) {
               type="button"
               aria-label={mode.toUpperCase()}
               aria-pressed={props.mode === mode}
-              onClick={() => props.onModeChange?.(mode)}
+              onClick={() => {
+                const instance = map.current;
+                if (!instance) return;
+                const center = instance.getCenter();
+                const candidates = props.vehicles
+                  .map((vehicle) => {
+                    const motion = motions.current.get(vehicle.id);
+                    return {
+                      ...(motion
+                        ? sampleMotion(motion, performance.now())
+                        : vehicle),
+                      id: vehicle.id,
+                    };
+                  })
+                  .filter((v) => v.coordinate.every(Number.isFinite));
+                const nearby = candidates.filter((v) =>
+                  instance.getBounds().contains(v.coordinate),
+                );
+                const closest = (nearby.length ? nearby : candidates).sort(
+                  (a, b) =>
+                    distance([center.lng, center.lat], a.coordinate) -
+                    distance([center.lng, center.lat], b.coordinate),
+                )[0];
+                modeFocus.current = closest ?? null;
+                previewVehicle.current = closest?.id ?? null;
+                props.onModeChange?.(mode);
+                if (props.mode === mode && closest) {
+                  modeFocus.current = null;
+                  easingUntilRef.current = performance.now() + 1100;
+                  instance.easeTo({
+                    center: closest.coordinate,
+                    zoom: mode === "3d" ? 16.8 : 15.3,
+                    pitch: mode === "3d" ? 58 : 0,
+                    bearing: mode === "3d" ? closest.bearing + 70 : 0,
+                    duration: matchMedia("(prefers-reduced-motion: reduce)")
+                      .matches
+                      ? 0
+                      : 1000,
+                  });
+                }
+              }}
             >
               {mode.toUpperCase()}
             </button>
@@ -1648,6 +1784,7 @@ function FlatMap(props: TransportMapProps) {
           title="Recenter map"
           aria-label="Recenter map"
           onClick={() => {
+            previewVehicle.current = null;
             const is3d = props.mode === "3d";
             const projection = createProjection(props.routes, props.region);
             map.current?.fitBounds(projection.bounds, {

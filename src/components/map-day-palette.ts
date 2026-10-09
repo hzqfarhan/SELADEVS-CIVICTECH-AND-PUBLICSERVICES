@@ -10,7 +10,14 @@ export function createDayPalette() {
       value: Parameters<LibreMap["setPaintProperty"]>[2];
     }
   >();
-  return (map: LibreMap, day: boolean) => {
+  return (map: LibreMap, day: boolean | null) => {
+    if (day === null) {
+      for (const { id, property, value } of original.values()) {
+        if (map.getLayer(id)) map.setPaintProperty(id, property, value);
+      }
+      original.clear();
+      return;
+    }
     for (const layer of map.getStyle().layers) {
       if (
         layer.type !== "background" &&
@@ -72,11 +79,18 @@ export function createDayPalette() {
         );
       }
     }
-    if (map.getLayer("my-mask"))
+    if (map.getLayer("my-mask")) {
+      if (!original.has("my-mask:fill-color"))
+        original.set("my-mask:fill-color", {
+          id: "my-mask",
+          property: "fill-color",
+          value: map.getPaintProperty("my-mask", "fill-color"),
+        });
       map.setPaintProperty(
         "my-mask",
         "fill-color",
         day ? "#d0d5dd" : "#080f1a",
       );
+    }
   };
 }

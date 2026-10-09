@@ -141,12 +141,14 @@ export default function GerakApp({
   const [reportFilter, setReportFilter] = useState<"all" | "open" | "resolved">(
     "all",
   );
+  const [reportSearch, setReportSearch] = useState("");
   const [locale, setLocale] = useState<Locale>("en"),
     [view, setView] = useState<View>(initialView),
     [region, setRegion] = useState<Region>("johor"),
     [mode, setMode] = useState<"2d" | "3d">("3d");
   const [feed, setFeed] = useState<"demo" | "live">("live"),
     [selectedId, setSelectedId] = useState<string | null>(null),
+    [detailVehicleId, setDetailVehicleId] = useState<string | null>(null),
     [follow, setFollow] = useState(false),
     [filter, setFilter] = useState<string | null>(null);
   const [search, setSearch] = useState(""),
@@ -197,6 +199,13 @@ export default function GerakApp({
         ? report.status === "resolved"
         : report.status !== "resolved"),
   );
+  const communityReports = visibleReports
+    .filter((report) =>
+      `${report.title} ${report.location} ${report.description}`
+        .toLowerCase()
+        .includes(reportSearch.trim().toLowerCase()),
+    )
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const reportFilters = (
     <div
       className="report-filters"
@@ -486,7 +495,8 @@ export default function GerakApp({
   const selectVehicle = (id: string) => {
     setFocusLocation(null);
     if (window.matchMedia("(max-width: 960px)").matches) setPanelOpen(false);
-    if (mode === "3d") setFollow(true);
+    setFollow(true);
+    setDetailVehicleId(null);
     setSelectedId(id);
     setSelectedStop(null);
   };
@@ -1178,27 +1188,25 @@ export default function GerakApp({
           )}
           <div className="panel-scroll">
             {view === "saved" && (
-              <details className="saved-budget-disclosure">
-                <summary>
-                  <span>{tr("Transport budget", "Bajet pengangkutan")}</span>
+              <div className="collection-intro">
+                <span className="collection-icon">
+                  <Bookmark size={22} />
+                </span>
+                <div>
+                  <strong>
+                    {tr("Your everyday places", "Tempat harian anda")}
+                  </strong>
+                  <p>
+                    {regionRoutes.filter((r) => favourite(r.id)).length}{" "}
+                    {tr("routes", "laluan")} ·{" "}
+                    {regionStops.filter((s) => favourite(s.id)).length}{" "}
+                    {tr("stops in this area", "hentian di kawasan ini")}
+                  </p>
                   <small>
-                    {tr(
-                      "Estimate your monthly travel costs",
-                      "Anggar kos perjalanan bulanan",
-                    )}
+                    {tr("Saved on this device", "Disimpan pada peranti ini")}
                   </small>
-                </summary>
-                <BudgetPanel
-                  budget={farePreferences.budget}
-                  profile={farePreferences.profile}
-                  onChange={farePreferences.saveBudget}
-                  onProfile={farePreferences.saveProfile}
-                  locale={locale}
-                  routes={regionRoutes}
-                  stops={regionStops}
-                  storageError={farePreferences.storageError}
-                />
-              </details>
+                </div>
+              </div>
             )}
             {(view === "explore" || view === "routes" || view === "saved") && (
               <>
@@ -1366,7 +1374,12 @@ export default function GerakApp({
                   !regionRoutes.some((r) => favourite(r.id)) && (
                     <div className="empty-state">
                       <Bookmark size={28} />
-                      <h3>{tr("Make it your own", "Jadikan ia milik anda")}</h3>
+                      <h3>
+                        {tr(
+                          "No saved routes here yet",
+                          "Belum ada laluan disimpan di sini",
+                        )}
+                      </h3>
                       <p>
                         {tr(
                           "Tap the bookmark on any route or stop. Your favourites stay on this device.",
@@ -1510,8 +1523,50 @@ export default function GerakApp({
                 )}
               </>
             )}
+            {view === "saved" && (
+              <details className="saved-budget-disclosure">
+                <summary>
+                  <span>{tr("Transport budget", "Bajet pengangkutan")}</span>
+                  <small>
+                    {tr(
+                      "Estimate your monthly travel costs",
+                      "Anggar kos perjalanan bulanan",
+                    )}
+                  </small>
+                </summary>
+                <BudgetPanel
+                  budget={farePreferences.budget}
+                  profile={farePreferences.profile}
+                  onChange={farePreferences.saveBudget}
+                  onProfile={farePreferences.saveProfile}
+                  locale={locale}
+                  routes={regionRoutes}
+                  stops={regionStops}
+                  storageError={farePreferences.storageError}
+                />
+              </details>
+            )}
             {view === "community" && (
               <>
+                <div className="collection-intro community-intro">
+                  <span className="collection-icon">
+                    <MessageSquare size={22} />
+                  </span>
+                  <div>
+                    <strong>
+                      {tr(
+                        "A better neighbourhood, together",
+                        "Kejiranan lebih baik bersama",
+                      )}
+                    </strong>
+                    <p>
+                      {tr(
+                        "Damaged stops, unsafe paths or access barriers? Pin the issue and track updates here.",
+                        "Hentian rosak, laluan tidak selamat atau halangan akses? Tandakan isu dan ikuti kemas kini di sini.",
+                      )}
+                    </p>
+                  </div>
+                </div>
                 <button
                   className="primary-button wide"
                   onClick={() => {
@@ -1520,7 +1575,7 @@ export default function GerakApp({
                   }}
                 >
                   <Plus size={18} />
-                  {tr("Make a community report", "Buat laporan komuniti")}
+                  {tr("Report an issue", "Laporkan isu")}
                 </button>
                 <div className="community-totals">
                   <div>
@@ -1545,7 +1600,38 @@ export default function GerakApp({
                   <span>{tr("LATEST", "TERKINI")}</span>
                 </div>
                 {reportFilters}
-                {visibleReports.length === 0 ? (
+                <label className="community-search">
+                  <Search size={16} />
+                  <input
+                    value={reportSearch}
+                    onChange={(event) => setReportSearch(event.target.value)}
+                    aria-label={tr(
+                      "Search community reports",
+                      "Cari laporan komuniti",
+                    )}
+                    placeholder={tr(
+                      "Search issue or place",
+                      "Cari isu atau tempat",
+                    )}
+                  />
+                  {reportSearch && (
+                    <button
+                      type="button"
+                      aria-label={tr(
+                        "Clear report search",
+                        "Padam carian laporan",
+                      )}
+                      onClick={() => setReportSearch("")}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </label>
+                <p className="collection-result" aria-live="polite">
+                  {communityReports.length}{" "}
+                  {tr("reports · newest first", "laporan · terkini dahulu")}
+                </p>
+                {communityReports.length === 0 ? (
                   <div className="empty-state">
                     <MessageSquare />
                     <h3>
@@ -1562,9 +1648,20 @@ export default function GerakApp({
                         "Hantar isu dan ikuti perkembangannya di sini.",
                       )}
                     </p>
+                    {(reportSearch || reportFilter !== "all") && (
+                      <button
+                        className="secondary-button"
+                        onClick={() => {
+                          setReportSearch("");
+                          setReportFilter("all");
+                        }}
+                      >
+                        {tr("Show all reports", "Lihat semua laporan")}
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  visibleReports.map((report) => (
+                  communityReports.map((report) => (
                     <ReportCard
                       key={report.id}
                       report={report}
@@ -1573,6 +1670,8 @@ export default function GerakApp({
                         setSelectedId(null);
                         setSelectedStop(null);
                         showLocation(report.coordinate);
+                        if (window.matchMedia("(max-width: 960px)").matches)
+                          setPanelOpen(false);
                         notify(
                           `${report.location} · ${report.coordinate.map((c) => c.toFixed(5)).join(", ")}`,
                         );
@@ -1964,7 +2063,13 @@ export default function GerakApp({
             </button>
           )}
           <TransportMap
-            onModeChange={setMode}
+            onModeChange={(next) => {
+              setSelectedId(null);
+              setSelectedStop(null);
+              setFollow(false);
+              setFocusLocation(null);
+              setMode(next);
+            }}
             locale={locale}
             focusLocation={focusLocation}
             onTrafficReport={(coordinate, context) => {
@@ -1978,6 +2083,11 @@ export default function GerakApp({
             vehicles={displayedVehicles}
             selectedVehicleId={selectedId}
             onSelectVehicle={selectVehicle}
+            vehicleDetailsOpen={!!selectedId && detailVehicleId === selectedId}
+            onOpenVehicleDetails={(id) => {
+              selectVehicle(id);
+              setDetailVehicleId(id);
+            }}
             onFollowChange={setFollow}
             onOverview={() => {
               setFocusLocation(null);
@@ -2151,7 +2261,7 @@ export default function GerakApp({
                 </button>
               </div>
             )}
-          {vehicle && (
+          {vehicle && detailVehicleId === vehicle.id && (
             <div
               className="vehicle-detail ride-detail"
               data-source={vehicle.source}
@@ -2174,8 +2284,7 @@ export default function GerakApp({
                   className="icon-button"
                   aria-label="Close vehicle details"
                   onClick={() => {
-                    setSelectedId(null);
-                    setFollow(false);
+                    setDetailVehicleId(null);
                   }}
                 >
                   <X size={17} />

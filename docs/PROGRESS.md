@@ -175,3 +175,68 @@ The shared conversation could not be fetched. The available CODEFEST archive was
 - [x] Replaced the three-choice dropdown with a 44px sun/moon button. Only Light and Dark remain; removed OS theme listeners and System bootstrap handling. Older System preferences fall back to Dark.
 - [x] Preserved local preference persistence, cross-tab updates, bilingual accessible action labels and map appearance synchronization.
 - [x] Production build passed; browser verified both toggle directions, reload persistence and 390px layout without horizontal overflow. Screenshot: .runtime/simple-theme-toggle.png. Preview on port 3001.
+
+### 2026-10-09 — Simplified map controls
+
+- [x] Removed header network label and the separate demo switch from the map footer. Existing explicitly labelled UTHM pilot simulation remains separate from official feeds.
+- [x] Consolidated 2D/3D into the right-side map stack with location, overview and recenter; removed duplicate top mode/overview buttons and redundant scene lighting/Johor shortcut.
+- [x] Simplified boundary trigger to Areas and report action to Report; preserved descriptive accessible names, boundary selection and report form.
+- [x] Production build and TypeScript completed; browser checked 920px and 390px layouts, Areas expansion, report open/close, 2D/3D pressed state and recenter. No horizontal overflow at 390px; browser error log empty. Screenshot: .runtime/simplified-map-controls.png. Preview running on port 3001; no external deployment.
+
+### 2026-10-09 — Nearest-bus mode framing and Malaysian-inspired models
+
+- [x] Clicking either map mode, including the already active mode, finds the closest displayed vehicle to the map centre, preferring vehicles in the current bounds. Uses interpolated positions and a moderate 15.3 (2D) / 16.8 (3D) zoom with side-angle framing. Clears previous selected follow framing. No location permission needed.
+- [x] Preview bus gets a route-colour ring and foreground visibility pass to avoid tall buildings hiding it; manual map gestures clear the preview emphasis.
+- [x] Refined model shoulder/skirt stripes, body panel seams, left-side front/centre doors, windscreen wipers and registration recess. Coach metadata enables luggage details; conditional original Mayang Sari, Muafakat and BAS.MY-inspired palettes. Unknown operators use route colours. No additional live operator feeds or verified vehicle replicas claimed.
+- [x] Production build and TypeScript passed; existing three geography/colour/rolling-wheel tests passed. Browser verified moderate bus framing, both map modes and no runtime errors. Screenshot: .runtime/nearest-bus-overview.png. Operator references and limitations documented in RESEARCH_AND_INSPIRATION.md.
+
+### 2026-10-09 — Automatic nearest-bus follow
+
+- [x] Nearest-bus previews now use the existing interpolated camera follow loop in 2D/3D, maintaining the moderate overview zoom and consistent side angle after the entry transition.
+- [x] Manual map movement, Overview, Recenter, region changes and stop/report focus release preview following. Explicit bus selection keeps its existing close-up follow behavior.
+- [x] Production build/typecheck passed; browser verified 3D entry framing with no runtime errors. Screenshot: .runtime/auto-follow-bus.png.
+
+### 2026-10-09 — Floating followed-bus summary
+
+- [x] Added a compact route/plate button above the nearest auto-followed bus. Reprojects the interpolated coordinate each frame so the label stays screen-facing and anchored as the camera turns.
+- [x] Full ride details stay closed during preview following; clicking the keyboard-accessible label opens the existing ride details and hides the compact label. Labels hide when preview ends or the vehicle leaves the viewport/feed.
+- [x] Production compilation and TypeScript passed. Browser verified J13/JVM7136 summary, click-to-expand visible ride detail, summary hidden after expansion and no runtime errors. Screenshot: .runtime/floating-bus-summary.png.
+
+### 2026-10-09 — Zoom-aware label and responsive controls
+
+- [x] Floating label scales smoothly with zoom/model size, bounded to 0.78–1.45 for readability, with proportional vertical clearance. Fixed follow loop interrupting zoom animations.
+- [x] Shared action positions for Report/Areas, separate weather and map controls, larger controls, bounded panel scrolling, compact attribution, and hiding conflicting controls while Areas/Layers/details panels are open.
+- [x] Build/typecheck passed. Browser verified label scale 1 -> 1.2746 -> 1 on zoom in/out while following; desktop 1280x800 and phones 390x844/320x700 inspected, no horizontal overflow at 320px. Final browser error log empty. Screenshots: .runtime/responsive-controls-mobile.png and .runtime/responsive-controls-desktop.png.
+
+### 2026-10-09 — Natural road-map style with 3D buildings
+
+- [x] Switched the OpenFreeMap basemap from Dark to Liberty and removed the blue-grey day/night recolouring. Natural road, park, water and POI styling stays independent of the interface theme.
+- [x] Retained custom 3D building extrusion, windows, animated buses, routes, nearest-bus follow and floating summaries. Changed building surfaces and geographic-mask tint to neutral colours with warm white lighting.
+- [x] Production build and TypeScript passed. Browser visually checked both 2D and 3D; no runtime errors. Screenshot: .runtime/natural-road-map-3d.png. Local preview on port 3001.
+- Source: https://openfreemap.org/quick_start/ and https://tiles.openfreemap.org/styles/liberty. Uses OpenFreeMap/OpenMapTiles/OpenStreetMap; not Google Maps tiles or imagery.
+
+### 2026-10-09 — Satellite imagery enabled
+
+- [x] Configured the user-supplied MapTiler browser key in git-ignored .env.local; added Road/Satellite controls independently of 2D/3D.
+- [x] Corrected the imagery tileset to satellite-v2 using the provider satellite style response. Preserved custom buildings, routes, labels and buses; source failures restore Road.
+- [x] Production build/TypeScript passed. Browser verified real Johor imagery in 2D and 3D, Road return, and mobile 390x844 layout. Screenshot: .runtime/satellite-3d.png.
+
+
+### 2026-10-09 — Follow without opening details
+
+- [x] Bus selection from map/sidebar enables follow in 2D and 3D and keeps full details closed. The floating route/plate label opens details explicitly; closing details preserves selection and follow.
+- [x] Production build and TypeScript passed. Browser verified selection without popup, floating-label opening, and close returning to the small label. Screenshot: .runtime/bus-follow-no-popup.png.
+
+
+### 2026-10-09 — Blue map restored as default
+
+- [x] Restored the blue basemap and blue building colours as the default, with Road and Satellite retained as explicit alternatives. Switching restores original paint properties without replacing transit or 3D layers.
+- [x] Production build/TypeScript passed. Browser checked default Blue selection and switching through Satellite, Road, and back to Blue. Screenshot: .runtime/blue-map-options.png.
+
+
+### 2026-10-09 — Community and Saved refinement
+
+- [x] Community: clearer reporting introduction/action, report search, newest-first ordering, result count and filter/search reset. Report location selection opens the map on mobile. Report cards gain wrapping and larger location targets.
+- [x] Saved: area-specific route/stop counts, on-device storage explanation, clearer route empty state, and budget disclosure moved after favourites.
+- [x] Production build/TypeScript passed. Browser checked search reset, empty states, 390px mobile and 1280px desktop with no horizontal overflow. The live community feed was empty, so populated report rendering was not visually checked. Screenshots: .runtime/community-refined.png and .runtime/saved-refined.png.
+

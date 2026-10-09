@@ -94,3 +94,21 @@ The public page https://uthm.katsana.com/ supplies three campus route paths and 
 https://api.open-meteo.com/v1/forecast supplies modelled current conditions at registered service centres. See https://open-meteo.com/en/docs. Weather card attributes the provider, shows model time in MYT and labels stale data. City/service selection changes the requested location. This is not a station observation or official severe-weather alert. Commercial deployments must review provider API terms.
 
 Traffic cameras and static signal source details: [Traffic implementation](TRAFFIC_IMPLEMENTATION.md). Camera imagery is Singapore-side; Malaysian providers currently open as official external viewers.
+
+### Road-map visual style (9 October 2026)
+
+GERAK now loads the [OpenFreeMap Liberty style](https://tiles.openfreemap.org/styles/liberty), documented in the [official quick start](https://openfreemap.org/quick_start/). Natural road/park/water colours replace the previous blue-grey recolouring while custom 3D buildings and transit overlays remain. This is an OpenStreetMap-based road map, not Google Maps imagery or API. Existing map attribution remains visible.
+
+## Satellite imagery setup
+
+Road/Satellite is independent of 2D/3D. Satellite uses MapTiler satellite-v2 TileJSON as a raster overlay; OpenFreeMap vectors remain loaded for buildings and labels, with GERAK routes/buses above imagery. Provider attribution remains displayed. Satellite is historical imagery, not live video.
+
+1. Create a MapTiler Cloud browser key at https://cloud.maptiler.com/ (check the provider plan and imagery entitlement).
+2. Restrict allowed origins to localhost for testing and your deployment domain for production.
+3. Add `NEXT_PUBLIC_MAPTILER_KEY=your_key` to `.env.local` or deployment environment. This is a public browser key, not a server secret.
+4. Rebuild with `npm run build`, restart, then select Satellite. Missing configuration leaves Road available; imagery source errors restore Road.
+
+Reference: https://docs.maptiler.com/cloud/api/tiles/. On 9 October 2026 the documentation example satellite-v4 returned HTTP 404; the official /maps/satellite/style.json response advertised satellite-v2, which was verified rendering in GERAK. The user-supplied browser key is configured in ignored .env.local; no account or subscription was created. Production build passed; browser checks covered satellite in 2D and 3D, Road return, and the 390px mobile layout. Add the same environment setting to your deployment and rebuild to enable it there.
+
+Map appearance update: Blue is now the default (GERAK recolouring of the OpenFreeMap vector style). Road restores Liberty colours; Satellite remains optional. All three retain transit overlays and 2D/3D modes.
+

@@ -166,14 +166,21 @@ export function createBusFleetLayer(
             0,
           );
           model = {
-            bus: buildBus(color, variant, vehicle.vehicleKind),
+            bus: buildBus(
+              color,
+              variant,
+              vehicle.vehicleKind,
+              props.routes.find((r) => r.id === vehicle.routeId)?.operator,
+            ),
             color,
             travel: 0,
           };
           models.set(vehicle.id, model);
           scene.add(model.bus.root);
         }
-        model.bus.selection.visible = props.selectedVehicleId === vehicle.id;
+        model.bus.selection.visible =
+          props.selectedVehicleId === vehicle.id ||
+          props.previewVehicleId === vehicle.id;
         const pulse = reducedMotion ? 1 : 1 + Math.sin(now * 0.003) * 0.045;
         model.bus.selection.scale.set(pulse, pulse * 3, 1);
         model.bus.root.visible = bounds.contains(sample.coordinate);
@@ -247,7 +254,9 @@ export function createBusFleetLayer(
       const focused =
         props.follow && props.selectedVehicleId
           ? models.get(props.selectedVehicleId)?.bus.root
-          : undefined;
+          : props.previewVehicleId
+            ? models.get(props.previewVehicleId)?.bus.root
+            : undefined;
       if (focused?.visible) {
         focusAmbient.intensity = ambient.intensity;
         focusSun.intensity = sun.intensity;
