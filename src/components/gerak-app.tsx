@@ -11,11 +11,13 @@ import {
   useFarePreferences,
 } from "./fare-budget";
 import { ft } from "@/lib/fare-copy";
+import { sortJourneysByFare } from "@/lib/fares";
 import { RideStatus } from "./ride-status";
 import { SERVICES, serviceFor } from "@/lib/feeds";
 import { uniqueRouteColors, routeColor } from "@/lib/route-colors";
 import { useState, useEffect, useMemo, useRef, useId } from "react";
 import dynamic from "next/dynamic";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowDownUp,
   ArrowRight,
@@ -87,6 +89,13 @@ const TransportMap = dynamic(() => import("./transport-map"), {
   ),
 });
 type View = "explore" | "routes" | "community" | "saved" | "operator";
+const viewPaths: Record<View, string> = {
+  explore: "/buses",
+  routes: "/routes",
+  community: "/community",
+  saved: "/saved",
+  operator: "/operator",
+};
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: string }>;
@@ -131,11 +140,27 @@ const statusNames: Record<ReportStatus, [string, string]> = {
   resolved: ["Resolved", "Selesai"],
 };
 
-export default function GerakApp({
-  initialView = "explore",
-}: {
+type GerakAppProps = {
   initialView?: View;
-}) {
+  initialJourney?: boolean;
+  initialBus?: string;
+};
+
+export default function GerakApp(props: GerakAppProps) {
+  const routeKey = props.initialJourney
+    ? "plan"
+    : (props.initialView ?? "explore");
+
+  return <GerakAppContent key={routeKey} {...props} />;
+}
+
+function GerakAppContent({
+  initialView = "explore",
+  initialJourney = false,
+  initialBus,
+}: GerakAppProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const farePreferences = useFarePreferences();
   const [trafficReportContext, setTrafficReportContext] = useState("");
   const [reportFilter, setReportFilter] = useState<"all" | "open" | "resolved">(
@@ -164,13 +189,16 @@ export default function GerakApp({
     [destination, setDestination] = useState("ksl"),
     [planned, setPlanned] = useState(false),
     [accessible, setAccessible] = useState(false),
-    [showPlanner, setShowPlanner] = useState(false),
+    [showPlanner, setShowPlanner] = useState(initialJourney),
     [selectedStop, setSelectedStop] = useState<string | null>(null);
   const [installEvent, setInstallEvent] = useState<InstallEvent | null>(null),
     [showInfo, setShowInfo] = useState(false),
     [panelOpen, setPanelOpen] = useState(true),
+    [panelRouteOpen, setPanelRouteOpen] = useState(false),
     [heatmap, setHeatmap] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
+  const initialBusHandled = useRef<string | null>(null);
+  const manualPanelNavigation = useRef(false);
   const [focusLocation, setFocusLocation] = useState<{
     coordinate: Coordinate;
     key: number;
@@ -393,26 +421,54 @@ export default function GerakApp({
       setInstallEvent(event as InstallEvent);
     };
     window.addEventListener("beforeinstallprompt", prompt);
-    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production")
-      void navigator.serviceWorker
-        .register("/sw.js")
-        .then(() => navigator.serviceWorker.ready)
-        .then((registration) => {
-          const urls = [
-            ...performance
-              .getEntriesByType("resource")
-              .map((entry) => entry.name),
-            ...Array.from(
-              document.querySelectorAll<HTMLScriptElement>("script[src]"),
-            ).map((s) => s.src),
-            ...Array.from(
-              document.querySelectorAll<HTMLLinkElement>("link[href]"),
-            ).map((l) => l.href),
-            "/vendor/maplibre-gl-worker.mjs",
-          ];
-          registration.active?.postMessage({ type: "CACHE_APP_ASSETS", urls });
-        })
-        .catch(() => {});
+    if ("serviceWorker" in navigator) {
+      if (process.env.NODE_ENV === "production") {
+        void navigator.serviceWorker
+          .register("/sw.js")
+          .then(() => navigator.serviceWorker.ready)
+          .then((registration) => {
+            const urls = [
+              ...performance
+                .getEntriesByType("resource")
+                .map((entry) => entry.name),
+              ...Array.from(
+                document.querySelectorAll<HTMLScriptElement>("script[src]"),
+              ).map((s) => s.src),
+              ...Array.from(
+                document.querySelectorAll<HTMLLinkElement>("link[href]"),
+              ).map((l) => l.href),
+              "/vendor/maplibre-gl-worker.mjs",
+            ];
+            registration.active?.postMessage({
+              type: "CACHE_APP_ASSETS",
+              urls,
+            });
+          })
+          .catch(() => {});
+      } else {
+        void navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) =>
+            Promise.all(
+              registrations.map((registration) => registration.unregister()),
+            ),
+          )
+          .then(() =>
+            "caches" in window
+              ? caches
+                  .keys()
+                  .then((keys) =>
+                    Promise.all(
+                      keys
+                        .filter((key) => key.startsWith("gerak-"))
+                        .map((key) => caches.delete(key)),
+                    ),
+                  )
+              : undefined,
+          )
+          .catch(() => {});
+      }
+    }
     return () => window.removeEventListener("beforeinstallprompt", prompt);
   }, []);
   useEffect(() => {
@@ -431,6 +487,17 @@ export default function GerakApp({
     const timer = setTimeout(() => setToast(""), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
+  useEffect(() => {
+    setView(initialView);
+    setShowPlanner(initialJourney);
+    setPanelOpen(true);
+    setPanelRouteOpen(true);
+  }, [initialView, initialJourney]);
+  const panelVisible = panelOpen || panelRouteOpen;
+  const showMap = () => {
+    setPanelRouteOpen(false);
+    setPanelOpen(false);
+  };
   const planning = view === "explore" && showPlanner;
   const sectionTitle =
     view === "operator"
@@ -457,12 +524,24 @@ export default function GerakApp({
             : tr("Operator", "Operator");
   const navigateTo = (next: View, journey = false) => {
     const changed = next !== view || journey !== showPlanner;
+    const nextPath = journey ? "/plan" : viewPaths[next];
+    manualPanelNavigation.current = true;
+    if (nextPath === "/buses") {
+      initialBusHandled.current = initialBus ?? "manual-navigation";
+    }
     setView(next);
     setShowPlanner(journey);
+    setPanelRouteOpen(true);
     setPanelOpen(true);
     setPicking(false);
+    if (nextPath === "/buses" && pathname === "/buses") {
+      window.history.replaceState(window.history.state, "", nextPath);
+    } else if (pathname !== nextPath) {
+      router.push(nextPath);
+    }
     if (changed) setSearch("");
     requestAnimationFrame(() => {
+      setPanelOpen(true);
       if (changed && panelRef.current) panelRef.current.scrollTop = 0;
       panelRef.current
         ?.querySelector<HTMLElement>("h1")
@@ -472,7 +551,7 @@ export default function GerakApp({
   const showLocation = (coordinate: Coordinate) => {
     setFollow(false);
     setFocusLocation({ coordinate, key: Date.now() });
-    if (window.matchMedia("(max-width: 960px)").matches) setPanelOpen(false);
+    if (window.matchMedia("(max-width: 960px)").matches) showMap();
   };
   const changeRegion = (next: Region) => {
     setRegion(next);
@@ -492,14 +571,37 @@ export default function GerakApp({
         : stopsForRegion[1]?.id || stopsForRegion[0]?.id || "",
     );
   };
-  const selectVehicle = (id: string) => {
+  const selectVehicle = (id: string, openMap = true) => {
     setFocusLocation(null);
-    if (window.matchMedia("(max-width: 960px)").matches) setPanelOpen(false);
+    if (openMap && window.matchMedia("(max-width: 960px)").matches) {
+      showMap();
+    }
     setFollow(true);
     setDetailVehicleId(null);
     setSelectedId(id);
     setSelectedStop(null);
   };
+  useEffect(() => {
+    if (pathname !== "/buses") return;
+    if (!initialBus || initialBusHandled.current === initialBus) return;
+    if (snapshot.vehicles.length === 0) return;
+
+    const requestedVehicle =
+      initialBus === "random"
+        ? snapshot.vehicles[
+            Math.floor(Math.random() * snapshot.vehicles.length)
+          ]
+        : snapshot.vehicles.find((candidate) => candidate.id === initialBus);
+    if (!requestedVehicle) return;
+
+    initialBusHandled.current = initialBus;
+    selectVehicle(requestedVehicle.id, !manualPanelNavigation.current);
+    if (initialBus === "random") {
+      router.replace(`/buses?bus=${encodeURIComponent(requestedVehicle.id)}`, {
+        scroll: false,
+      });
+    }
+  }, [initialBus, pathname, router, snapshot.vehicles]);
   const journey = useMemo(
     () =>
       planned
@@ -513,6 +615,22 @@ export default function GerakApp({
         : [],
     [origin, destination, accessible, planned, regionRoutes, regionStops],
   );
+  const sortedJourneys = useMemo(() => {
+    const asOf = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kuala_Lumpur",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    return sortJourneysByFare(
+      journey,
+      origin,
+      destination,
+      regionStops,
+      farePreferences.profile,
+      asOf,
+    );
+  }, [journey, origin, destination, regionStops, farePreferences.profile]);
   const occupancy = snapshot.vehicles.filter(
       (v) => v.occupancy === "low",
     ).length,
@@ -667,7 +785,16 @@ export default function GerakApp({
                   : undefined
               }
               className={`rail-button ${(item.id === "plan" ? planning : item.id === "explore" ? view === "explore" && !planning : view === item.id) ? "active" : ""}`}
+              onPointerDown={() => {
+                if (item.id === "explore" && view === "explore" && !planning) {
+                  window.location.assign("/buses");
+                }
+              }}
               onClick={() => {
+                if (item.id === "explore" && view === "explore" && !planning) {
+                  window.location.assign("/buses");
+                  return;
+                }
                 navigateTo(
                   item.id === "plan" ? "explore" : item.id,
                   item.id === "plan",
@@ -786,20 +913,26 @@ export default function GerakApp({
         role="group"
         aria-label={tr("Passenger workspace", "Paparan penumpang")}
       >
-        <button aria-pressed={panelOpen} onClick={() => setPanelOpen(true)}>
+        <button
+          aria-pressed={panelVisible}
+          onClick={() => {
+            setPanelRouteOpen(true);
+            setPanelOpen(true);
+          }}
+        >
           <Route size={17} />
           {sectionLabel}
         </button>
-        <button aria-pressed={!panelOpen} onClick={() => setPanelOpen(false)}>
+        <button aria-pressed={!panelVisible} onClick={showMap}>
           <MapPin size={17} />
           {tr("Map", "Peta")}
         </button>
       </div>
-      <main className={`workspace ${panelOpen ? "" : "panel-collapsed"}`}>
+      <main className={`workspace ${panelVisible ? "" : "panel-collapsed"}`}>
         <section
           id="journey-panel"
           ref={panelRef}
-          hidden={!panelOpen}
+          hidden={!panelVisible}
           className={`side-panel tab-${view} ${planning ? "planning-panel" : ""} ${view === "explore" || view === "routes" ? "browse-panel" : ""}`}
           aria-label={tr(
             "Journey and network details",
@@ -817,7 +950,7 @@ export default function GerakApp({
               <button
                 type="button"
                 className="sidebar-toggle-btn"
-                onClick={() => setPanelOpen(false)}
+                onClick={showMap}
                 aria-label={tr("Collapse sidebar", "Kecilkan panel sisi")}
                 title={tr("Collapse sidebar (minimize)", "Kecilkan panel sisi")}
               >
@@ -882,22 +1015,26 @@ export default function GerakApp({
           </div>
           {view !== "operator" && view !== "community" && (
             <>
-              <button
-                className={`journey-cta ${showPlanner ? "open" : ""}`}
-                onClick={() => navigateTo("explore", true)}
-                aria-expanded={planning}
-              >
-                <div className="journey-cta-icon">
-                  <Navigation size={19} />
-                </div>
-                <span>
-                  <strong>{tr("Plan a journey", "Rancang perjalanan")}</strong>
-                  <small>
-                    {tr("Plan your next journey", "Rancang perjalanan anda")}
-                  </small>
-                </span>
-                <ArrowRight size={18} />
-              </button>
+              {(planning || view === "saved") && (
+                <button
+                  className={`journey-cta ${showPlanner ? "open" : ""}`}
+                  onClick={() => navigateTo("explore", true)}
+                  aria-expanded={planning}
+                >
+                  <div className="journey-cta-icon">
+                    <Navigation size={19} />
+                  </div>
+                  <span>
+                    <strong>
+                      {tr("Plan a journey", "Rancang perjalanan")}
+                    </strong>
+                    <small>
+                      {tr("Plan your next journey", "Rancang perjalanan anda")}
+                    </small>
+                  </span>
+                  <ArrowRight size={18} />
+                </button>
+              )}
               {planning && (
                 <div className="planner">
                   <LocationSearch
@@ -988,7 +1125,7 @@ export default function GerakApp({
                   />
                   {planned &&
                     (journey.length ? (
-                      journey.map((j, i) => (
+                      sortedJourneys.map((j, i) => (
                         <div key={i} className="fare-journey-card">
                           <button
                             className="journey-result"
@@ -1004,7 +1141,7 @@ export default function GerakApp({
                               if (
                                 window.matchMedia("(max-width: 960px)").matches
                               )
-                                setPanelOpen(false);
+                                showMap();
                             }}
                           >
                             <span>
@@ -1442,7 +1579,7 @@ export default function GerakApp({
                           setSelectedId(null);
                           showLocation(stop.coordinate);
                           if (window.matchMedia("(max-width: 960px)").matches)
-                            setPanelOpen(false);
+                            showMap();
                         }}
                       >
                         <span className="stop-icon">
@@ -1671,7 +1808,7 @@ export default function GerakApp({
                         setSelectedStop(null);
                         showLocation(report.coordinate);
                         if (window.matchMedia("(max-width: 960px)").matches)
-                          setPanelOpen(false);
+                          showMap();
                         notify(
                           `${report.location} · ${report.coordinate.map((c) => c.toFixed(5)).join(", ")}`,
                         );
@@ -2042,7 +2179,7 @@ export default function GerakApp({
             "Peta pengangkutan interaktif",
           )}
         >
-          {!panelOpen && (
+          {!panelVisible && (
             <button
               type="button"
               className="sidebar-floating-restore-btn"
@@ -2638,8 +2775,7 @@ export default function GerakApp({
             setSelectedId(null);
             setSelectedStop(null);
             setFollow(false);
-            if (window.matchMedia("(max-width: 960px)").matches)
-              setPanelOpen(false);
+            if (window.matchMedia("(max-width: 960px)").matches) showMap();
             setMode("2d");
           }}
           onSubmit={() => {

@@ -10,6 +10,7 @@ import {
   fareConfig,
   estimateJourney,
   formatFare,
+  sortJourneysByFare,
   type Leg,
 } from "../src/lib/fares";
 import {
@@ -79,6 +80,64 @@ const leg: Leg = {
   fromSequence: 1,
   toSequence: 3,
 };
+
+test("journeys sort by displayed fare with unavailable prices last", () => {
+  const pricedRoute = (id: string, metres: number): TransitRoute => ({
+    ...route,
+    id,
+    patterns: [
+      {
+        ...route.patterns![0],
+        id: `${id}-pattern`,
+        stops: route.patterns![0].stops.map((stop, index) => ({
+          ...stop,
+          shapeDistance: index === 2 ? metres : stop.shapeDistance,
+        })),
+      },
+    ],
+  });
+  const unavailableRoute: TransitRoute = {
+    ...pricedRoute("unknown", 10000),
+    patterns: [
+      {
+        ...pricedRoute("unknown", 10000).patterns![0],
+        geometrySource: "unavailable",
+      },
+    ],
+  };
+  const journeys = [
+    {
+      routes: [pricedRoute("expensive", 10000)],
+      minutes: 4,
+      transfers: 0,
+      via: [],
+    },
+    {
+      routes: [unavailableRoute],
+      minutes: 2,
+      transfers: 0,
+      via: [],
+    },
+    {
+      routes: [pricedRoute("cheap", 2000)],
+      minutes: 8,
+      transfers: 0,
+      via: [],
+    },
+  ];
+
+  assert.deepEqual(
+    sortJourneysByFare(
+      journeys,
+      "a",
+      "c",
+      stops,
+      defaultProfile,
+      "2026-10-08",
+    ).map((journey) => journey.routes[0].id),
+    ["cheap", "expensive", "unknown"],
+  );
+});
 const config = fareConfig("johor")!;
 const quote = (metres: number | null, profile = defaultProfile, c = config) =>
   calculateFare({
