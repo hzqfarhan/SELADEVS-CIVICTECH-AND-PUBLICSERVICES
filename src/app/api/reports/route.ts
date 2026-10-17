@@ -10,9 +10,17 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     limitRequest(request, "reports-read", 300);
+    const fresh = new URL(request.url).searchParams.has("fresh");
     return Response.json(
       { reports: await listReports() },
-      { headers: { "Cache-Control": "no-store" } },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+          "Vercel-CDN-Cache-Control": fresh
+            ? "no-store"
+            : "public, s-maxage=5, stale-while-revalidate=25",
+        },
+      },
     );
   } catch (error) {
     return apiError(error);

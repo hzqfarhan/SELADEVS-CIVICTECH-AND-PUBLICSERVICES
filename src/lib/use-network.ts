@@ -22,15 +22,18 @@ export function useNetwork(region: Region, mode: "demo" | "live") {
       ),
     [],
   );
-  const refreshReports = useCallback(async () => {
-    try {
-      const r = await fetch("/api/reports");
-      if (r.ok) {
-        const d = await r.json();
-        acceptReports(d.reports);
-      }
-    } catch {}
-  }, [acceptReports]);
+  const refreshReports = useCallback(
+    async (fresh = false) => {
+      try {
+        const r = await fetch(fresh ? "/api/reports?fresh=1" : "/api/reports");
+        if (r.ok) {
+          const d = await r.json();
+          acceptReports(d.reports);
+        }
+      } catch {}
+    },
+    [acceptReports],
+  );
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
     update();
@@ -45,14 +48,30 @@ export function useNetwork(region: Region, mode: "demo" | "live") {
     let active = true;
     const controller = new AbortController();
     let hasResponse = false;
-    let lastStream = 0;
+    let vehicleRequestPending = false;
+    let reportsRequestPending = false;
     setSnapshot({
       vehicles: mode === "demo" ? simulateVehicles(region) : [],
       source: mode === "live" ? "gtfs-rt" : "simulator",
       updatedAt: mode === "demo" ? Date.now() : 0,
       stale: mode === "live",
     });
-    const refresh = async () => {
+    const refreshVehicles = async () => {
+      if (vehicleRequestPending || document.visibilityState === "hidden")
+        return;
+
+      if (mode === "demo") {
+        setSnapshot({
+          vehicles: simulateVehicles(region),
+          source: "simulator",
+          updatedAt: Date.now(),
+          stale: false,
+        });
+        setConnected(true);
+        return;
+      }
+
+      vehicleRequestPending = true;
       try {
         const r = await fetch(`/api/vehicles?region=${region}&mode=${mode}`, {
           signal: controller.signal,
@@ -67,62 +86,51 @@ export function useNetwork(region: Region, mode: "demo" | "live") {
       } catch {
         if (active) {
           setConnected(false);
-          if (mode === "demo")
-            setSnapshot({
-              vehicles: simulateVehicles(region),
-              source: "simulator",
-              updatedAt: Date.now(),
-              stale: false,
-              message: "Offline demonstration",
-            });
-          else
-            setSnapshot((s) => ({
-              ...s,
-              stale: true,
-              message: hasResponse
-                ? "Connection interrupted · last known positions"
-                : "Official vehicle feed unavailable · retrying",
-            }));
+          setSnapshot((s) => ({
+            ...s,
+            stale: true,
+            message: hasResponse
+              ? "Connection interrupted · last known positions"
+              : "Official vehicle feed unavailable · retrying",
+          }));
         }
+      } finally {
+        vehicleRequestPending = false;
       }
     };
-    void refresh();
-    void refreshReports();
-    const stream = new EventSource(`/api/events?region=${region}&mode=${mode}`);
-    stream.addEventListener("vehicles", (event) => {
-      if (!active) return;
+
+    const refreshCommunity = async () => {
+      if (reportsRequestPending || document.visibilityState === "hidden")
+        return;
+      reportsRequestPending = true;
       try {
-        setSnapshot(JSON.parse((event as MessageEvent).data));
-        setConnected(true);
-        hasResponse = true;
-        lastStream = Date.now();
-      } catch {}
-    });
-    stream.addEventListener("reports", (event) => {
-      if (!active) return;
-      try {
-        acceptReports(JSON.parse((event as MessageEvent).data).reports);
-      } catch {}
-    });
-    stream.onerror = () => {
-      lastStream = 0;
-      if (active) setConnected(false);
+        await refreshReports();
+      } finally {
+        reportsRequestPending = false;
+      }
     };
-    const interval = setInterval(
-      () => {
-        if (Date.now() - lastStream > 12000) {
-          void refresh();
-          void refreshReports();
-        }
-      },
-      mode === "demo" ? 2500 : 10000,
+
+    const refreshVisibleData = () => {
+      if (document.visibilityState === "hidden") return;
+      void refreshVehicles();
+      void refreshCommunity();
+    };
+
+    refreshVisibleData();
+    document.addEventListener("visibilitychange", refreshVisibleData);
+    const vehicleInterval = setInterval(
+      () => void refreshVehicles(),
+      mode === "demo" ? 2500 : 5000,
     );
+    const reportsInterval = setInterval(() => void refreshCommunity(), 15000);
+
     return () => {
       active = false;
       controller.abort();
-      stream.close();
-      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshVisibleData);
+      clearInterval(vehicleInterval);
+      clearInterval(reportsInterval);
     };
-  }, [region, mode, refreshReports, acceptReports]);
+  }, [region, mode, refreshReports]);
   return { snapshot, reports, online, connected, refreshReports };
 }

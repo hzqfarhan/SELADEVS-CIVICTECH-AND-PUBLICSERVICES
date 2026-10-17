@@ -94,7 +94,13 @@ export async function GET(request: Request) {
     if (!entry.data)
       return Response.json(
         { message: "Weather temporarily unavailable" },
-        { status: 503 },
+        {
+          status: 503,
+          headers: {
+            "Cache-Control": "public, max-age=15",
+            "Vercel-CDN-Cache-Control": "public, s-maxage=30",
+          },
+        },
       );
     return Response.json(
       {
@@ -104,7 +110,13 @@ export async function GET(request: Request) {
           Date.now() - entry.data.fetchedAt > 20 * 60000 ||
           Date.now() - entry.data.observedAt > 60 * 60000,
       },
-      { headers: { "Cache-Control": "public, max-age=60" } },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=60",
+          "Vercel-CDN-Cache-Control":
+            "public, s-maxage=900, stale-while-revalidate=300",
+        },
+      },
     );
   } catch (error) {
     return apiError(error);

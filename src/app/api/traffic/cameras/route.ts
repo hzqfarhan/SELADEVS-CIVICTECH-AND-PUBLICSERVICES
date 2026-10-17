@@ -12,7 +12,13 @@ export async function GET(request: Request) {
         sourceUrl:
           "https://data.gov.sg/datasets/d_6cdb6b405b25aaaacbaf7689bcc6fae0/view",
       },
-      { headers: { "Cache-Control": "private, no-store" } },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=30",
+          "Vercel-CDN-Cache-Control":
+            "public, s-maxage=60, stale-while-revalidate=60",
+        },
+      },
     );
   } catch (e) {
     return apiError(e);

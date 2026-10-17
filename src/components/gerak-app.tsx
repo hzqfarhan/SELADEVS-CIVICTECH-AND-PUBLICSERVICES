@@ -378,10 +378,8 @@ function GerakAppContent({
       }
     };
     void refresh();
-    const interval = setInterval(() => void refresh(), 60000);
     return () => {
       controller.abort();
-      clearInterval(interval);
     };
   }, [feed, region]);
   const favourite = (id: string) => favourites.includes(id);
@@ -724,7 +722,7 @@ function GerakAppContent({
         const e = await res.json();
         throw Error(e.error ?? "Unable to update");
       }
-      await refreshReports();
+      await refreshReports(true);
       notify(
         tr(
           "Report updated. The community can see your progress.",
@@ -2781,7 +2779,7 @@ function GerakAppContent({
           onSubmit={() => {
             setShowReport(false);
             setTrafficReportContext("");
-            void refreshReports();
+            void refreshReports(true);
             notify(
               tr(
                 "Thank you. Your report is now in the community and operator inbox.",

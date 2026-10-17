@@ -12,7 +12,13 @@ export async function GET(request: Request) {
         liveStateAvailable: false,
         sourceUrl: "https://www.openstreetmap.org/copyright",
       },
-      { headers: { "Cache-Control": "private, no-store" } },
+      {
+        headers: {
+          "Cache-Control": "public, max-age=3600",
+          "Vercel-CDN-Cache-Control":
+            "public, s-maxage=86400, stale-while-revalidate=86400",
+        },
+      },
     );
   } catch (e) {
     return apiError(e);

@@ -16,7 +16,11 @@ export async function GET(request: Request) {
     );
     const mode = modeSchema.parse(url.searchParams.get("mode") || "live");
     return Response.json(await getVehicles(region, mode), {
-      headers: { "Cache-Control": "no-store" },
+      headers: {
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Vercel-CDN-Cache-Control":
+          "public, s-maxage=10, stale-while-revalidate=25",
+      },
     });
   } catch (error) {
     return apiError(error);
