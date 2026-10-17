@@ -1,0 +1,55 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'media/gerak-promo/launch/GERAK-Launch-Film-1080p.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    title           : GERAK — Your journey. Your voice.
+    encoder         : Lavf61.7.100
+    comment         : Actual GERAK app. Recorded official GPS, time condensed. Civic workflow uses isolated demonstration data. Original score.
+  Duration: 00:00:30.00, start: 0.000000, bitrate: 2673 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709/unknown/unknown, progressive), 1920x1080 [SAR 1:1 DAR 16:9], 2397 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+      Metadata:
+        handler_name    : VideoHandler
+        vendor_id       : [0][0][0][0]
+        encoder         : Lavc61.19.100 libx264
+      Side data:
+        ICC Profile
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 266 kb/s (default)
+      Metadata:
+        handler_name    : SoundHandler
+        vendor_id       : [0][0][0][0]
+[Parsed_volumedetect_0 @ 000001ec57794ac0] n_samples: 0
+Stream mapping:
+  Stream #0:0 -> #0:0 (h264 (native) -> wrapped_avframe (native))
+  Stream #0:1 -> #0:1 (aac (native) -> pcm_s16le (native))
+Press [q] to stop, [?] for help
+Output #0, null, to 'NUL':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    title           : GERAK — Your journey. Your voice.
+    comment         : Actual GERAK app. Recorded official GPS, time condensed. Civic workflow uses isolated demonstration data. Original score.
+    encoder         : Lavf61.7.100
+  Stream #0:0(und): Video: wrapped_avframe, yuv420p(tv, bt709/unknown/unknown, progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 200 kb/s, 30 fps, 30 tbn (default)
+      Metadata:
+        handler_name    : VideoHandler
+        vendor_id       : [0][0][0][0]
+        encoder         : Lavc61.19.100 wrapped_avframe
+      Side data:
+        ICC Profile
+  Stream #0:1(und): Audio: pcm_s16le, 48000 Hz, stereo, s16, 1536 kb/s (default)
+      Metadata:
+        handler_name    : SoundHandler
+        vendor_id       : [0][0][0][0]
+        encoder         : Lavc61.19.100 pcm_s16le
+frame=  271 fps=0.0 q=-0.0 size=N/A time=00:00:09.03 bitrate=N/A speed=17.6x    
+frame=  538 fps=524 q=-0.0 size=N/A time=00:00:17.93 bitrate=N/A speed=17.5x    
+[Parsed_volumedetect_0 @ 000001ec57531b00] n_samples: 2881536
+[Parsed_volumedetect_0 @ 000001ec57531b00] mean_volume: -16.3 dB
+[Parsed_volumedetect_0 @ 000001ec57531b00] max_volume: -3.2 dB
+[Parsed_volumedetect_0 @ 000001ec57531b00] histogram_3db: 50
+[Parsed_volumedetect_0 @ 000001ec57531b00] histogram_4db: 767
+[Parsed_volumedetect_0 @ 000001ec57531b00] histogram_5db: 4831
+[out#0/null @ 000001ec5777fa00] video:387KiB audio:5628KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+frame=  900 fps=651 q=-0.0 Lsize=N/A time=00:00:30.00 bitrate=N/A speed=21.7x    

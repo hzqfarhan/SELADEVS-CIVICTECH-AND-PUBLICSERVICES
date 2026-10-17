@@ -1,0 +1,30 @@
+import {createRequire} from 'node:module';
+import {resolve} from 'node:path';
+import {captureClip} from '../capture-clip.mjs';
+const require=createRequire('C:/Users/haziq/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/package.json');
+const {chromium}=require('playwright');
+const base=resolve('media/gerak-promo/launch');
+const browser=await chromium.launch({headless:true,executablePath:'C:/Users/haziq/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe',args:['--enable-webgl','--enable-unsafe-swiftshader']});
+try {
+ const page=await browser.newPage({viewport:{width:1600,height:900},deviceScaleFactor:1});
+ page.setDefaultTimeout(12000);
+ await page.goto('http://localhost:3100',{waitUntil:'domcontentloaded'});
+ await page.addStyleTag({content:'nextjs-portal{display:none!important}'});
+ await page.getByRole('button',{name:'Select VDJ8519, J22CWLMYJB',exact:true}).waitFor({timeout:30000});
+ await page.getByRole('button',{name:'2D',exact:true}).click();
+ await page.waitForTimeout(1400);
+ await page.getByRole('button',{name:'2D',exact:true}).click();
+ await page.waitForTimeout(1400);
+ await page.getByRole('button',{name:'Select VDJ8519, J22CWLMYJB',exact:true}).click();
+ await page.waitForTimeout(1800);
+ console.log('Waiting for the next normal GPS refresh to establish motion.');
+ await page.waitForTimeout(37000);
+ await page.getByRole('button',{name:'View details: J22 · VDJ8519',exact:true}).click();
+ await page.getByRole('button',{name:'Stop following',exact:false}).click();
+ await page.getByRole('button',{name:'Close vehicle details',exact:true}).click();
+ await page.getByRole('button',{name:'Collapse sidebar',exact:true}).click();
+ await page.waitForTimeout(900);
+ await page.screenshot({path:base+'/screens/fixed-start.png'});
+ console.log(await captureClip(page,base,'bus-2d-fixed',6));
+ await page.screenshot({path:base+'/screens/fixed-end.png'});
+} finally { await browser.close(); }

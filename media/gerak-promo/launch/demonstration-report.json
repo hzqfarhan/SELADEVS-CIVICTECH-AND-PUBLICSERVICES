@@ -1,0 +1,19 @@
+{
+  "reports": [
+    {
+      "category": "unsafe-walkway",
+      "title": "Demo: blocked walkway near bus stop",
+      "description": "Demonstration only: an obstruction makes the walking path to the bus stop difficult to use. Please review access.",
+      "coordinate": [
+        103.76435,
+        1.4805
+      ],
+      "location": "OPP Plaza Pelangi",
+      "id": "GRK-3597FC95",
+      "status": "acknowledged",
+      "source": "community",
+      "createdAt": "2026-10-16T08:50:24.148Z",
+      "updatedAt": "2026-10-16T08:54:45.480Z"
+    }
+  ]
+}

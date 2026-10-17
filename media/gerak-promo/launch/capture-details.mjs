@@ -1,0 +1,30 @@
+import {createRequire} from 'node:module';
+import {resolve} from 'node:path';
+const require=createRequire('C:/Users/haziq/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/package.json');
+const {chromium}=require('playwright');
+const base=resolve('media/gerak-promo/launch/screens');
+const browser=await chromium.launch({headless:true,executablePath:'C:/Users/haziq/AppData/Local/ms-playwright/chromium-1248/chrome-win64/chrome.exe',args:['--enable-webgl','--enable-unsafe-swiftshader']});
+try {
+ const page=await browser.newPage({viewport:{width:1600,height:900},deviceScaleFactor:2});
+ page.setDefaultTimeout(20000);
+ await page.goto('http://localhost:3100',{waitUntil:'domcontentloaded'});
+ await page.addStyleTag({content:'nextjs-portal{display:none!important}'});
+ await page.getByRole('button',{name:'Community',exact:true}).click();
+ await page.locator('.report-card').waitFor();
+ await page.locator('.report-card').screenshot({path:base+'/acknowledged-card-hires.png'});
+ await page.getByRole('button',{name:'Operator dashboard',exact:true}).click();
+ await page.getByRole('button',{name:'Operator sign in',exact:true}).click();
+ await page.getByRole('button',{name:'Enter demo operator session',exact:true}).click();
+ await page.getByRole('dialog').waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'Reports',exact:true}).click();
+ await page.locator('.report-action').scrollIntoViewIfNeeded();
+ await page.locator('.report-card').locator('..').screenshot({path:base+'/operator-ack-hires.png'});
+ await page.getByRole('button',{name:'Community',exact:true}).click();
+ await page.getByRole('button',{name:'Report an issue',exact:true}).first().click();
+ await page.getByRole('button',{name:'Unsafe walkway',exact:true}).click();
+ await page.getByRole('textbox',{name:'What’s the issue?'}).fill('Demo: blocked walkway near bus stop');
+ await page.getByRole('textbox',{name:'A little more detail'}).fill('Demonstration only: an obstruction makes the walking path to the bus stop difficult to use. Please review access.');
+ await page.getByRole('dialog').getByRole('combobox').selectOption('80003049');
+ await page.getByRole('dialog').screenshot({path:base+'/report-form-hires.png'});
+ console.log('High-resolution civic details captured from the actual interface. No additional report submitted.');
+} finally {await browser.close();}
