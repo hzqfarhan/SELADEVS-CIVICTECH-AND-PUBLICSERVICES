@@ -330,4 +330,33 @@ export function estimateJourney(
         : null,
   };
 }
+
+export function sortJourneysByFare(
+  journeys: Journey[],
+  from: string,
+  to: string,
+  stops: Stop[],
+  profile: PassengerProfile,
+  asOf: string,
+) {
+  return journeys
+    .map((journey, index) => {
+      const estimate = estimateJourney(journey, from, to, stops, profile, asOf);
+      const hasKnownFare = estimate.legs.some(
+        ({ fare }) => fare.fareSen !== null,
+      );
+      return {
+        journey,
+        index,
+        fareSen: hasKnownFare ? estimate.knownSen : null,
+      };
+    })
+    .sort((a, b) => {
+      if (a.fareSen === null && b.fareSen === null) return a.index - b.index;
+      if (a.fareSen === null) return 1;
+      if (b.fareSen === null) return -1;
+      return a.fareSen - b.fareSen || a.index - b.index;
+    })
+    .map(({ journey }) => journey);
+}
 export const formatFare = (sen: number) => `RM${(sen / 100).toFixed(2)}`;
