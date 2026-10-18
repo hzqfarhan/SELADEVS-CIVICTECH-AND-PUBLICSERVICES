@@ -1,4 +1,5 @@
 import { z } from "zod";
+import fareOverrides from "./fare-overrides.generated.json";
 import { serviceFor } from "./feeds";
 import { distance, type Journey } from "./transit";
 import type { Region, Stop, TransitRoute } from "./types";
@@ -30,11 +31,15 @@ export const fareConfigSchema = z.object({
   baseMetres: z.number().int().positive(),
   baseMicros: z.number().int().nonnegative(),
   additionalKmMicros: z.number().int().nonnegative(),
+  // Null when the national pass price is not verified for this region.
   pass: z.object({
-    priceSen: z.number().int().nonnegative(),
+    priceSen: z.number().int().nonnegative().nullable(),
     days: z.number().int().positive(),
     coverageConfirmed: z.boolean(),
   }),
+  // False where the distance formula has no verified local publication;
+  // legs then price only through published route-table overrides.
+  formulaVerified: z.boolean().default(true),
   overrides: z.array(
     z.object({
       routeId: z.string(),
@@ -43,24 +48,43 @@ export const fareConfigSchema = z.object({
       toSequence: z.number().int(),
       fareSen: z.number().int().nonnegative().nullable(),
       concessionAllowed: z.boolean(),
+      sourceUrl: z.string().url().optional(),
     }),
   ),
 });
 export type FareConfig = z.infer<typeof fareConfigSchema>;
+type GeneratedRegion = {
+  formulaVerified: boolean;
+  sourceUrl: string;
+  verifiedAt: string;
+  overrides: FareConfig["overrides"];
+};
+const generatedRegions = fareOverrides.regions as Record<
+  string,
+  GeneratedRegion
+>;
 // Official national rate verified 2026-10-08. City-specific pass coverage is
 // not inferred from the national RM30 price; comparisons remain gated.
 export function fareConfig(region: Region): FareConfig | null {
-  if (serviceFor(region).operator !== "BAS.MY" || region === "kuching")
-    return null;
+  if (serviceFor(region).operator !== "BAS.MY") return null;
+  const generated = generatedRegions[region];
+  // Kuching has no verified fare formula publication; it is priceable only
+  // through the imported route tables, and nothing else.
+  if (region === "kuching" && !generated) return null;
   return {
     region,
-    sourceUrl: FARE_SOURCE,
-    verifiedAt: "2026-10-08",
+    sourceUrl: generated?.sourceUrl ?? FARE_SOURCE,
+    verifiedAt: generated?.verifiedAt ?? "2026-10-08",
     baseMetres: 2000,
     baseMicros: 940000,
     additionalKmMicros: 94000,
-    pass: { priceSen: 3000, days: 30, coverageConfirmed: false },
-    overrides: [],
+    pass: {
+      priceSen: region === "kuching" ? null : 3000,
+      days: 30,
+      coverageConfirmed: false,
+    },
+    formulaVerified: generated?.formulaVerified ?? true,
+    overrides: generated?.overrides ?? [],
   };
 }
 export type Leg = {
@@ -79,6 +103,11 @@ const missing = (reason: string): DistanceResult => ({
   method: null,
   reason,
 });
+// A stop plotted within SNAP_TRUSTED of its shape is on the corridor. Wider
+// stops are still usable, but only when nothing closer exists - real feeds plot
+// some stops across a forecourt or slip road, 45-55 m from the digitised path.
+const SNAP_TRUSTED = 40;
+const SNAP_RELUCTANT = 80;
 export function resolveDistance(leg: Leg, stops: Stop[]): DistanceResult {
   const p = leg.route.patterns?.find((p) => p.id === leg.patternId);
   if (!p || leg.route.source !== "official") return missing("missing_pattern");
@@ -130,14 +159,17 @@ export function resolveDistance(leg: Leg, stops: Stop[]): DistanceResult {
     p.path.some((c) => !c.every(Number.isFinite))
   )
     return missing("missing_shape");
-  const positions: number[] = [];
-  // Resolve the entire ordered stop sequence. Ambiguous overlapping sections
-  // fail closed rather than selecting the wrong occurrence of a loop.
-  for (const occurrence of p.stops) {
+  // Assign every stop between boarding and alighting to one strictly
+  // increasing point along the shape, minimising total snap error. Stops are
+  // trusted only when all near-optimal assignments place them in the same
+  // along-shape cluster, so out-and-back corridors that genuinely tie still
+  // fail closed.
+  const proj: { offset: number; error: number }[][] = [];
+  for (const occurrence of p.stops.slice(start, end + 1)) {
     const stop = stops.find((s) => s.id === occurrence.stopId);
     if (!stop) return missing("missing_stop");
     let travelled = 0;
-    const candidates: { offset: number; error: number }[] = [];
+    const raw: { offset: number; error: number }[] = [];
     for (let i = 1; i < p.path.length; i++) {
       const a = p.path[i - 1],
         b = p.path[i],
@@ -146,7 +178,10 @@ export function resolveDistance(leg: Leg, stops: Stop[]): DistanceResult {
         dy = b[1] - a[1],
         size = dx * dx + dy * dy;
       const len = distance(a, b);
-      if (!size) continue;
+      if (!size) {
+        travelled += len;
+        continue;
+      }
       const t = Math.max(
         0,
         Math.min(
@@ -162,24 +197,69 @@ export function resolveDistance(leg: Leg, stops: Stop[]): DistanceResult {
       ];
       const error = distance(point, stop.coordinate),
         offset = travelled + t * len;
-      if (error <= 40) candidates.push({ offset, error });
+      if (error <= SNAP_RELUCTANT) raw.push({ offset, error });
       travelled += len;
     }
-    candidates.sort((a, b) => a.error - b.error);
-    const best = candidates[0];
-    if (
-      !best ||
-      candidates.some(
-        (c) =>
-          c.error <= best.error + 5 && Math.abs(c.offset - best.offset) > 80,
-      )
-    )
-      return missing("ambiguous_shape");
-    if (positions.length && best.offset <= positions[positions.length - 1])
-      return missing("invalid_stop_order");
-    positions.push(best.offset);
+    raw.sort((a, b) => a.offset - b.offset);
+    // Prefer the stops that sit on the shape. The wider band is only a last
+    // resort for stops plotted across a forecourt or slip road, so widening it
+    // can never add a rival candidate to a stop that already snaps well; the
+    // near-optimal cluster gate below still has the final say.
+    const tight = raw.filter((c) => c.error <= SNAP_TRUSTED);
+    const trusted = tight.length ? tight : raw;
+    proj.push(
+      trusted.filter((c, i) => i === 0 || c.offset - trusted[i - 1].offset > 5),
+    );
   }
-  const metres = positions[end] - positions[start];
+  if (proj.some((c) => !c.length)) return missing("ambiguous_shape");
+  const INF = Number.POSITIVE_INFINITY;
+  const fwd = proj.map((c) => c.map(() => INF));
+  proj[0].forEach((c, j) => (fwd[0][j] = c.error));
+  for (let i = 1; i < proj.length; i++) {
+    let best = INF;
+    let k = 0;
+    for (let j = 0; j < proj[i].length; j++) {
+      while (
+        k < proj[i - 1].length &&
+        proj[i - 1][k].offset < proj[i][j].offset
+      ) {
+        best = Math.min(best, fwd[i - 1][k]);
+        k++;
+      }
+      if (best < INF) fwd[i][j] = best + proj[i][j].error;
+    }
+  }
+  const last = proj.length - 1;
+  const opt = Math.min(...fwd[last]);
+  if (!Number.isFinite(opt)) return missing("invalid_stop_order");
+  const bwd = proj.map((c) => c.map(() => INF));
+  bwd[last].fill(0);
+  for (let i = last - 1; i >= 0; i--) {
+    let best = INF;
+    let k = proj[i + 1].length - 1;
+    for (let j = proj[i].length - 1; j >= 0; j--) {
+      while (k >= 0 && proj[i + 1][k].offset > proj[i][j].offset) {
+        best = Math.min(best, bwd[i + 1][k]);
+        k--;
+      }
+      if (best < INF) bwd[i][j] = best;
+    }
+  }
+  const band: { offset: number; error: number }[] = [];
+  for (let i = 0; i <= last; i++) {
+    const on = proj[i].filter(
+      (_, j) =>
+        Number.isFinite(fwd[i][j]) &&
+        Number.isFinite(bwd[i][j]) &&
+        fwd[i][j] + bwd[i][j] <= opt + 5,
+    );
+    if (on.length > 1 && on[on.length - 1].offset - on[0].offset > 80)
+      return missing("ambiguous_shape");
+    let best = on[0];
+    for (const c of on) if (c.error < best.error) best = c;
+    band.push(best);
+  }
+  const metres = band[last].offset - band[0].offset;
   return Number.isFinite(metres) && metres > 0
     ? { metres, method: "route_geometry" }
     : missing("invalid_distance");
@@ -237,6 +317,8 @@ export function calculateFare(input: {
   );
   if (known.length && (!override || override.fareSen === null))
     return unavailable("unresolved_override");
+  if (!override && !config.formulaVerified)
+    return unavailable("unverified_city");
   if (d.metres === null && !override) return unavailable("missing_distance");
   if (d.metres !== null && (!Number.isFinite(d.metres) || d.metres < 0))
     return unavailable("invalid_distance");
@@ -278,7 +360,7 @@ export function calculateFare(input: {
           ? "route_override"
           : "distance_formula",
     distance: d,
-    sourceUrl: config.sourceUrl,
+    sourceUrl: override?.sourceUrl ?? config.sourceUrl,
     billedExtraKm: extra,
     baseSen: config.baseMicros / 10000,
   };

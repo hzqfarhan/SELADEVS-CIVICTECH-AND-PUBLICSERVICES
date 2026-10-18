@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "ingest": "tsx scripts/ingest.ts",
+    "fare:coverage": "tsx scripts/fare-coverage.ts",
+    "fares:build": "tsx scripts/build-fare-overrides.ts",
     "db:migrate": "tsx scripts/migrate.ts",
     "poll": "tsx scripts/poll.ts",
     "predev": "node scripts/prepare-assets.mjs",

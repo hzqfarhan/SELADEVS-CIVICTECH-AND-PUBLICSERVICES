@@ -7,32 +7,45 @@ import { searchStops } from "@/lib/stop-search";
 export function LocationSearch({
   label,
   stops,
+  candidates = stops,
   value,
   onChange,
   locale,
+  emptyMessage,
 }: {
   label: string;
   stops: Stop[];
+  /** Endpoints actually offered for this leg; defaults to every stop. */
+  candidates?: Stop[];
   value: string;
   onChange: (id: string) => void;
   locale: Locale;
+  emptyMessage?: string;
 }) {
   const id = useId();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const selected = stops.find((stop) => stop.id === value);
-  const search = selected?.name ?? query;
-  const matches = useMemo(() => searchStops(stops, search), [stops, search]);
+  // Filter on what the user typed, never on the chosen stop's name: reusing the
+  // name would collapse the list to one row and make the endpoint unbrowseable.
+  const matches = useMemo(
+    () => searchStops(candidates, query),
+    [candidates, query],
+  );
   const list = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const panel = list.current;
     const option = panel?.children[active] as HTMLElement | undefined;
     if (!panel || !option) return;
     if (option.offsetTop < panel.scrollTop) panel.scrollTop = option.offsetTop;
-    else if (option.offsetTop + option.offsetHeight > panel.scrollTop + panel.clientHeight)
-      panel.scrollTop = option.offsetTop + option.offsetHeight - panel.clientHeight;
-  }, [active, open, search]);
+    else if (
+      option.offsetTop + option.offsetHeight >
+      panel.scrollTop + panel.clientHeight
+    )
+      panel.scrollTop =
+        option.offsetTop + option.offsetHeight - panel.clientHeight;
+  }, [active, open, query]);
   const choose = (stop: Stop) => {
     onChange(stop.id);
     setQuery("");
@@ -58,6 +71,7 @@ export function LocationSearch({
             : "Search stop name or ID"
         }
         value={selected ? selected.name : query}
+        onClick={() => setOpen(true)}
         onFocus={() => {
           setOpen(true);
           setActive(0);
@@ -116,9 +130,17 @@ export function LocationSearch({
           ))}
           {!matches.length && (
             <p role="status">
+              {emptyMessage ??
+                (locale === "ms"
+                  ? "Tiada hentian sepadan. Cuba nama lain."
+                  : "No matching stops. Try another name.")}
+            </p>
+          )}
+          {!query && matches.length > 12 && (
+            <p role="status">
               {locale === "ms"
-                ? "Tiada hentian sepadan. Cuba nama lain."
-                : "No matching stops. Try another name."}
+                ? `${matches.length} pilihan — scroll atau taip untuk menapis.`
+                : `${matches.length} choices — scroll or type to narrow it down.`}
             </p>
           )}
         </div>

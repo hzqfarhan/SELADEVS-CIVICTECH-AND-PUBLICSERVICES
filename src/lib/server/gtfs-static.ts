@@ -1,4 +1,5 @@
 import { serviceFor } from "../feeds";
+import { distance } from "../transit";
 import { unzipSync } from "fflate";
 import { parse } from "csv-parse/sync";
 import type { Coordinate, Stop, TransitRoute, Region } from "@/lib/types";
@@ -26,6 +27,30 @@ function validCoordinate(lng: number, lat: number) {
     lat >= 0 &&
     lat <= 8
   );
+}
+// GTFS does not define shape_dist_traveled units. Establish them per pattern
+// only when every stop carries a strictly increasing value whose magnitude
+// convincingly matches the shape polyline; otherwise keep "unknown" so fares
+// fail closed instead of guessing.
+function inferDistanceUnit(
+  path: Coordinate[],
+  values: (number | null)[],
+): "metres" | "kilometres" | "unknown" {
+  if (
+    path.length < 2 ||
+    values.length < 2 ||
+    values.some((v) => v === null || !Number.isFinite(v) || v < 0) ||
+    values.some((v, i) => i > 0 && v! <= values[i - 1]!)
+  )
+    return "unknown";
+  let shape = 0;
+  for (let i = 1; i < path.length; i++) shape += distance(path[i - 1], path[i]);
+  const travelled = values[values.length - 1]! - values[0]!;
+  if (!(shape > 0) || !(travelled > 0)) return "unknown";
+  const ratio = shape / travelled;
+  if (ratio >= 0.7 && ratio <= 1.4) return "metres";
+  if (ratio >= 700 && ratio <= 1400) return "kilometres";
+  return "unknown";
 }
 export function parseStaticGtfs(
   buffer: Uint8Array,
@@ -148,6 +173,22 @@ export function parseStaticGtfs(
                     x.shape_dist_traveled,
                   ]),
                 ]);
+                const path = (shapes.get(t.shape_id) || []).map(
+                  (x) =>
+                    [
+                      Number(x.shape_pt_lon),
+                      Number(x.shape_pt_lat),
+                    ] as Coordinate,
+                );
+                const patternStops = times.map((x) => ({
+                  stopId: x.stop_id,
+                  sequence: Number(x.stop_sequence),
+                  shapeDistance:
+                    x.shape_dist_traveled?.trim() &&
+                    Number.isFinite(Number(x.shape_dist_traveled))
+                      ? Number(x.shape_dist_traveled)
+                      : null,
+                }));
                 return [
                   key,
                   {
@@ -158,23 +199,12 @@ export function parseStaticGtfs(
                     geometrySource: shapes.has(t.shape_id)
                       ? ("gtfs_shape" as const)
                       : ("unavailable" as const),
-                    distanceUnit: "unknown" as const,
-                    path: (shapes.get(t.shape_id) || []).map(
-                      (x) =>
-                        [
-                          Number(x.shape_pt_lon),
-                          Number(x.shape_pt_lat),
-                        ] as Coordinate,
+                    distanceUnit: inferDistanceUnit(
+                      path,
+                      patternStops.map((s) => s.shapeDistance),
                     ),
-                    stops: times.map((x) => ({
-                      stopId: x.stop_id,
-                      sequence: Number(x.stop_sequence),
-                      shapeDistance:
-                        x.shape_dist_traveled?.trim() &&
-                        Number.isFinite(Number(x.shape_dist_traveled))
-                          ? Number(x.shape_dist_traveled)
-                          : null,
-                    })),
+                    path,
+                    stops: patternStops,
                   },
                 ];
               }),

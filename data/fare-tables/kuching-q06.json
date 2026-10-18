@@ -1,0 +1,124 @@
+{
+  "id": "kuching-q06",
+  "region": "kuching",
+  "routeName": "Q06 Saujana Parking - Kampung Benuk",
+  "sourceTitle": "Kadar Tambang Laluan Q06 (Saujana - Kampung Benuk), poster 9 Sept 2025",
+  "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/q06.pdf",
+  "sourceDate": "2025-09-09",
+  "verifiedAt": "2026-10-18",
+  "concessionAllowed": false,
+  "notes": "Linear terminal->destination tables (KADAR TAMBANG (RM) page format, matching the standalone May 2025 KADAR-TAMBANG-Q06 poster). Omitted as ambiguous/unmatched: WISMA SABERKAS (absent from GTFS), inbound BATU 4 (SJKCH BATU 4 1/2 vs EVERISE BATU 4), inbound ROCK ROAD (LEVEL UP vs OPP ROCK ROAD SEAFOOD).",
+  "directions": [
+    {
+      "patternId": "kuching:211_0_WE_13",
+      "direction": "outbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/q06.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6521",
+        "posterName": "STESEN BAS SAUJANA"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:7090",
+          "posterName": "SARAWAK GENERAL HOSPITAL",
+          "fareSen": 90
+        },
+        {
+          "gtfsStopId": "kuching:6696",
+          "posterName": "ROCK ROAD",
+          "fareSen": 110
+        },
+        {
+          "gtfsStopId": "kuching:6684",
+          "posterName": "TIMBERLAND MEDICAL CENTRE",
+          "fareSen": 130
+        },
+        {
+          "gtfsStopId": "kuching:6558",
+          "posterName": "BOULEVARD",
+          "fareSen": 140
+        },
+        {
+          "gtfsStopId": "kuching:6702",
+          "posterName": "FARLEY",
+          "fareSen": 170
+        },
+        {
+          "gtfsStopId": "kuching:8409",
+          "posterName": "BATU 7",
+          "fareSen": 180
+        },
+        {
+          "gtfsStopId": "kuching:6706",
+          "posterName": "OPEN UNIVERSITI MALAYSIA",
+          "fareSen": 220
+        },
+        {
+          "gtfsStopId": "kuching:6708",
+          "posterName": "KOTA PADAWAN",
+          "fareSen": 230
+        },
+        {
+          "gtfsStopId": "kuching:6711",
+          "posterName": "OPPOSITE RAJAH CHARLES BROOKE MEMORIAL HOSPITAL",
+          "fareSen": 270
+        },
+        {
+          "gtfsStopId": "kuching:6661",
+          "posterName": "KAMPUNG BENUK",
+          "fareSen": 370
+        }
+      ]
+    },
+    {
+      "patternId": "kuching:211_1_WE_13",
+      "direction": "inbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/q06.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6661",
+        "posterName": "KAMPUNG BENUK"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6665",
+          "posterName": "PULAPOL KUCHING",
+          "fareSen": 150
+        },
+        {
+          "gtfsStopId": "kuching:6670",
+          "posterName": "MAJLIS PERBANDARAN PADAWAN",
+          "fareSen": 220
+        },
+        {
+          "gtfsStopId": "kuching:6676",
+          "posterName": "OPPOSITE KOTA SENTOSA",
+          "fareSen": 260
+        },
+        {
+          "gtfsStopId": "kuching:8432",
+          "posterName": "KUCHING SENTRAL",
+          "fareSen": 280
+        },
+        {
+          "gtfsStopId": "kuching:6582",
+          "posterName": "OPPOSITE TIMBERLAND MEDICAL CENTRE",
+          "fareSen": 320
+        },
+        {
+          "gtfsStopId": "kuching:6689",
+          "posterName": "SARAWAK GENERAL HOSPITAL",
+          "fareSen": 350
+        },
+        {
+          "gtfsStopId": "kuching:6521",
+          "posterName": "STESEN BAS SAUJANA",
+          "fareSen": 360
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,576 @@
+{
+  "id": "kuching-q08",
+  "region": "kuching",
+  "routeName": "Q08 Saujana Parking - Terminal Bas Bau",
+  "sourceTitle": "Kadar Tambang Q08 (Bau): May 2025 full between-stop matrix + Sept 2025 current linear table",
+  "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/05/KADAR-TAMBANG-Q08-BAU.pdf",
+  "sourceDate": "2025-05-14",
+  "verifiedAt": "2026-10-18",
+  "concessionAllowed": false,
+  "notes": "Two independent LPKP documents cover this route. The Sept 2025 route poster's outbound terminal rows agree with the 14 May 2025 stop-to-stop matrix on all 8 comparable pairs, so the matrix is trusted for the pairs the linear rows do not name. The same poster's inbound rows contradict the May matrix on all 8 comparable pairs (e.g. Terminal Bas Bau -> Steesen Bas Saujana RM4.00 in May vs RM3.80 in Sept), so the May inbound matrix is excluded outright instead of being used for unsampled pairs; Q08 inbound is priced only from the Sept 2025 linear rows. Both documents already reflect the 11 Mar 2025 reduction announced in the 10 Mar 2025 press statement. Poster stops BS JLN DATO TAWI SLI and BS PASAR BAU BYPASS have no match in the current GTFS outbound pattern (24 stops) and are excluded from priced pairs.",
+  "directions": [
+    {
+      "patternId": "kuching:213_0_WE_13",
+      "direction": "outbound",
+      "format": "matrix",
+      "stops": [
+        {
+          "posterName": "SAUJANA",
+          "gtfsStopId": "kuching:6521"
+        },
+        {
+          "posterName": "JLN TAHO (ST TERESA)",
+          "gtfsStopId": "kuching:6692"
+        },
+        {
+          "posterName": "JLN TAHO 1",
+          "gtfsStopId": "kuching:6693"
+        },
+        {
+          "posterName": "JLN TAHO (SGH)",
+          "gtfsStopId": "kuching:7090"
+        },
+        {
+          "posterName": "JLK TAHO (LORENZO)",
+          "gtfsStopId": "kuching:6695"
+        },
+        {
+          "posterName": "JLN RR 1",
+          "gtfsStopId": "kuching:6696"
+        },
+        {
+          "posterName": "JLN RR 2 (RR SEAFOOD)",
+          "gtfsStopId": "kuching:6697"
+        },
+        {
+          "posterName": "JLN RR 3",
+          "gtfsStopId": "kuching:6698"
+        },
+        {
+          "posterName": "JLN RR 4 (TMC)",
+          "gtfsStopId": "kuching:6684"
+        },
+        {
+          "posterName": "JLN DATO TAWI SLI",
+          "gtfsStopId": null
+        },
+        {
+          "posterName": "JLN DTS (BOULEVARD)",
+          "gtfsStopId": "kuching:6558"
+        },
+        {
+          "posterName": "JLM DATO MOHD MUSTAPHA",
+          "gtfsStopId": "kuching:6559"
+        },
+        {
+          "posterName": "JLN DAKN 1",
+          "gtfsStopId": "kuching:8283"
+        },
+        {
+          "posterName": "JLN DAKN (FARLEY KCH)",
+          "gtfsStopId": "kuching:6702"
+        },
+        {
+          "posterName": "PASAR B.7",
+          "gtfsStopId": "kuching:8409"
+        },
+        {
+          "posterName": "SJKCH KERANJI",
+          "gtfsStopId": "kuching:6768"
+        },
+        {
+          "posterName": "SIMPANG BUDDHIST VILLAGE",
+          "gtfsStopId": "kuching:6769"
+        },
+        {
+          "posterName": "KPG SINIAWAN BARU",
+          "gtfsStopId": "kuching:6770"
+        },
+        {
+          "posterName": "TMN SINIAWAN 1",
+          "gtfsStopId": "kuching:6771"
+        },
+        {
+          "posterName": "TMN SINIAWAN 2",
+          "gtfsStopId": "kuching:6772"
+        },
+        {
+          "posterName": "SPG KPG PODAM",
+          "gtfsStopId": "kuching:6773"
+        },
+        {
+          "posterName": "SMK PAKU",
+          "gtfsStopId": "kuching:6774"
+        },
+        {
+          "posterName": "OPP SK SAINT STEVEN",
+          "gtfsStopId": "kuching:6735"
+        },
+        {
+          "posterName": "PASAR BAU BYPASS",
+          "gtfsStopId": null
+        },
+        {
+          "posterName": "TERMINAL BAS BAU",
+          "gtfsStopId": "kuching:6729"
+        }
+      ],
+      "fares": [
+        [
+          90,
+          90,
+          90,
+          100,
+          100,
+          110,
+          110,
+          120,
+          130,
+          130,
+          140,
+          150,
+          160,
+          170,
+          250,
+          270,
+          290,
+          290,
+          290,
+          330,
+          340,
+          380,
+          380,
+          390
+        ],
+        [
+          90,
+          90,
+          90,
+          90,
+          100,
+          100,
+          110,
+          120,
+          130,
+          140,
+          140,
+          150,
+          170,
+          240,
+          260,
+          280,
+          280,
+          280,
+          330,
+          330,
+          370,
+          380,
+          380
+        ],
+        [
+          90,
+          90,
+          90,
+          90,
+          100,
+          110,
+          110,
+          120,
+          130,
+          140,
+          150,
+          160,
+          240,
+          260,
+          270,
+          280,
+          280,
+          320,
+          330,
+          370,
+          370,
+          380
+        ],
+        [
+          90,
+          90,
+          90,
+          90,
+          100,
+          110,
+          120,
+          130,
+          130,
+          140,
+          160,
+          230,
+          250,
+          270,
+          270,
+          270,
+          310,
+          320,
+          360,
+          370,
+          370
+        ],
+        [
+          90,
+          90,
+          90,
+          100,
+          100,
+          110,
+          120,
+          130,
+          140,
+          150,
+          230,
+          250,
+          260,
+          270,
+          270,
+          310,
+          320,
+          360,
+          360,
+          370
+        ],
+        [
+          90,
+          90,
+          90,
+          100,
+          110,
+          120,
+          120,
+          130,
+          150,
+          220,
+          250,
+          260,
+          260,
+          270,
+          310,
+          310,
+          350,
+          360,
+          360
+        ],
+        [
+          90,
+          90,
+          100,
+          100,
+          110,
+          120,
+          130,
+          140,
+          220,
+          240,
+          260,
+          260,
+          260,
+          300,
+          310,
+          350,
+          350,
+          360
+        ],
+        [
+          90,
+          90,
+          100,
+          110,
+          120,
+          130,
+          140,
+          210,
+          240,
+          250,
+          250,
+          260,
+          300,
+          300,
+          350,
+          350,
+          350
+        ],
+        [
+          90,
+          90,
+          100,
+          110,
+          120,
+          130,
+          200,
+          230,
+          240,
+          250,
+          250,
+          290,
+          300,
+          340,
+          340,
+          350
+        ],
+        [
+          90,
+          100,
+          100,
+          110,
+          120,
+          200,
+          220,
+          240,
+          240,
+          240,
+          280,
+          290,
+          330,
+          330,
+          340
+        ],
+        [
+          90,
+          90,
+          100,
+          120,
+          190,
+          210,
+          230,
+          230,
+          230,
+          270,
+          280,
+          320,
+          330,
+          330
+        ],
+        [
+          90,
+          90,
+          110,
+          180,
+          200,
+          220,
+          220,
+          220,
+          260,
+          270,
+          310,
+          320,
+          320
+        ],
+        [
+          90,
+          100,
+          170,
+          200,
+          210,
+          210,
+          220,
+          260,
+          260,
+          310,
+          310,
+          310
+        ],
+        [
+          90,
+          160,
+          190,
+          200,
+          200,
+          210,
+          250,
+          250,
+          300,
+          300,
+          300
+        ],
+        [
+          150,
+          170,
+          190,
+          190,
+          190,
+          230,
+          240,
+          280,
+          280,
+          290
+        ],
+        [
+          100,
+          110,
+          120,
+          120,
+          160,
+          170,
+          210,
+          210,
+          220
+        ],
+        [
+          90,
+          90,
+          100,
+          140,
+          140,
+          180,
+          190,
+          190
+        ],
+        [
+          90,
+          90,
+          120,
+          130,
+          170,
+          170,
+          180
+        ],
+        [
+          90,
+          120,
+          120,
+          170,
+          170,
+          170
+        ],
+        [
+          120,
+          120,
+          160,
+          170,
+          170
+        ],
+        [
+          90,
+          120,
+          130,
+          130
+        ],
+        [
+          120,
+          120,
+          130
+        ],
+        [
+          90,
+          130
+        ],
+        [
+          130
+        ]
+      ]
+    },
+    {
+      "patternId": "kuching:213_0_WE_13",
+      "direction": "outbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q08_merged.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6521",
+        "posterName": "STESEN BAS SAUJANA"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6692",
+          "posterName": "JALAN TAHO (ST TERESA)",
+          "fareSen": 90
+        },
+        {
+          "gtfsStopId": "kuching:7090",
+          "posterName": "OPPOSITE SARAWAK GENERAL HOSPITAL",
+          "fareSen": 90
+        },
+        {
+          "gtfsStopId": "kuching:6697",
+          "posterName": "ROCK ROAD SEAFOOD",
+          "fareSen": 110
+        },
+        {
+          "gtfsStopId": "kuching:6684",
+          "posterName": "TIMBERLAND MEDICAL CENTRE",
+          "fareSen": 120
+        },
+        {
+          "gtfsStopId": "kuching:6558",
+          "posterName": "BOULEVARD",
+          "fareSen": 130
+        },
+        {
+          "gtfsStopId": "kuching:6702",
+          "posterName": "FARLEY",
+          "fareSen": 160
+        },
+        {
+          "gtfsStopId": "kuching:6774",
+          "posterName": "SMK PAKU BAU",
+          "fareSen": 340
+        },
+        {
+          "gtfsStopId": "kuching:6729",
+          "posterName": "TERMINAL BAS BAU",
+          "fareSen": 390
+        }
+      ]
+    },
+    {
+      "patternId": "kuching:213_1_WE_13",
+      "direction": "inbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q08_merged.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6729",
+        "posterName": "TERMINAL BAS BAU"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6739",
+          "posterName": "SMK PAKU",
+          "fareSen": 120
+        },
+        {
+          "gtfsStopId": "kuching:6741",
+          "posterName": "KAMPUNG KERANJI",
+          "fareSen": 220
+        },
+        {
+          "gtfsStopId": "kuching:6676",
+          "posterName": "EVERWIN KOTA SENTOSA",
+          "fareSen": 290
+        },
+        {
+          "gtfsStopId": "kuching:8432",
+          "posterName": "OPPOSITE KUCHING SENTRAL",
+          "fareSen": 300
+        },
+        {
+          "gtfsStopId": "kuching:6562",
+          "posterName": "OPPOSITE EVERISE BATU 4",
+          "fareSen": 330
+        },
+        {
+          "gtfsStopId": "kuching:6582",
+          "posterName": "OPPOSITE TIMBERLAND MEDICAL CENTRE",
+          "fareSen": 340
+        },
+        {
+          "gtfsStopId": "kuching:6689",
+          "posterName": "SARAWAK GENERAL HOSPITAL",
+          "fareSen": 370
+        },
+        {
+          "gtfsStopId": "kuching:6521",
+          "posterName": "STESEN BAS SAUJANA",
+          "fareSen": 380
+        }
+      ]
+    }
+  ]
+}

@@ -8,7 +8,7 @@ import { reserveOfficialRequest } from "./upstream-budget";
 
 export const JOHOR_VEHICLES_URL =
   "https://api.data.gov.my/gtfs-realtime/vehicle-position/mybas-johor";
-const refreshMs = 35_000;
+const refreshMs = 15_000;
 const staleMs = 90_000;
 interface FeedCache {
   snapshot?: VehicleSnapshot;
@@ -66,6 +66,14 @@ export function normalizeFeed(
       label: item.vehicle?.label || id,
       routeId: item.trip?.routeId || "unavailable",
       tripId: item.trip?.tripId || undefined,
+      // direction_id 0 is a real direction, so a prototype default cannot be
+      // told apart from an omitted field without presence.
+      direction:
+        item.trip &&
+        Object.hasOwn(item.trip, "directionId") &&
+        Number.isFinite(item.trip.directionId)
+          ? String(item.trip.directionId)
+          : undefined,
       vehicleKind: serviceFor(region).kind === "rail" ? "rail" : "bus",
       coordinate: [lng, lat],
       bearing: Number.isFinite(position.bearing)
@@ -146,7 +154,7 @@ async function refresh(
   try {
     // The official endpoint negotiates octet-stream and returns 406 for a
     // strict application/x-protobuf Accept header. Keep the default */*.
-    reserveOfficialRequest();
+    reserveOfficialRequest("realtime");
     const response = await fetch(endpoint.realtimeUrl!, {
       signal: AbortSignal.timeout(8_000),
       cache: "no-store",

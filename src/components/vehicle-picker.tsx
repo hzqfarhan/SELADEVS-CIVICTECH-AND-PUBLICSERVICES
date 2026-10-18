@@ -13,7 +13,9 @@ export function VehiclePicker({
   locale,
   onSelect,
   onFilter,
+  compact = false,
 }: {
+  compact?: boolean;
   vehicles: Vehicle[];
   routes: TransitRoute[];
   selectedId: string | null;
@@ -65,24 +67,26 @@ export function VehiclePicker({
         </div>
         <span>{matches.length}</span>
       </div>
-      <label className="vehicle-picker-filter">
-        <span>{tr("Route", "Laluan")}</span>
-        <select
-          aria-label={tr(
-            "Filter vehicles by route",
-            "Tapis kenderaan mengikut laluan",
-          )}
-          value={filter ?? ""}
-          onChange={(e) => onFilter(e.target.value || null)}
-        >
-          <option value="">{tr("All routes", "Semua laluan")}</option>
-          {routes.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!compact && (
+        <label className="vehicle-picker-filter">
+          <span>{tr("Route", "Laluan")}</span>
+          <select
+            aria-label={tr(
+              "Filter vehicles by route",
+              "Tapis kenderaan mengikut laluan",
+            )}
+            value={filter ?? ""}
+            onChange={(e) => onFilter(e.target.value || null)}
+          >
+            <option value="">{tr("All routes", "Semua laluan")}</option>
+            {routes.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div
         className="vehicle-picker-list"
         tabIndex={0}

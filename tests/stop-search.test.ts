@@ -36,6 +36,18 @@ test("stop search handles tokens, accents and IDs without mutating source order"
   assert.equal(searchStops(stops, "Singapore").length, 0);
   assert.equal(searchStops(stops, "", 1).length, 1);
 });
+test("browsing an empty query lists every candidate instead of a token page", () => {
+  const many: Stop[] = Array.from({ length: 40 }, (_, index) => ({
+    id: `jb:${index}`,
+    name: `Platform ${index}`,
+    region: "johor",
+    coordinate: [103, 1],
+    accessible: true,
+  }));
+  assert.equal(searchStops(many, "").length, 40);
+  assert.equal(searchStops(many, "platform").length, 40);
+  assert.equal(searchStops(many, "", 8).length, 8);
+});
 test("journey inputs reject unselected text, removed stops and identical endpoints", () => {
   assert.equal(journeyInputIssue(stops, "", "jb:1"), "missing");
   assert.equal(journeyInputIssue(stops, "old-id", "jb:1"), "missing");

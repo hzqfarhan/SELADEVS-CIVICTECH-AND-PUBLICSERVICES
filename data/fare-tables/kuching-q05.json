@@ -1,0 +1,628 @@
+{
+  "id": "kuching-q05",
+  "region": "kuching",
+  "routeName": "Q05 SAUJANA PARKING - SMKA MATANG 2",
+  "sourceTitle": "Lembaga Pengangkutan Penumpang Sarawak (LPKP) / Kementerian Pengangkutan BAS.MY Kuching Q05 fare table poster",
+  "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/q05.pdf",
+  "sourceDate": "2025-09-09",
+  "verifiedAt": "2026-10-18",
+  "concessionAllowed": false,
+  "notes": "Fares in sen, transcribed from the RM between-stop matrices on pages 4 (inbound) and 5 (outbound). Stop order matches the GTFS pattern 1:1; poster names differ from GTFS names at the marked stops. Terminal rows cross-checked against the poster's own summary tables in both directions.",
+  "directions": [
+    {
+      "patternId": "kuching:210_0_WE_13",
+      "direction": "outbound",
+      "format": "matrix",
+      "stops": [
+        {
+          "gtfsStopId": "kuching:6521",
+          "posterName": "SAUJANA"
+        },
+        {
+          "gtfsStopId": "kuching:6539",
+          "posterName": "AMBANK SATOK"
+        },
+        {
+          "gtfsStopId": "kuching:8380",
+          "posterName": "OPP TABUNG HAJI SATOK"
+        },
+        {
+          "gtfsStopId": "kuching:8381",
+          "posterName": "OPP MAXIS CENTRE KUCHING"
+        },
+        {
+          "gtfsStopId": "kuching:8462",
+          "posterName": "OPP PERODUA ERAZOOM"
+        },
+        {
+          "gtfsStopId": "kuching:6527",
+          "posterName": "OPP BANGUNAN MARZUKI"
+        },
+        {
+          "gtfsStopId": "kuching:6538",
+          "posterName": "HERITAGE GARDEN"
+        },
+        {
+          "gtfsStopId": "kuching:6537",
+          "posterName": "TAMAN SEJOLI"
+        },
+        {
+          "gtfsStopId": "kuching:6639",
+          "posterName": "SMK PETRAJAYA"
+        },
+        {
+          "gtfsStopId": "kuching:6530",
+          "posterName": "PENDIDIKAN JALAN MATANG"
+        },
+        {
+          "gtfsStopId": "kuching:6523",
+          "posterName": "EMART MATANG"
+        },
+        {
+          "gtfsStopId": "kuching:6520",
+          "posterName": "TAMAN YEN YEN"
+        },
+        {
+          "gtfsStopId": "kuching:8526",
+          "posterName": "SJK CHUNG HUA BATU 7"
+        },
+        {
+          "gtfsStopId": "kuching:6642",
+          "posterName": "UNACO MATANG"
+        },
+        {
+          "gtfsStopId": "kuching:6643",
+          "posterName": "SMK SRI MATANG"
+        },
+        {
+          "gtfsStopId": "kuching:6644",
+          "posterName": "KAMPUNG HERITAGE"
+        },
+        {
+          "gtfsStopId": "kuching:6645",
+          "posterName": "SMK AGAMA MATANG 2"
+        }
+      ],
+      "fares": [
+        [
+          90,
+          90,
+          90,
+          90,
+          100,
+          100,
+          110,
+          110,
+          120,
+          140,
+          140,
+          190,
+          190,
+          210,
+          240,
+          300
+        ],
+        [
+          90,
+          90,
+          90,
+          90,
+          100,
+          100,
+          110,
+          120,
+          130,
+          140,
+          180,
+          190,
+          200,
+          230,
+          290
+        ],
+        [
+          90,
+          90,
+          90,
+          90,
+          100,
+          110,
+          110,
+          130,
+          130,
+          180,
+          180,
+          200,
+          230,
+          290
+        ],
+        [
+          90,
+          90,
+          90,
+          90,
+          100,
+          110,
+          120,
+          130,
+          170,
+          180,
+          200,
+          220,
+          280
+        ],
+        [
+          90,
+          90,
+          90,
+          100,
+          110,
+          120,
+          130,
+          170,
+          170,
+          190,
+          220,
+          280
+        ],
+        [
+          90,
+          90,
+          90,
+          100,
+          110,
+          120,
+          160,
+          170,
+          190,
+          210,
+          270
+        ],
+        [
+          90,
+          90,
+          90,
+          110,
+          110,
+          160,
+          160,
+          180,
+          210,
+          270
+        ],
+        [
+          90,
+          90,
+          100,
+          110,
+          160,
+          160,
+          180,
+          200,
+          270
+        ],
+        [
+          90,
+          100,
+          100,
+          150,
+          150,
+          170,
+          200,
+          260
+        ],
+        [
+          90,
+          90,
+          140,
+          140,
+          160,
+          190,
+          250
+        ],
+        [
+          90,
+          130,
+          130,
+          150,
+          170,
+          240
+        ],
+        [
+          120,
+          120,
+          140,
+          170,
+          230
+        ],
+        [
+          90,
+          100,
+          120,
+          190
+        ],
+        [
+          90,
+          120,
+          180
+        ],
+        [
+          100,
+          160
+        ],
+        [
+          140
+        ]
+      ]
+    },
+    {
+      "patternId": "kuching:210_1_WE_13",
+      "direction": "inbound",
+      "format": "matrix",
+      "stops": [
+        {
+          "gtfsStopId": "kuching:6645",
+          "posterName": "SMKA MATANG 2"
+        },
+        {
+          "gtfsStopId": "kuching:6646",
+          "posterName": "POLITEKNIK"
+        },
+        {
+          "gtfsStopId": "kuching:6647",
+          "posterName": "FAMILY PARK"
+        },
+        {
+          "gtfsStopId": "kuching:8527",
+          "posterName": "KPG SG ATAS BARU"
+        },
+        {
+          "gtfsStopId": "kuching:8528",
+          "posterName": "TAMAN JUBLEE MAS"
+        },
+        {
+          "gtfsStopId": "kuching:6650",
+          "posterName": "KPG MATANG LOT"
+        },
+        {
+          "gtfsStopId": "kuching:8533",
+          "posterName": "OPP MASJID DARUL SALAM"
+        },
+        {
+          "gtfsStopId": "kuching:8529",
+          "posterName": "KAMPUNG MATANG"
+        },
+        {
+          "gtfsStopId": "kuching:6653",
+          "posterName": "TAMAN SRI JAYA"
+        },
+        {
+          "gtfsStopId": "kuching:6654",
+          "posterName": "KOLEJ VOKASIONAL"
+        },
+        {
+          "gtfsStopId": "kuching:8530",
+          "posterName": "SIMPANG JLN SINGAI"
+        },
+        {
+          "gtfsStopId": "kuching:8531",
+          "posterName": "OPP SJKCH BATU 7"
+        },
+        {
+          "gtfsStopId": "kuching:8468",
+          "posterName": "TAMAN MAKMUR"
+        },
+        {
+          "gtfsStopId": "kuching:6658",
+          "posterName": "TAMAN SURIA JAYA"
+        },
+        {
+          "gtfsStopId": "kuching:8532",
+          "posterName": "MATANG BATU 5"
+        },
+        {
+          "gtfsStopId": "kuching:8470",
+          "posterName": "OPP TAMAN YEN YEN"
+        },
+        {
+          "gtfsStopId": "kuching:8471",
+          "posterName": "OPP PUBLIC FURNITURE"
+        },
+        {
+          "gtfsStopId": "kuching:6542",
+          "posterName": "TAMAN HUSSEIN"
+        },
+        {
+          "gtfsStopId": "kuching:6541",
+          "posterName": "BANGUNAN MARZUKI"
+        },
+        {
+          "gtfsStopId": "kuching:6535",
+          "posterName": "SEGO PRECINT"
+        },
+        {
+          "gtfsStopId": "kuching:6534",
+          "posterName": "COPAL SATOK"
+        },
+        {
+          "gtfsStopId": "kuching:6521",
+          "posterName": "SAUJANA"
+        }
+      ],
+      "fares": [
+        [
+          90,
+          100,
+          110,
+          130,
+          140,
+          140,
+          150,
+          160,
+          160,
+          170,
+          190,
+          200,
+          200,
+          210,
+          230,
+          230,
+          260,
+          310,
+          320,
+          320,
+          330
+        ],
+        [
+          90,
+          100,
+          120,
+          140,
+          140,
+          150,
+          160,
+          160,
+          170,
+          180,
+          190,
+          200,
+          210,
+          230,
+          230,
+          250,
+          300,
+          310,
+          310,
+          330
+        ],
+        [
+          90,
+          100,
+          120,
+          120,
+          130,
+          140,
+          140,
+          150,
+          160,
+          180,
+          180,
+          190,
+          210,
+          210,
+          240,
+          280,
+          290,
+          300,
+          310
+        ],
+        [
+          90,
+          110,
+          110,
+          120,
+          130,
+          130,
+          140,
+          150,
+          170,
+          170,
+          180,
+          200,
+          200,
+          230,
+          270,
+          280,
+          290,
+          300
+        ],
+        [
+          90,
+          90,
+          100,
+          110,
+          110,
+          120,
+          130,
+          150,
+          150,
+          160,
+          180,
+          180,
+          210,
+          260,
+          260,
+          270,
+          280
+        ],
+        [
+          90,
+          90,
+          90,
+          100,
+          110,
+          120,
+          130,
+          140,
+          150,
+          170,
+          170,
+          190,
+          240,
+          250,
+          250,
+          270
+        ],
+        [
+          90,
+          90,
+          90,
+          100,
+          120,
+          130,
+          130,
+          140,
+          160,
+          160,
+          190,
+          240,
+          250,
+          250,
+          260
+        ],
+        [
+          90,
+          90,
+          90,
+          110,
+          120,
+          120,
+          130,
+          150,
+          160,
+          180,
+          230,
+          240,
+          240,
+          250
+        ],
+        [
+          90,
+          90,
+          100,
+          110,
+          120,
+          130,
+          150,
+          150,
+          170,
+          220,
+          230,
+          230,
+          250
+        ],
+        [
+          90,
+          100,
+          110,
+          110,
+          120,
+          140,
+          140,
+          170,
+          220,
+          230,
+          230,
+          240
+        ],
+        [
+          90,
+          100,
+          110,
+          120,
+          130,
+          140,
+          160,
+          210,
+          220,
+          220,
+          240
+        ],
+        [
+          90,
+          90,
+          100,
+          120,
+          120,
+          150,
+          200,
+          210,
+          210,
+          220
+        ],
+        [
+          90,
+          90,
+          110,
+          110,
+          140,
+          180,
+          190,
+          190,
+          210
+        ],
+        [
+          90,
+          100,
+          110,
+          130,
+          180,
+          190,
+          190,
+          200
+        ],
+        [
+          90,
+          100,
+          120,
+          170,
+          180,
+          180,
+          190
+        ],
+        [
+          90,
+          100,
+          150,
+          160,
+          160,
+          180
+        ],
+        [
+          100,
+          150,
+          160,
+          160,
+          170
+        ],
+        [
+          120,
+          130,
+          130,
+          150
+        ],
+        [
+          90,
+          90,
+          100
+        ],
+        [
+          90,
+          90
+        ],
+        [
+          90
+        ]
+      ]
+    }
+  ]
+}

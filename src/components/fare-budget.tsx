@@ -570,7 +570,7 @@ export function BudgetPanel({
           {[...new Set(budget.recurringTrips.map((t) => t.region))]
             .map((region) => {
               const c = fareConfig(region);
-              return c
+              return c && c.pass.priceSen !== null
                 ? `${region}: ${formatFare(c.pass.priceSen)} / ${c.pass.days} ${locale === "ms" ? "hari" : "days"}`
                 : null;
             })

@@ -8,11 +8,13 @@ import {
   resolveDistance,
   defaultProfile,
   fareConfig,
+  fareConfigSchema,
   estimateJourney,
   formatFare,
   sortJourneysByFare,
   type Leg,
 } from "../src/lib/fares";
+import generatedOverrides from "../src/lib/fare-overrides.generated.json";
 import {
   calculateBudget,
   comparePass,
@@ -234,6 +236,158 @@ test("override precedence and incomplete tables fail closed", () => {
     169,
   );
 });
+test("kuching is priceable only through verified route tables", () => {
+  const kuching = fareConfig("kuching")!;
+  assert.equal(kuching.formulaVerified, false);
+  assert.equal(kuching.pass.priceSen, null);
+  assert.ok(fareConfigSchema.safeParse(kuching).success);
+  const overrideCounts = new Map<string, number>();
+  for (const o of generatedOverrides.regions.kuching.overrides)
+    overrideCounts.set(
+      `${o.routeId} ${o.patternId}`,
+      (overrideCounts.get(`${o.routeId} ${o.patternId}`) ?? 0) + 1,
+    );
+  // Q05 full between-stop matrices (17- and 22-stop).
+  assert.equal(overrideCounts.get("kuching:30401 kuching:210_0_WE_13"), 136);
+  assert.equal(overrideCounts.get("kuching:30401 kuching:210_1_WE_13"), 231);
+  // Every other tabled Kuching route must carry overrides too.
+  for (const key of [
+    "kuching:30395 kuching:207_0_WE_13",
+    "kuching:30395 kuching:207_1_WE_13",
+    "kuching:30402 kuching:211_0_WE_13",
+    "kuching:30402 kuching:211_1_WE_13",
+    "kuching:30403 kuching:212_0_WE_13",
+    "kuching:30403 kuching:212_1_WE_13",
+    "kuching:30404 kuching:213_0_WE_13",
+    "kuching:30404 kuching:213_1_WE_13",
+    "kuching:30405 kuching:214_0_WE_13",
+    "kuching:30405 kuching:214_1_WE_13",
+    "kuching:30399 kuching:206_0_WE_13",
+    "kuching:30399 kuching:206_1_WE_13",
+  ])
+    assert.ok(
+      (overrideCounts.get(key) ?? 0) > 0,
+      `missing overrides for ${key}`,
+    );
+  const tableLeg = (
+    patternId: string,
+    fromSequence: number,
+    toSequence: number,
+    routeId = "kuching:30401",
+  ): Leg => ({
+    route: {
+      ...route,
+      id: routeId,
+      region: "kuching",
+      patterns: [
+        {
+          ...route.patterns![0],
+          id: patternId,
+          geometrySource: "unavailable",
+          path: [],
+        },
+      ],
+    },
+    patternId,
+    fromStopId: "kuching:6521",
+    toStopId: "kuching:6645",
+    fromSequence,
+    toSequence,
+  });
+  const quoteTable = (legIn: Leg) =>
+    calculateFare({
+      leg: legIn,
+      distance: { metres: null, method: null, reason: "missing_shape" },
+      profile: defaultProfile,
+      config: fareConfig("kuching")!,
+      asOf: "2026-10-18",
+    });
+  // Q05 outbound SAUJANA -> SMKA AGAMA MATANG 2 has no GTFS shape at all;
+  // only the published table can price it.
+  const outbound = quoteTable(tableLeg("kuching:210_0_WE_13", 1, 17));
+  assert.equal(outbound.fareSen, 300);
+  assert.equal(outbound.rule, "route_override");
+  assert.match(outbound.sourceUrl ?? "", /lpkpsarawak/);
+  assert.equal(quoteTable(tableLeg("kuching:210_1_WE_13", 1, 22)).fareSen, 330);
+  assert.equal(
+    quoteTable(tableLeg("kuching:210_0_WE_13", 11, 17)).fareSen,
+    240,
+  );
+  // Sept 2025 linear tables price each remaining tabulated corridor.
+  assert.equal(
+    quoteTable(tableLeg("kuching:211_0_WE_13", 1, 25, "kuching:30402")).fareSen,
+    370,
+  );
+  assert.equal(
+    quoteTable(tableLeg("kuching:212_1_WE_13", 1, 18, "kuching:30403")).fareSen,
+    220,
+  );
+  assert.equal(
+    quoteTable(tableLeg("kuching:207_0_WE_13", 1, 14, "kuching:30395")).fareSen,
+    230,
+  );
+  assert.equal(
+    quoteTable(tableLeg("kuching:214_0_WE_13", 1, 31, "kuching:30405")).fareSen,
+    400,
+  );
+  // Q08/Q10: the Sept 2025 route poster supersedes the 14 May 2025 matrix on
+  // the pairs both name, and the surviving fare keeps the newer citation.
+  const q08ob = quoteTable(
+    tableLeg("kuching:213_0_WE_13", 1, 24, "kuching:30404"),
+  );
+  assert.equal(q08ob.fareSen, 390);
+  assert.match(q08ob.sourceUrl ?? "", /Q08_merged/);
+  assert.equal(
+    quoteTable(tableLeg("kuching:213_1_WE_13", 1, 34, "kuching:30404")).fareSen,
+    380,
+  );
+  assert.equal(
+    quoteTable(tableLeg("kuching:206_1_WE_13", 1, 44, "kuching:30399")).fareSen,
+    660,
+  );
+  assert.equal(
+    quoteTable(tableLeg("kuching:206_0_WE_13", 1, 24, "kuching:30399")).fareSen,
+    400,
+  );
+  // Pairs the poster never names (Open Air Market -> Beratok) are still
+  // priced from the corroborated May 2025 matrix.
+  const q10Beratok = quoteTable(
+    tableLeg("kuching:206_0_WE_13", 1, 28, "kuching:30399"),
+  );
+  assert.equal(q10Beratok.fareSen, 460);
+  assert.match(q10Beratok.sourceUrl ?? "", /KADAR-TAMBANG-Q10/);
+  assert.equal(
+    quoteTable(tableLeg("kuching:206_0_WE_13", 1, 47, "kuching:30399")).fareSen,
+    700,
+  );
+  assert.equal(
+    quoteTable(tableLeg("kuching:206_1_WE_13", 1, 48, "kuching:30399")).fareSen,
+    710,
+  );
+  // The May 2025 Q08 inbound matrix contradicts the current poster on all
+  // eight comparable pairs, so it is dropped rather than used for the pairs
+  // the poster does not name: those legs stay unpriceable.
+  assert.equal(overrideCounts.get("kuching:30404 kuching:213_1_WE_13"), 8);
+  const staleQ08 = quoteTable(
+    tableLeg("kuching:213_1_WE_13", 16, 34, "kuching:30404"),
+  );
+  assert.equal(staleQ08.fareSen, null);
+  assert.equal(staleQ08.reason, "unresolved_override");
+  // A Kuching route absent from the tables stays unpriceable even with a
+  // perfect distance, because the formula is not verified for Sarawak.
+  const untabled = calculateFare({
+    leg: {
+      ...tableLeg("kuching:210_0_WE_13", 1, 3),
+      route: { ...route, region: "kuching", id: "kuching:99999" },
+    },
+    distance: { metres: 10000, method: "route_geometry" },
+    profile: defaultProfile,
+    config: fareConfig("kuching")!,
+    asOf: "2026-10-18",
+  });
+  assert.equal(untabled.fareSen, null);
+  assert.equal(untabled.reason, "unverified_city");
+});
 test("unsupported operator and invalid/expired config never return zero", () => {
   assert.equal(
     calculateFare({
@@ -252,7 +406,7 @@ test("unsupported operator and invalid/expired config never return zero", () => 
     { ...config, baseMicros: NaN },
   ])
     assert.equal(quote(2000, defaultProfile, c).fareSen, null);
-  assert.equal(fareConfig("kuching"), null);
+  assert.equal(fareConfig("ktmb"), null);
   assert.equal(formatFare(169), "RM1.69");
 });
 test("GTFS distance association, order and units", () => {
@@ -325,6 +479,142 @@ test("geometry fallback uses full route shape and fails without one", () => {
     null,
   );
 });
+const corridor = (
+  coordinates: [number, number][],
+  path: [number, number][],
+): { stops: Stop[]; route: TransitRoute } => {
+  const ids = ["a", "b", "c"];
+  return {
+    stops: coordinates.map((coordinate, i) => ({
+      id: ids[i],
+      name: ids[i].toUpperCase(),
+      coordinate,
+      accessible: false,
+      region: "johor",
+    })),
+    route: {
+      ...route,
+      patterns: [
+        {
+          id: "p",
+          tripId: "t",
+          shapeId: "s",
+          direction: "0",
+          geometrySource: "gtfs_shape",
+          distanceUnit: "unknown",
+          path,
+          stops: ids.map((stopId, i) => ({
+            stopId,
+            sequence: i + 1,
+            shapeDistance: null,
+          })),
+        },
+      ],
+    },
+  };
+};
+const corridorLeg = (from: string, to: string): Omit<Leg, "route"> => ({
+  patternId: "p",
+  fromStopId: from,
+  toStopId: to,
+  fromSequence: from === "a" ? 1 : from === "b" ? 2 : 3,
+  toSequence: to === "a" ? 1 : to === "b" ? 2 : 3,
+});
+// Out-and-back corridor: outbound along latitude 1.5, return along 1.5002.
+// Midline stops individually match both lanes, but only the outbound lane
+// admits a strictly increasing assignment, so the DP resolves them.
+test("projection disambiguates parallel traversals by monotonic assignment", () => {
+  const c = corridor(
+    [
+      [103.001, 1.49999],
+      [103.005, 1.5001],
+      [103.008, 1.49999],
+    ],
+    [
+      [103, 1.5],
+      [103.01, 1.5],
+      [103.01, 1.5002],
+      [103, 1.5002],
+    ],
+  );
+  const d = resolveDistance(
+    { ...corridorLeg("a", "c"), route: c.route },
+    c.stops,
+  );
+  assert.equal(d.method, "route_geometry");
+  assert.ok(d.metres! > 700 && d.metres! < 850, String(d.metres));
+  // A midline stop with no monotonic order signal is still ambiguous.
+  const tie = corridor(
+    [
+      [103.001, 1.50005],
+      [103.005, 1.50005],
+      [103.008, 1.50005],
+    ],
+    [
+      [103, 1.5],
+      [103.01, 1.5],
+      [103.01, 1.5005],
+      [103, 1.5005],
+      [103, 1.5001],
+      [103.01, 1.5001],
+    ],
+  );
+  assert.equal(
+    (
+      resolveDistance(
+        { ...corridorLeg("a", "c"), route: tie.route },
+        tie.stops,
+      ) as { reason: string }
+    ).reason,
+    "ambiguous_shape",
+  );
+});
+// Real feeds plot some stops across a forecourt or slip road rather than on the
+// digitised path, so a stop 45-55 m away is priced from its own pass. The wider
+// band only applies when nothing is closer, and a stop that two passes claim
+// still fails closed.
+test("stops plotted off the shape are priced from a unique pass, never a tied one", () => {
+  const offShape = corridor(
+    [
+      [103.002, 1.50045],
+      [103.005, 1.50045],
+      [103.008, 1.50045],
+    ],
+    [
+      [103, 1.5],
+      [103.01, 1.5],
+    ],
+  );
+  const d = resolveDistance(
+    { ...corridorLeg("a", "c"), route: offShape.route },
+    offShape.stops,
+  );
+  assert.equal(d.method, "route_geometry");
+  assert.ok(d.metres! > 600 && d.metres! < 730, String(d.metres));
+  // Midline stops are ~56 m from both lanes of an out-and-back corridor.
+  const bothLanes = corridor(
+    [
+      [103.002, 1.5005],
+      [103.005, 1.5005],
+      [103.008, 1.5005],
+    ],
+    [
+      [103, 1.5],
+      [103.01, 1.5],
+      [103.01, 1.501],
+      [103, 1.501],
+    ],
+  );
+  assert.equal(
+    (
+      resolveDistance(
+        { ...corridorLeg("a", "c"), route: bothLanes.route },
+        bothLanes.stops,
+      ) as { reason: string }
+    ).reason,
+    "ambiguous_shape",
+  );
+});
 test("GTFS importer retains distinct patterns, repeated stops and unknown distance units", () => {
   const zip = zipSync(
     Object.fromEntries(
@@ -349,6 +639,50 @@ test("GTFS importer retains distinct patterns, repeated stops and unknown distan
     ["a", "b", "a"],
   );
   assert.equal(n.routes[0].patterns![0].distanceUnit, "unknown");
+});
+function unitZip(a: string, b: string, c: string) {
+  return zipSync(
+    Object.fromEntries(
+      Object.entries({
+        "agency.txt": "agency_id,agency_name\nx,BAS.MY",
+        "routes.txt": "route_id,agency_id,route_long_name\nr,x,Route",
+        "stops.txt":
+          "stop_id,stop_name,stop_lat,stop_lon\na,A,1.5,103\nb,B,1.5,103.01\nc,C,1.5,103.02",
+        "trips.txt": "route_id,trip_id,shape_id,direction_id\nr,t,s,0",
+        "stop_times.txt": `trip_id,stop_id,stop_sequence,shape_dist_traveled\nt,a,1,${a}\nt,b,2,${b}\nt,c,3,${c}`,
+        "shapes.txt":
+          "shape_id,shape_pt_lat,shape_pt_lon,shape_pt_sequence\ns,1.5,103,1\ns,1.5,103.01,2\ns,1.5,103.02,3",
+      }).map(([k, v]) => [k, strToU8(v)]),
+    ),
+  );
+}
+// Shape polyline spans ~2225 m from stop a to stop c.
+test("importer infers shape_dist_traveled units from shape geometry only when convincing", () => {
+  assert.equal(
+    parseStaticGtfs(unitZip("0", "1100", "2200"), "u").routes[0].patterns![0]
+      .distanceUnit,
+    "metres",
+  );
+  assert.equal(
+    parseStaticGtfs(unitZip("0", "1.1", "2.2"), "u").routes[0].patterns![0]
+      .distanceUnit,
+    "kilometres",
+  );
+  assert.equal(
+    parseStaticGtfs(unitZip("0", "5000", "9000"), "u").routes[0].patterns![0]
+      .distanceUnit,
+    "unknown",
+  );
+  assert.equal(
+    parseStaticGtfs(unitZip("0", "", "2200"), "u").routes[0].patterns![0]
+      .distanceUnit,
+    "unknown",
+  );
+  assert.equal(
+    parseStaticGtfs(unitZip("0", "2200", "1100"), "u").routes[0].patterns![0]
+      .distanceUnit,
+    "unknown",
+  );
 });
 const budget: TransportBudget = {
   schemaVersion: 1,

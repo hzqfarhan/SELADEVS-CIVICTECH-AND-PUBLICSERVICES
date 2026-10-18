@@ -57,6 +57,23 @@ export const sources: SourceEntry[] = [
       "Checked 2026-10-08. RM0.94 first 2 km, RM0.094 per additional km or part; RM30 / 30 days Malaysian-citizen pass. Route tables take priority. City pass coverage remains unconfirmed; nearest-sen half-up rounding is GERAK estimate policy, not a verified official rounding rule.",
   },
   {
+    name: "LPKP Sarawak BAS.MY Kuching Q05 fare table",
+    url: "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/q05.pdf",
+    kind: "standard",
+    purpose: "Published between-stop fare table for Kuching route Q05.",
+    notes:
+      "Transcribed 2026-10-18 from the official poster (pages 4-5) into data/fare-tables/kuching-q05.json; matrices validated against the GTFS stop order and the poster's own summary tables. The national formula and RM30 pass are not verified for Sarawak, so Kuching is priceable only through imported route tables.",
+  },
+  {
+    name: "LPKP Sarawak BAS.MY Kuching Q01-Q10 fare tables",
+    url: "https://www.lpkpsarawak.gov.my/kenyataan-media-tambang-bas-my-kuching-diturunkan-sehingga-43-65-selaras-dengan-bandar-bandar-lain-di-malaysia/",
+    kind: "standard",
+    purpose:
+      "Published fare tables for the remaining GTFS-backed Kuching corridors (Q01, Q06, Q07, Q08, Q09, Q10) and the press statement behind the 11 March 2025 fare reduction.",
+    notes:
+      "Discovered via the LPKP Sarawak WordPress media library 2026-10-18 and transcribed into data/fare-tables/kuching-q0{1,6,7,9}.json (Sept 2025 linear terminal tables) and kuching-q08/q10.json (14 May 2025 between-stop matrices plus the Sept 2025 terminal rows). Both generations already carry the reduced fares announced on 10 March 2025, and the matrices agree with the Sept 2025 posters on every comparable pair except Q08 inbound, whose May matrix is excluded as stale. Ambiguous or unmatched poster stops are excluded fail-closed. Q02-Q04 have posters but no GTFS routes; Q11-Q16 publish route maps but no fare table, so those corridors stay unverified_city.",
+  },
+  {
     name: "Open-Meteo current weather",
     url: "https://open-meteo.com/en/docs",
     purpose: "Current modelled conditions at the selected service-area centre.",

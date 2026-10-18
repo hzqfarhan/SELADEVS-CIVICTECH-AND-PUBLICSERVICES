@@ -78,6 +78,14 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
           node
             .querySelector("[data-bus-body]")
             ?.setAttribute("transform", `rotate(${sample.bearing})`);
+          node.classList.toggle(
+            "is-estimated",
+            "estimated" in sample && !!sample.estimated,
+          );
+          node.classList.toggle(
+            "is-correcting",
+            "correcting" in sample && !!sample.correcting,
+          );
         }
       }
       frame = requestAnimationFrame(animate);
@@ -193,6 +201,56 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
                 strokeWidth="0.6"
               >
                 {stop.name}
+              </text>
+            </g>
+          );
+        })}
+        {[props.journeyFrom, props.journeyTo].map((stop, index) => {
+          if (!stop) return null;
+          const [x, y] = projection.project(stop.coordinate);
+          const label = `${index === 0 ? "A" : "B"} · ${
+            index === 0
+              ? props.locale === "ms"
+                ? "Dari"
+                : "From"
+              : props.locale === "ms"
+                ? "Ke"
+                : "To"
+          }: ${stop.name}`;
+          return (
+            <g
+              key={`endpoint-${index}`}
+              transform={`translate(${x} ${y})`}
+              role="button"
+              tabIndex={0}
+              aria-label={label}
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onSelectStop?.(stop.id);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  props.onSelectStop?.(stop.id);
+                }
+              }}
+            >
+              <circle
+                r="1.3"
+                fill={index === 0 ? "#38b992" : "#9bb5ff"}
+                stroke="#fff"
+                strokeWidth="0.3"
+              />
+              <text
+                y="-2.5"
+                textAnchor="middle"
+                fontSize="2"
+                fill="#fff"
+                paintOrder="stroke"
+                stroke="#10141a"
+                strokeWidth="0.7"
+              >
+                {label}
               </text>
             </g>
           );
@@ -680,7 +738,8 @@ function FlatMap(props: TransportMapProps) {
         const animate = (now: number) => {
           if (disposed || !map.current) return;
           let estimatedCount = 0,
-            pausedCount = 0;
+            pausedCount = 0,
+            correctingCount = 0;
           for (const [id, motion] of motions.current) {
             const marker = fleetMarkers.current.get(id);
             if (!marker) continue;
@@ -688,10 +747,13 @@ function FlatMap(props: TransportMapProps) {
             if ("estimated" in sample && sample.estimated) estimatedCount++;
             if ("predictionPaused" in sample && sample.predictionPaused)
               pausedCount++;
+            const correcting = "correcting" in sample && !!sample.correcting;
+            if (correcting) correctingCount++;
             marker.element.classList.toggle(
               "is-estimated",
               "estimated" in sample && !!sample.estimated,
             );
+            marker.element.classList.toggle("is-correcting", correcting);
             // Keep the pressed target still until pointer release, so moving
             // vehicles remain tappable while their geographic animation continues.
             if (!marker.element.matches(":active"))
@@ -817,9 +879,11 @@ function FlatMap(props: TransportMapProps) {
                 ? "Simulated service · animated route movement"
                 : pausedCount
                   ? `${pausedCount} position estimates paused · awaiting GPS`
-                  : estimatedCount
-                    ? `${estimatedCount} route-estimated positions · between GPS updates`
-                    : "GPS observations · waiting for next update";
+                  : correctingCount
+                    ? `${correctingCount} positions re-anchored to GPS · estimate held`
+                    : estimatedCount
+                      ? `${estimatedCount} route-estimated positions · between GPS updates`
+                      : "GPS observations · waiting for next update";
             previousStatus = now;
           }
           frame = requestAnimationFrame(animate);
@@ -978,7 +1042,7 @@ function FlatMap(props: TransportMapProps) {
     );
     const fitKey = `${props.region}:${official.length ? "official" : "demo"}`;
     // A late feed refresh must not replace an explicitly chosen stop/report.
-    if (props.focusLocation) {
+    if (props.focusLocation || props.journeyFrom || props.journeyTo) {
       regionAtFit.current = fitKey;
       return;
     }
@@ -1240,6 +1304,54 @@ function FlatMap(props: TransportMapProps) {
     });
   }, [ready, unavailable, props.stops, boundary]);
 
+  // Independent of the sampled stop layer: selected endpoints always stay visible.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || unavailable) return;
+    let cancelled = false;
+    const markers: Marker[] = [];
+    void import("maplibre-gl").then(({ Marker }) => {
+      if (cancelled) return;
+      [props.journeyFrom, props.journeyTo].forEach((stop, index) => {
+        if (!stop) return;
+        const label =
+          index === 0
+            ? props.locale === "ms"
+              ? "Dari"
+              : "From"
+            : props.locale === "ms"
+              ? "Ke"
+              : "To";
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = `gerak-journey-marker ${index === 0 ? "from" : "to"}`;
+        element.textContent = `${index === 0 ? "A" : "B"} · ${label}: ${stop.name}`;
+        element.title = element.textContent;
+        element.setAttribute("aria-label", element.textContent);
+        element.addEventListener("click", (event) => {
+          event.stopPropagation();
+          props.onSelectStop?.(stop.id);
+        });
+        markers.push(
+          new Marker({ element, anchor: "bottom" })
+            .setLngLat(stop.coordinate)
+            .addTo(instance),
+        );
+      });
+    });
+    return () => {
+      cancelled = true;
+      markers.forEach((marker) => marker.remove());
+    };
+  }, [
+    ready,
+    unavailable,
+    props.journeyFrom,
+    props.journeyTo,
+    props.locale,
+    props.onSelectStop,
+  ]);
+
   useEffect(() => {
     if (!ready || !map.current || unavailable) return;
     let cancelled = false;
@@ -1490,6 +1602,32 @@ function FlatMap(props: TransportMapProps) {
       observer.disconnect();
     };
   }, [ready, unavailable, props.focusLocation]);
+
+  const journeyFrame = useRef("");
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || unavailable) return;
+    const points = [props.journeyFrom, props.journeyTo].flatMap((stop) =>
+      stop ? [stop.coordinate] : [],
+    );
+    const key = JSON.stringify(points);
+    if (journeyFrame.current === key) return;
+    journeyFrame.current = key;
+    if (!points.length) return;
+    const lngs = points.map((point) => point[0]);
+    const lats = points.map((point) => point[1]);
+    instance.fitBounds(
+      [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ],
+      {
+        padding: { top: 110, bottom: 85, left: 70, right: 70 },
+        maxZoom: 16,
+        duration: 800,
+      },
+    );
+  }, [ready, unavailable, props.journeyFrom, props.journeyTo]);
 
   useEffect(() => {
     if (ready && map.current?.getLayer("transit-stop-names"))

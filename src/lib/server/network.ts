@@ -119,7 +119,7 @@ async function loadEndpoint(
   if (Date.now() < cache.retryAt) return fallback();
   cache.retryAt = Date.now() + 35000;
   try {
-    reserveOfficialRequest();
+    reserveOfficialRequest("static");
     const response = await fetch(endpoint.staticUrl, {
       signal: AbortSignal.timeout(25000),
       cache: "no-store",

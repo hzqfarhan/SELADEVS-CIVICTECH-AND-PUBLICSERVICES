@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       headers: {
         "Cache-Control": "public, max-age=0, must-revalidate",
         "Vercel-CDN-Cache-Control":
-          "public, s-maxage=10, stale-while-revalidate=25",
+          "public, s-maxage=5, stale-while-revalidate=10",
       },
     });
   } catch (error) {

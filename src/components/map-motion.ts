@@ -12,6 +12,10 @@ export interface VehicleMotion {
   route?: TransitRoute;
   fromProgress?: number;
   toProgress?: number;
+  /** Magnitudes of the last few observed along-shape movements, m/s. */
+  speeds?: number[];
+  /** Consecutive fix intervals that moved backwards along the shape. */
+  backward?: number;
   prediction?: {
     path: Coordinate[];
     progress: number;
@@ -19,6 +23,10 @@ export interface VehicleMotion {
     rate: number;
     age: number;
     loop: boolean;
+    /** The fix landed too far behind the estimate to reconcile without reversing. */
+    hold?: boolean;
+    /** Seconds of travel the estimate may claim, from this observation window. */
+    horizon?: number;
   };
 }
 
@@ -133,6 +141,25 @@ export function projectToRoute(
   return nearest;
 }
 
+/** How far an estimate may run ahead of the next fix before that gap is closed
+ * by holding the marker instead of sliding it backwards along the road. */
+const OVER_RUN_HOLD_METRES = 60;
+
+/** Signed movement between two observations along one shape, in metres. */
+function shapeMove(
+  path: Coordinate[],
+  a: Coordinate,
+  b: Coordinate,
+  total: number,
+  loop: boolean,
+) {
+  const from = projectToRoute(path, a),
+    to = projectToRoute(path, b);
+  if (from.distance > 80 || to.distance > 80) return undefined;
+  const moved = (to.progress - from.progress) * total;
+  return loop && moved < -total / 2 ? moved + total : moved;
+}
+
 /** Coast to a halt over the final 30 seconds of a three-minute GPS outage. */
 export function predictionTravelSeconds(age: number) {
   const seconds = Math.max(0, Math.min(180, age));
@@ -146,7 +173,10 @@ export function sampleMotion(motion: VehicleMotion, now: number) {
     const p = motion.prediction;
     const elapsed = Math.max(0, (now - motion.started) / 1000);
     // Estimate only for a bounded outage. Never manufacture new GPS timestamps.
-    const seconds = predictionTravelSeconds(p.age + elapsed);
+    const seconds = Math.min(
+      predictionTravelSeconds(p.age + elapsed),
+      p.horizon ?? Infinity,
+    );
     const blend = Math.min(1, elapsed / 6);
     let progress =
       p.progress +
@@ -164,6 +194,7 @@ export function sampleMotion(motion: VehicleMotion, now: number) {
       progress,
       estimated: seconds > 0 && p.rate !== 0,
       predictionPaused: p.age + elapsed >= 180,
+      correcting: p.hold === true,
     };
   }
   const t =
@@ -207,18 +238,27 @@ export function updateMotions(
   for (const id of motions.keys()) if (!ids.has(id)) motions.delete(id);
   for (const vehicle of vehicles) {
     const previous = motions.get(vehicle.id);
-    const availableRoute = routes.find(
-      (r) => r.id === vehicle.routeId && r.source === "official",
-    );
     // Polls may complete out of order. Never rewind a displayed observation.
     if (previous && vehicle.timestamp < previous.timestamp) continue;
+    const route = routes.find(
+      (r) => r.id === vehicle.routeId && r.source === "official",
+    );
+    // A route carries one representative shape, usually a single direction.
+    // Projecting the opposite half of the fleet onto it rewinds those buses at
+    // every fix, so follow the one-way shape matching the reported direction.
+    const shape =
+      route?.patterns?.find(
+        (p) =>
+          p.direction !== null &&
+          p.direction === vehicle.direction &&
+          p.path.length > 1,
+      )?.path ?? route?.path;
     if (
       previous &&
       previous.timestamp === vehicle.timestamp &&
       previous.to[0] === vehicle.coordinate[0] &&
       previous.to[1] === vehicle.coordinate[1] &&
-      (vehicle.source === "simulator" ||
-        previous.prediction?.path === availableRoute?.path)
+      (vehicle.source === "simulator" || previous.prediction?.path === shape)
     )
       continue;
     const current = previous
@@ -246,74 +286,105 @@ export function updateMotions(
           360) %
         360
       : (previous?.bearing ?? 0);
-    const route = routes.find(
-      (r) => r.id === vehicle.routeId && r.source === "official",
-    );
-    const projected = route
+    const projected = shape
       ? projectToRoute(
-          route.path,
+          shape,
           vehicle.coordinate,
           vehicle.bearingKnown === false ? undefined : vehicle.bearing,
         )
       : undefined;
     let prediction: VehicleMotion["prediction"];
+    let speeds = previous?.speeds ? [...previous.speeds] : [];
+    let backward = 0;
     if (
       vehicle.source === "gtfs-rt" &&
-      route &&
+      shape &&
       projected &&
       projected.distance < 80
     ) {
-      const total = routeLengths(route.path).total * 111320;
+      const total = routeLengths(shape).total * 111320;
+      const loop =
+        Math.hypot(
+          shape[0][0] - shape.at(-1)![0],
+          shape[0][1] - shape.at(-1)![1],
+        ) *
+          111320 <
+        30;
+      const gap = delta / 1000;
+      const moved =
+        previous && total && gap > 2
+          ? shapeMove(shape, previous.to, vehicle.coordinate, total, loop)
+          : undefined;
+      // Under about 2.5 km/h of travel between fixes, the difference between
+      // two observations is GPS noise and can support neither speed nor course.
+      const noise = Math.max(12, gap * 0.7);
+      if (moved !== undefined && Math.abs(moved) > noise) {
+        speeds = [...speeds, Math.abs(moved / gap)].slice(-3);
+        backward = moved < 0 ? (previous?.backward ?? 0) + 1 : 0;
+      }
       const heading =
         vehicle.bearingKnown === false ? inferredBearing : vehicle.bearing;
-      const direction =
-        Math.abs(((heading - projected.bearing + 540) % 360) - 180) > 90
-          ? -1
-          : 1;
-      const inferredSpeed =
-        previous && delta > 0
-          ? (Math.hypot(
-              (vehicle.coordinate[0] - previous.to[0]) *
-                Math.cos((vehicle.coordinate[1] * Math.PI) / 180),
-              vehicle.coordinate[1] - previous.to[1],
-            ) *
-              111320) /
-            (delta / 1000)
-          : 0;
+      const reported =
+        vehicle.speedKnown === false ? undefined : vehicle.speed / 3.6;
+      // These feeds publish no speed, so the estimate is the recent lower
+      // median of observed movements: one jittered fix cannot spike it, and a
+      // bus that has just slowed is not extrapolated at its old pace.
+      const observed = speeds.length
+        ? [...speeds].sort((a, b) => a - b)[Math.floor((speeds.length - 1) / 2)]
+        : 0;
       const speed = Math.max(
         0,
         Math.min(
           vehicle.vehicleKind === "rail" ? 50 : 30,
-          vehicle.speedKnown === false ? inferredSpeed : vehicle.speed / 3.6,
+          reported ?? observed,
         ),
       );
+      // One backward fix is a jam reading or a projection artefact. Only a
+      // sustained series of them means the vehicle actually turned around.
+      const direction =
+        moved === undefined
+          ? Math.abs(((heading - projected.bearing + 540) % 360) - 180) > 90
+            ? -1
+            : 1
+          : backward >= 2
+            ? -1
+            : 1;
       const age = Math.max(0, (wallNow - vehicle.timestamp) / 1000);
       const rate = total ? (direction * speed) / total : 0;
-      const start = projectToRoute(route.path, current.coordinate);
-      const loop =
-        Math.hypot(
-          route.path[0][0] - route.path.at(-1)![0],
-          route.path[0][1] - route.path.at(-1)![1],
-        ) *
-          111320 <
-        30;
+      // Only claim as much road as the window that produced this speed. A bus
+      // that has just stopped cannot be extrapolated across a whole fix age,
+      // and a long lead is what turns into a visible backward snap next poll.
+      const horizon = gap > 2 ? gap : undefined;
+      const travel = Math.min(
+        predictionTravelSeconds(age),
+        horizon ?? Infinity,
+      );
+      const start = projectToRoute(shape, current.coordinate);
       let correction =
         previous && start.distance < 80
-          ? start.progress -
-            (projected.progress + rate * predictionTravelSeconds(age))
+          ? start.progress - (projected.progress + rate * travel)
           : 0;
       if (loop) correction = ((correction + 1.5) % 1) - 0.5;
+      // Sliding the marker backwards to meet a fix that landed behind an
+      // over-run estimate animates a bus driving in reverse. Beyond a few
+      // metres of that, show the observation as it is, predict nothing, and
+      // label the position as correcting.
+      const hold = total > 0 && correction * total > OVER_RUN_HOLD_METRES;
       prediction = {
-        path: route.path,
+        path: shape,
         progress: projected.progress,
-        correction,
-        rate,
+        correction: hold ? 0 : correction,
+        rate: hold ? 0 : rate,
         age,
         loop,
+        hold,
+        horizon,
       };
     }
     motions.set(vehicle.id, {
       prediction,
+      speeds,
+      backward,
       from: current.coordinate,
       to: vehicle.coordinate,
       fromBearing: current.bearing,

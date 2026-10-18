@@ -36,6 +36,7 @@ export interface Vehicle {
   label: string;
   routeId: string;
   tripId?: string;
+  direction?: string;
   vehicleKind?: "bus" | "rail";
   coordinate: Coordinate;
   bearing: number;

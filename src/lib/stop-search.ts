@@ -8,7 +8,11 @@ const normalize = (value: string) =>
     .trim();
 
 /** Search only the loaded service's actual stops; never manufacture geocoded places. */
-export function searchStops(stops: Stop[], query: string, limit = 8): Stop[] {
+export function searchStops(
+  stops: Stop[],
+  query: string,
+  limit = Infinity,
+): Stop[] {
   const tokens = normalize(query).split(/\s+/).filter(Boolean);
   return stops
     .filter((stop) =>

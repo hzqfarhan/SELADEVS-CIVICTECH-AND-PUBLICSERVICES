@@ -44,6 +44,34 @@ test("missing GPS speed and bearing remain marked unknown", () => {
   assert.equal(v.speedKnown, false);
   assert.equal(v.bearingKnown, false);
   assert.equal(v.occupancy, "unknown");
+  assert.equal(v.direction, undefined);
+});
+test("published direction survives presence checking, including direction zero", () => {
+  const now = Date.now();
+  const entity = (directionId: number) => ({
+    id: "bus",
+    vehicle: {
+      trip: { routeId: "J30", tripId: "t1", directionId },
+      position: { latitude: 1.5, longitude: 103.7 },
+      timestamp: Math.floor(now / 1000),
+    },
+  });
+  const header = {
+    gtfsRealtimeVersion: "2.0",
+    timestamp: Math.floor(now / 1000),
+  };
+  const [outbound] = normalizeFeed(
+    { header, entity: [entity(0)] },
+    "johor",
+    now,
+  );
+  const [inbound] = normalizeFeed(
+    { header, entity: [entity(1)] },
+    "johor",
+    now,
+  );
+  assert.equal(outbound.direction, "0");
+  assert.equal(inbound.direction, "1");
 });
 test("official connection planner respects stop direction and never wraps as a demo loop", () => {
   const stops: Stop[] = ["a", "b", "c"].map((id, i) => ({

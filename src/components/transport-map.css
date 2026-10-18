@@ -314,6 +314,15 @@
 .gerak-svg-bus:focus {
   filter: drop-shadow(0 0 1px #fff);
 }
+/* Same language as the 2D markers: dashed is estimated, dotted is re-anchored. */
+.gerak-svg-bus.is-estimated > circle:first-child {
+  stroke: #e7ebf2;
+  stroke-width: 0.25;
+  stroke-dasharray: 0.8 0.6;
+}
+.gerak-svg-bus.is-correcting > circle:first-child {
+  stroke-dasharray: 0.3 0.5;
+}
 .gerak-map-caption {
   position: absolute;
   bottom: 28px;
@@ -688,6 +697,10 @@
 .gerak-bus-marker.is-estimated {
   border-style: dashed;
 }
+/* A GPS fix that landed behind the estimate: shown, but not extrapolated. */
+.gerak-bus-marker.is-correcting {
+  border-style: dotted;
+}
 .gerak-motion-status {
   display: none;
 }
@@ -927,5 +940,28 @@
 }
 .gerak-follow-label:focus-visible {
   outline: 2px solid var(--lime);
+  outline-offset: 3px;
+}
+
+.gerak-journey-marker {
+  z-index: 8;
+  max-width: 230px;
+  padding: 10px 13px;
+  border: 2px solid #fff;
+  border-radius: 12px 12px 12px 0;
+  background: #38b992;
+  color: #071b21;
+  box-shadow: 0 4px 18px #0007;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.gerak-journey-marker.to {
+  background: #9bb5ff;
+}
+.gerak-journey-marker:focus-visible {
+  outline: 3px solid #fff;
   outline-offset: 3px;
 }

@@ -148,6 +148,7 @@ export function comparePass(
   if (
     profile.citizenship !== "malaysian" ||
     !config.pass.coverageConfirmed ||
+    config.pass.priceSen === null ||
     !Number.isInteger(activationDay) ||
     activationDay < 1 ||
     activationDay > 31 ||

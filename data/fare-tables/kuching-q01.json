@@ -1,0 +1,94 @@
+{
+  "id": "kuching-q01",
+  "region": "kuching",
+  "routeName": "Q01 Saujana Parking - Taman Maliyah",
+  "sourceTitle": "Kadar Tambang Laluan Q01 (Maliyah), poster 12 Sept 2025",
+  "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/ilovepdf_merged-1.pdf",
+  "sourceDate": "2025-09-12",
+  "verifiedAt": "2026-10-18",
+  "concessionAllowed": false,
+  "notes": "Linear terminal->destination tables. Omitted as ambiguous/unmatched: JALAN MATANG (inbound), TAMAN MALIHAH terminus mapped to the pattern end (SURAU DARUL IBADAH), inbound TAMAN DAHLIA mapped to the earlier of the two DAHLIA stops to stay consistent with the Sept 2025 Q05 matrix neighbours.",
+  "directions": [
+    {
+      "patternId": "kuching:207_0_WE_13",
+      "direction": "outbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/ilovepdf_merged-1.pdf",
+      "sourceDate": "2025-09-12",
+      "fromStop": {
+        "gtfsStopId": "kuching:6521",
+        "posterName": "STESEN BAS SAUJANA"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6539",
+          "posterName": "SATOK",
+          "fareSen": 90
+        },
+        {
+          "gtfsStopId": "kuching:6527",
+          "posterName": "OPPOSITE BANGUNAN MARZUKI",
+          "fareSen": 100
+        },
+        {
+          "gtfsStopId": "kuching:6639",
+          "posterName": "SMK PETRAJAYA",
+          "fareSen": 110
+        },
+        {
+          "gtfsStopId": "kuching:6523",
+          "posterName": "EMART MATANG",
+          "fareSen": 140
+        },
+        {
+          "gtfsStopId": "kuching:8464",
+          "posterName": "TAMAN MALIHAH",
+          "fareSen": 230
+        }
+      ]
+    },
+    {
+      "patternId": "kuching:207_1_WE_13",
+      "direction": "inbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/ilovepdf_merged-1.pdf",
+      "sourceDate": "2025-09-12",
+      "fromStop": {
+        "gtfsStopId": "kuching:8464",
+        "posterName": "MALIHAH"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:8466",
+          "posterName": "H&L SUPERMARKET MALIHAH",
+          "fareSen": 100
+        },
+        {
+          "gtfsStopId": "kuching:6567",
+          "posterName": "SM SAINS",
+          "fareSen": 110
+        },
+        {
+          "gtfsStopId": "kuching:6659",
+          "posterName": "TAMAN DAHLIA",
+          "fareSen": 180
+        },
+        {
+          "gtfsStopId": "kuching:6541",
+          "posterName": "BANGUNAN MARZUKI",
+          "fareSen": 210
+        },
+        {
+          "gtfsStopId": "kuching:6534",
+          "posterName": "COPAL SATOK",
+          "fareSen": 220
+        },
+        {
+          "gtfsStopId": "kuching:6521",
+          "posterName": "STESEN BAS SAUJANA",
+          "fareSen": 230
+        }
+      ]
+    }
+  ]
+}

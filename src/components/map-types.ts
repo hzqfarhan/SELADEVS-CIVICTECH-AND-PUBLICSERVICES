@@ -9,6 +9,8 @@ import type {
 
 export interface TransportMapProps {
   locale?: "en" | "ms";
+  journeyFrom?: Stop;
+  journeyTo?: Stop;
   onTrafficReport?: (coordinate: Coordinate, context: string) => void;
   mode: "2d" | "3d";
   onModeChange?: (mode: "2d" | "3d") => void;

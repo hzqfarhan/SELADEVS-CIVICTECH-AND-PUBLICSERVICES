@@ -90,9 +90,12 @@ const ROUTE_CONFIG: Record<
  * Geofence bounds for Kolej Kediaman Taman Universiti (KKTU)
  * and its access corridor west of DSI
  */
-export function isKktuLocation(lat: number | null, lng: number | null): boolean {
+export function isKktuLocation(
+  lat: number | null,
+  lng: number | null,
+): boolean {
   if (lat === null || lng === null) return false;
-  return lat >= 1.8530 && lat <= 1.8578 && lng >= 103.0710 && lng <= 103.0768;
+  return lat >= 1.853 && lat <= 1.8578 && lng >= 103.071 && lng <= 103.0768;
 }
 
 /**
@@ -105,7 +108,9 @@ export function extractLicensePlate(raw: string): string {
   if (!raw) return "UNKNOWN";
 
   // Check if plate indicates relocation to another plate
-  const relocateMatch = raw.match(/relocate\s+to\s+([A-Z]{1,3}\s*\d{1,4}\s*[A-Z]?)/i);
+  const relocateMatch = raw.match(
+    /relocate\s+to\s+([A-Z]{1,3}\s*\d{1,4}\s*[A-Z]?)/i,
+  );
   if (relocateMatch) {
     return formatPlate(relocateMatch[1]);
   }
@@ -133,16 +138,24 @@ export function resolveCampus(
   lat: number | null,
   lng: number | null,
   rawPlate: string,
-  cameFromKktu = false
+  cameFromKktu = false,
 ): { campusId: CampusId; campusName: string; routeName: string } {
   const upper = rawPlate.toUpperCase();
 
   // If vehicle is physically at KKTU, came from KKTU, or labeled KKTU
-  if (isKktuLocation(lat, lng) || cameFromKktu || upper.includes("KKTU") || upper.includes("TAMAN UNIVERSITI")) {
+  if (
+    isKktuLocation(lat, lng) ||
+    cameFromKktu ||
+    upper.includes("KKTU") ||
+    upper.includes("TAMAN UNIVERSITI")
+  ) {
     return {
       campusId: "parit-raja",
       campusName: "UTHM Parit Raja (Main Campus)",
-      routeName: cameFromKktu && !isKktuLocation(lat, lng) ? "KKTU Bus (From KKTU)" : "KKTU Bus",
+      routeName:
+        cameFromKktu && !isKktuLocation(lat, lng)
+          ? "KKTU Bus (From KKTU)"
+          : "KKTU Bus",
     };
   }
 
@@ -156,7 +169,7 @@ export function resolveCampus(
 
   // Infer by GPS coordinates if available
   if (lat !== null && lng !== null) {
-    if (lat >= 2.10 && lat <= 2.20 && lng >= 102.68 && lng <= 102.78) {
+    if (lat >= 2.1 && lat <= 2.2 && lng >= 102.68 && lng <= 102.78) {
       return {
         campusId: "pagoh",
         campusName: "UTHM Pagoh Campus",
@@ -180,7 +193,11 @@ export function resolveCampus(
       routeName: `Pagoh (Route ${routeId})`,
     };
   }
-  if (upper.includes("PERWIRA") || upper.includes("TF") || upper.includes("TDI")) {
+  if (
+    upper.includes("PERWIRA") ||
+    upper.includes("TF") ||
+    upper.includes("TDI")
+  ) {
     return {
       campusId: "parit-raja",
       campusName: "UTHM Parit Raja (Main Campus)",
@@ -195,11 +212,13 @@ export function resolveCampus(
   };
 }
 
-export async function scrapeUthmBuses(options: {
-  listenDurationMs?: number;
-  onPing?: (bus: ScrapedBus) => void;
-  verbose?: boolean;
-} = {}): Promise<ScrapedBus[]> {
+export async function scrapeUthmBuses(
+  options: {
+    listenDurationMs?: number;
+    onPing?: (bus: ScrapedBus) => void;
+    verbose?: boolean;
+  } = {},
+): Promise<ScrapedBus[]> {
   const listenDurationMs = options.listenDurationMs ?? 6000;
   const busMap = new Map<number, ScrapedBus>();
   const kktuOriginVehicles = new Set<number>();
@@ -223,7 +242,9 @@ export async function scrapeUthmBuses(options: {
 
     ws.onopen = () => {
       if (options.verbose) {
-        console.log(`[Scraper] WebSocket connected. Listening for vehicle pings...`);
+        console.log(
+          `[Scraper] WebSocket connected. Listening for vehicle pings...`,
+        );
       }
     };
 
@@ -254,7 +275,11 @@ export async function scrapeUthmBuses(options: {
             if (Array.isArray(item.ping) && item.ping.length >= 2) {
               lat = item.ping[0];
               lng = item.ping[1];
-            } else if (item.ping && typeof item.ping === "object" && "latitude" in item.ping) {
+            } else if (
+              item.ping &&
+              typeof item.ping === "object" &&
+              "latitude" in item.ping
+            ) {
               lat = item.ping.latitude;
               lng = item.ping.longitude;
               speed = item.ping.speed ?? 0;
@@ -273,7 +298,7 @@ export async function scrapeUthmBuses(options: {
               lat,
               lng,
               v.license_plate,
-              kktuOriginVehicles.has(v.id)
+              kktuOriginVehicles.has(v.id),
             );
 
             let statusStr = "Idle";
@@ -316,7 +341,7 @@ export async function scrapeUthmBuses(options: {
             p.latitude,
             p.longitude,
             v.license_plate,
-            kktuOriginVehicles.has(v.id)
+            kktuOriginVehicles.has(v.id),
           );
 
           let statusStr = "Active";
@@ -366,10 +391,14 @@ async function main() {
     resolve(process.cwd(), "public/data/uthm-live.json");
 
   if (!isJson) {
-    console.log("==================================================================");
+    console.log(
+      "==================================================================",
+    );
     console.log(" 🚌 UTHM LIVE BUS SCRAPER (Parit Raja & Pagoh) ");
     console.log(" Source: Katsana Telematics Real-Time WebSocket ");
-    console.log("==================================================================");
+    console.log(
+      "==================================================================",
+    );
   }
 
   if (isWatch) {
@@ -380,7 +409,7 @@ async function main() {
       onPing: (bus) => {
         const time = new Date().toLocaleTimeString();
         console.log(
-          `[${time}] [${bus.campusName}] Plate: ${bus.licensePlate.padEnd(9)} | Route: ${bus.routeName.padEnd(12)} | Speed: ${String(bus.speedKmH).padStart(4)} km/h | Lat/Lng: ${bus.latitude?.toFixed(5)}, ${bus.longitude?.toFixed(5)}`
+          `[${time}] [${bus.campusName}] Plate: ${bus.licensePlate.padEnd(9)} | Route: ${bus.routeName.padEnd(12)} | Speed: ${String(bus.speedKmH).padStart(4)} km/h | Lat/Lng: ${bus.latitude?.toFixed(5)}, ${bus.longitude?.toFixed(5)}`,
         );
       },
     });
@@ -406,9 +435,15 @@ async function main() {
   const pagoh = buses.filter((b) => b.campusId === "pagoh");
   const others = buses.filter((b) => b.campusId === "other");
 
-  console.log("\n==================================================================");
-  console.log(`📍 1. PARIT RAJA / BATU PAHAT CAMPUS (${paritRaja.length} buses found)`);
-  console.log("==================================================================");
+  console.log(
+    "\n==================================================================",
+  );
+  console.log(
+    `📍 1. PARIT RAJA / BATU PAHAT CAMPUS (${paritRaja.length} buses found)`,
+  );
+  console.log(
+    "==================================================================",
+  );
   console.table(
     paritRaja.map((b) => ({
       ID: b.id,
@@ -419,12 +454,16 @@ async function main() {
       Longitude: b.longitude ? b.longitude.toFixed(5) : "N/A",
       Status: b.status,
       "Raw Label": b.rawPlate,
-    }))
+    })),
   );
 
-  console.log("\n==================================================================");
+  console.log(
+    "\n==================================================================",
+  );
   console.log(`📍 2. PAGOH CAMPUS (${pagoh.length} buses found)`);
-  console.log("==================================================================");
+  console.log(
+    "==================================================================",
+  );
   console.table(
     pagoh.map((b) => ({
       ID: b.id,
@@ -435,13 +474,19 @@ async function main() {
       Longitude: b.longitude ? b.longitude.toFixed(5) : "N/A",
       Status: b.status,
       "Raw Label": b.rawPlate,
-    }))
+    })),
   );
 
   if (others.length > 0) {
-    console.log("\n==================================================================");
-    console.log(`📍 3. UNASSIGNED / DEPOT / SPARE (${others.length} buses found)`);
-    console.log("==================================================================");
+    console.log(
+      "\n==================================================================",
+    );
+    console.log(
+      `📍 3. UNASSIGNED / DEPOT / SPARE (${others.length} buses found)`,
+    );
+    console.log(
+      "==================================================================",
+    );
     console.table(
       others.map((b) => ({
         ID: b.id,
@@ -451,7 +496,7 @@ async function main() {
         Latitude: b.latitude ? b.latitude.toFixed(5) : "N/A",
         Longitude: b.longitude ? b.longitude.toFixed(5) : "N/A",
         "Raw Label": b.rawPlate,
-      }))
+      })),
     );
   }
 

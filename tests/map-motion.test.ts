@@ -194,7 +194,12 @@ test("official prediction follows corners, reconciles continuously and stops aft
   );
   close(predicted.coordinate[0], 103.01);
   assert.equal("estimated" in predicted && predicted.estimated, true);
-  const next = { ...initial, ...positionOnPath(path, 0.3), timestamp: 135000 };
+  const next = {
+    ...initial,
+    ...positionOnPath(path, 0.32),
+    timestamp: 135000,
+  };
+  // An over-run inside the hold threshold still eases back onto the fix.
   updateMotions(motions, [next], [officialRoute], 35000, 135000);
   const reconciled = sampleMotion(motions.get("bus-1")!, 35000);
   close(reconciled.coordinate[0], predicted.coordinate[0]);
@@ -268,4 +273,159 @@ test("outage prediction slows smoothly before stopping", () => {
   assert.equal(predictionTravelSeconds(150), 150);
   assert.ok(predictionTravelSeconds(175) - predictionTravelSeconds(170) < 5);
   assert.equal(predictionTravelSeconds(180), predictionTravelSeconds(600));
+});
+
+// BAS.MY Johor publishes neither speed nor bearing and its routes carry one
+// representative shape, usually a single direction. These fixtures reproduce
+// that: a dual carriageway whose lanes are close enough that projecting the
+// wrong half of the fleet onto the northbound shape reads as driving backwards.
+const outLane: Coordinate[] = [
+  [103, 1],
+  [103, 1.01],
+];
+const backLane: Coordinate[] = [
+  [103.0003, 1.01],
+  [103.0003, 1],
+];
+const twoWay: TransitRoute = {
+  ...route,
+  id: "T2",
+  name: "Two-way corridor",
+  source: "official",
+  path: outLane,
+  patterns: [
+    {
+      id: "p0",
+      tripId: "p0",
+      shapeId: "s0",
+      direction: "0",
+      path: outLane,
+      geometrySource: "gtfs_shape",
+      distanceUnit: "unknown",
+      stops: [],
+    },
+    {
+      id: "p1",
+      tripId: "p1",
+      shapeId: "s1",
+      direction: "1",
+      path: backLane,
+      geometrySource: "gtfs_shape",
+      distanceUnit: "unknown",
+      stops: [],
+    },
+  ],
+};
+// A southbound vehicle on the return lane; `progress`/bearing from the demo
+// helper are meaningless here, exactly as in the real feed.
+const inbound = (lat: number, timestamp: number): Vehicle => ({
+  ...vehicle(0, timestamp),
+  source: "gtfs-rt",
+  routeId: "T2",
+  direction: "1",
+  coordinate: [103.0003, lat] as Coordinate,
+  bearing: 0,
+  speed: 0,
+  speedKnown: false,
+  bearingKnown: false,
+});
+
+test("live vehicles run on the one-way shape they report", () => {
+  const motions = new Map<string, VehicleMotion>();
+  updateMotions(motions, [inbound(1.008, 0)], [twoWay], 0, 0);
+  updateMotions(motions, [inbound(1.004, 30_000)], [twoWay], 30_000, 30_000);
+  assert.equal(motions.get("bus-1")!.prediction!.path, backLane);
+  // 1.008 -> 1.004 is forward along the return lane. The route's northbound
+  // shape would read the same pair of fixes as roughly 445 m of reversing.
+  const ahead = sampleMotion(motions.get("bus-1")!, 55_000);
+  assert.ok(ahead.coordinate[1] < 1.004, "keeps running south");
+  assert.equal("estimated" in ahead && ahead.estimated, true);
+  // A direction with no matching pattern keeps the previous route-shape path.
+  const other = new Map<string, VehicleMotion>();
+  updateMotions(
+    other,
+    [{ ...inbound(1.008, 0), direction: "9" }],
+    [twoWay],
+    0,
+    0,
+  );
+  assert.equal(other.get("bus-1")!.prediction!.path, outLane);
+});
+
+test("movement indistinguishable from GPS noise holds the position instead of inventing speed", () => {
+  const motions = new Map<string, VehicleMotion>();
+  updateMotions(motions, [inbound(1.004, 0)], [twoWay], 0, 0);
+  // 8 m of travel in 30 s is about 1 km/h: below the noise floor of the feed.
+  updateMotions(motions, [inbound(1.003928, 30_000)], [twoWay], 30_000, 30_000);
+  const held = sampleMotion(motions.get("bus-1")!, 55_000);
+  assert.ok(Math.abs(held.coordinate[1] - 1.003928) < 1e-6, "stays at the fix");
+  assert.equal("estimated" in held && held.estimated, false);
+  assert.equal(motions.get("bus-1")!.speeds!.length, 0);
+});
+
+test("a jam re-anchors the marker to the fix rather than driving it backwards", () => {
+  const motions = new Map<string, VehicleMotion>();
+  updateMotions(motions, [inbound(1.008, 0)], [twoWay], 0, 0);
+  updateMotions(motions, [inbound(1.004, 30_000)], [twoWay], 30_000, 30_000);
+  assert.ok(motions.get("bus-1")!.prediction!.rate > 0, "running south");
+  // The bus actually stopped: the extrapolation ran ~440 m past where it is.
+  updateMotions(motions, [inbound(1.006, 60_000)], [twoWay], 60_000, 60_000);
+  const motion = motions.get("bus-1")!;
+  assert.equal(motion.prediction!.hold, true);
+  assert.equal(motion.prediction!.rate, 0);
+  assert.equal(motion.backward, 1, "one backward fix is not a turnaround");
+  const shown = sampleMotion(motion, 60_000);
+  assert.ok(Math.abs(shown.coordinate[1] - 1.006) < 1e-5, "shown at the fix");
+  assert.equal("correcting" in shown && shown.correcting, true);
+  assert.equal(
+    sampleMotion(motion, 75_000).coordinate[1],
+    shown.coordinate[1],
+    "held still, never reversed",
+  );
+  // A second backward fix confirms the turn but must not reverse the marker
+  // either: it re-anchors again and keeps counting the streak.
+  updateMotions(motions, [inbound(1.008, 90_000)], [twoWay], 90_000, 90_000);
+  assert.equal(motions.get("bus-1")!.backward, 2);
+  assert.equal(motions.get("bus-1")!.prediction!.hold, true);
+});
+
+test("an estimate never runs further than the window that produced it", () => {
+  const motions = new Map<string, VehicleMotion>();
+  updateMotions(motions, [inbound(1.008, 0)], [twoWay], 0, 0);
+  // 445 m covered in one 30 s window, delivered 100 s after it happened.
+  updateMotions(motions, [inbound(1.004, 30_000)], [twoWay], 30_000, 130_000);
+  assert.equal(motions.get("bus-1")!.prediction!.horizon, 30);
+  const shown = sampleMotion(motions.get("bus-1")!, 400_000);
+  const lead = (1.004 - shown.coordinate[1]) * 111320;
+  assert.ok(lead >= 0, "the estimate only runs forward");
+  assert.ok(lead < 460, `one window of lead, not four minutes (${lead})`);
+});
+
+test("sustained backward movement along the shape is what flips the course", () => {
+  const motions = new Map<string, VehicleMotion>();
+  const step = 25 / 111320;
+  updateMotions(motions, [inbound(1.004, 0)], [twoWay], 0, 0);
+  updateMotions(
+    motions,
+    [inbound(1.004 + step, 30_000)],
+    [twoWay],
+    30_000,
+    30_000,
+  );
+  // One 25 m backward fix is still treated as a jam reading, not a turnaround.
+  assert.equal(motions.get("bus-1")!.backward, 1);
+  assert.ok(motions.get("bus-1")!.prediction!.rate > 0);
+  updateMotions(
+    motions,
+    [inbound(1.004 + step * 2, 60_000)],
+    [twoWay],
+    60_000,
+    60_000,
+  );
+  assert.equal(motions.get("bus-1")!.backward, 2);
+  assert.equal(motions.get("bus-1")!.prediction!.hold, false);
+  assert.ok(
+    motions.get("bus-1")!.prediction!.rate < 0,
+    "confirmed turnaround runs backwards along the shape",
+  );
 });

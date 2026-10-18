@@ -233,10 +233,18 @@ The shared conversation could not be fetched. The available CODEFEST archive was
 - [x] Restored the blue basemap and blue building colours as the default, with Road and Satellite retained as explicit alternatives. Switching restores original paint properties without replacing transit or 3D layers.
 - [x] Production build/TypeScript passed. Browser checked default Blue selection and switching through Satellite, Road, and back to Blue. Screenshot: .runtime/blue-map-options.png.
 
-
 ### 2026-10-09 — Community and Saved refinement
 
 - [x] Community: clearer reporting introduction/action, report search, newest-first ordering, result count and filter/search reset. Report location selection opens the map on mobile. Report cards gain wrapping and larger location targets.
 - [x] Saved: area-specific route/stop counts, on-device storage explanation, clearer route empty state, and budget disclosure moved after favourites.
 - [x] Production build/TypeScript passed. Browser checked search reset, empty states, 390px mobile and 1280px desktop with no horizontal overflow. The live community feed was empty, so populated report rendering was not visually checked. Screenshots: .runtime/community-refined.png and .runtime/saved-refined.png.
 
+
+### 2026-10-18 — Live buses stop driving in reverse
+
+- [x] Every live vehicle now runs on the one-way pattern shape matching the `trip.direction_id` it reports, carried through the feed reader with explicit presence checking because direction 0 is a real direction. Projecting the fleet onto each route's single representative shape had been reading 37.8% of fix pairs (median 217 m) as reversing.
+- [x] Jam-aware inference: movements below the feed's noise floor support neither speed nor course, speed is the lower median of recent along-route movements, and the estimate may only claim as much road as the observation window that produced it. A fix landing more than 60 m behind an over-run estimate re-anchors the marker and labels it as correcting instead of animating it backwards; only a sustained series of backward fixes reverses the course.
+- [x] Freshness within the upstream budget: realtime and static feed requests now use separate six-per-minute and two-per-minute buckets, server refresh is 15 seconds, and `/api/vehicles` is cached at `s-maxage=5, stale-while-revalidate=10`. Positions remain about 25-40 seconds old because the publisher emits 30-second batches with no validator, which is documented as the ceiling rather than worked around.
+- [x] The route-schematic fallback now labels estimates the same way the geographic map does: dashed ring for a route estimate, dotted ring for a re-anchored position, with the count of re-anchored positions in the map status line.
+- [x] 86 tests pass, including direction presence, two-lane shape selection, the noise floor, jam re-anchoring, sustained turnaround and the extrapolation horizon. Prettier, `tsc --noEmit` and the production build are clean. Replaying 14 recorded Johor polls (88 vehicles, 888 fix pairs) through the display engine at half-second frames: visible backwards steps fell 8.8% → 1.3%, sustained backwards slides 257 → 7, backwards distance 35.2 km → 2.9 km, buses that ever reversed 75/88 → 15/88. Live browser check over 70 seconds with 79 vehicles: 57 visible steps, 3 backwards, one 1-second slide, no jump past the re-anchor threshold, 35 markers labelled estimated and 34 re-anchored. Screenshot: .runtime/motion-schematic-labels.png.
+- [x] Basemap tiles do not load in this environment, so the MapLibre and 3D layers were not visually checked; the geographic markers use the same labels through `is-estimated` / `is-correcting` but their on-screen appearance remains unverified. Positions fresher than the 30-second batch cadence would need operator AVL or SmartMobility data, which this source does not publish.

@@ -1,0 +1,99 @@
+{
+  "id": "kuching-q09",
+  "region": "kuching",
+  "routeName": "Q09 Open Air Market - Muara Tebas",
+  "sourceTitle": "Kadar Tambang Laluan Q09 (Muara Tebas), poster 9 Sept 2025",
+  "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q09_merged.pdf",
+  "sourceDate": "2025-09-09",
+  "verifiedAt": "2026-10-18",
+  "concessionAllowed": false,
+  "notes": "Linear terminal->destination tables. Omitted as ambiguous: LEMBAGA LADA MALAYSIA (HQ vs TRADE), TERMINAL BAKO, inbound OPPOSITE SARAWAK ENERGY BERHAD, JALAN PADUNGAN, inbound RIVERSIDE mapped to the sole GTFS match RIVERSIDE MAJESTIC HOTEL for the outbound WATERFRONT row.",
+  "directions": [
+    {
+      "patternId": "kuching:214_0_WE_13",
+      "direction": "outbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q09_merged.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6973",
+        "posterName": "OPEN AIR MARKET"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6591",
+          "posterName": "WATERFRONT (OPPOSITE RIVERSIDE)",
+          "fareSen": 90
+        },
+        {
+          "gtfsStopId": "kuching:8392",
+          "posterName": "PADUNGAN (OPPOSITE MBKS)",
+          "fareSen": 100
+        },
+        {
+          "gtfsStopId": "kuching:6779",
+          "posterName": "PENDING (UMW TOYOTA)",
+          "fareSen": 110
+        },
+        {
+          "gtfsStopId": "kuching:6782",
+          "posterName": "PETRON PENDING",
+          "fareSen": 120
+        },
+        {
+          "gtfsStopId": "kuching:6610",
+          "posterName": "SMK BAKO",
+          "fareSen": 280
+        },
+        {
+          "gtfsStopId": "kuching:6795",
+          "posterName": "KAMPUNG MUARA TEBAS",
+          "fareSen": 400
+        }
+      ]
+    },
+    {
+      "patternId": "kuching:214_1_WE_13",
+      "direction": "inbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q09_merged.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6795",
+        "posterName": "MUARA TEBAS"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6869",
+          "posterName": "SIMPANG MUARA TEBAS",
+          "fareSen": 100
+        },
+        {
+          "gtfsStopId": "kuching:6870",
+          "posterName": "SIMPANG BAKO",
+          "fareSen": 130
+        },
+        {
+          "gtfsStopId": "kuching:7094",
+          "posterName": "OPPOSITE PCC DEMAK",
+          "fareSen": 220
+        },
+        {
+          "gtfsStopId": "kuching:8540",
+          "posterName": "RPR DEMAK LAUT",
+          "fareSen": 240
+        },
+        {
+          "gtfsStopId": "kuching:6636",
+          "posterName": "RIVERSIDE",
+          "fareSen": 360
+        },
+        {
+          "gtfsStopId": "kuching:6973",
+          "posterName": "OPEN AIR MARKET",
+          "fareSen": 380
+        }
+      ]
+    }
+  ]
+}

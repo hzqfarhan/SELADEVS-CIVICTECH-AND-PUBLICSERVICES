@@ -38,7 +38,11 @@ class KatsanaLiveManager {
   }
 
   private connect(): Promise<void> {
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.OPEN ||
+        this.ws.readyState === WebSocket.CONNECTING)
+    ) {
       return this.readyPromise || Promise.resolve();
     }
 
@@ -92,7 +96,11 @@ class KatsanaLiveManager {
                 if (Array.isArray(item.ping) && item.ping.length >= 2) {
                   lat = item.ping[0];
                   lng = item.ping[1];
-                } else if (item.ping && typeof item.ping === "object" && "latitude" in item.ping) {
+                } else if (
+                  item.ping &&
+                  typeof item.ping === "object" &&
+                  "latitude" in item.ping
+                ) {
                   lat = item.ping.latitude;
                   lng = item.ping.longitude;
                   speed = item.ping.speed ?? 0;
@@ -110,7 +118,7 @@ class KatsanaLiveManager {
                   lat,
                   lng,
                   v.license_plate,
-                  this.kktuOriginVehicles.has(v.id)
+                  this.kktuOriginVehicles.has(v.id),
                 );
 
                 this.vehicles.set(v.id, {
@@ -126,7 +134,9 @@ class KatsanaLiveManager {
                   speedKmH: Math.round(speed * 10) / 10,
                   bearing: course,
                   ignition,
-                  status: v.state?.type ? `${v.state.type} cp#${v.state.checkpoint}` : "Idle",
+                  status: v.state?.type
+                    ? `${v.state.type} cp#${v.state.checkpoint}`
+                    : "Idle",
                   lastUpdated: Date.now(),
                 });
               }
@@ -148,7 +158,7 @@ class KatsanaLiveManager {
                 p.latitude,
                 p.longitude,
                 v.license_plate,
-                this.kktuOriginVehicles.has(v.id)
+                this.kktuOriginVehicles.has(v.id),
               );
 
               this.vehicles.set(v.id, {
@@ -164,7 +174,9 @@ class KatsanaLiveManager {
                 speedKmH: Math.round((p.speed ?? 0) * 10) / 10,
                 bearing: p.course ?? 0,
                 ignition: Boolean(p.meta?.ignition),
-                status: v.state?.type ? `${v.state.type} cp#${v.state.checkpoint}` : "Active",
+                status: v.state?.type
+                  ? `${v.state.type} cp#${v.state.checkpoint}`
+                  : "Active",
                 lastUpdated: Date.now(),
               });
             }
@@ -181,8 +193,11 @@ class KatsanaLiveManager {
     return this.readyPromise;
   }
 
-  public async getSnapshot(targetRegion: "uthm" | "uthm-pagoh"): Promise<VehicleSnapshot> {
-    const targetCampusId: CampusId = targetRegion === "uthm" ? "parit-raja" : "pagoh";
+  public async getSnapshot(
+    targetRegion: "uthm" | "uthm-pagoh",
+  ): Promise<VehicleSnapshot> {
+    const targetCampusId: CampusId =
+      targetRegion === "uthm" ? "parit-raja" : "pagoh";
 
     // Reconnect if socket closed and cool-down elapsed (10 seconds)
     if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
@@ -252,7 +267,7 @@ class KatsanaLiveManager {
 const globalManager = new KatsanaLiveManager();
 
 export async function getLiveUthmVehicles(
-  region: "uthm" | "uthm-pagoh"
+  region: "uthm" | "uthm-pagoh",
 ): Promise<VehicleSnapshot> {
   return globalManager.getSnapshot(region);
 }

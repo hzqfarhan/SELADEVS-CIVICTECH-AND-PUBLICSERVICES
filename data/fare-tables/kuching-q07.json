@@ -1,0 +1,84 @@
+{
+  "id": "kuching-q07",
+  "region": "kuching",
+  "routeName": "Q07 Saujana Parking - SJK Chung Hua Batu Kawa",
+  "sourceTitle": "Kadar Tambang Laluan Q07 (SJK Chung Hua Batu Kawa), poster 9 Sept 2025",
+  "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q07_merged-1.pdf",
+  "sourceDate": "2025-09-09",
+  "verifiedAt": "2026-10-18",
+  "concessionAllowed": false,
+  "notes": "Linear terminal->destination tables. Omitted as ambiguous/unmatched: TAMAN KWONG THIONG, BOULDER BUILT (no GTFS match), inbound MJC BATU KAWA (pattern only has MJC CITY 1/2).",
+  "directions": [
+    {
+      "patternId": "kuching:212_0_WE_13",
+      "direction": "outbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q07_merged-1.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6521",
+        "posterName": "STESEN BAS SAUJANA"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6716",
+          "posterName": "BALAI POLIS BADARUDDIN",
+          "fareSen": 90
+        },
+        {
+          "gtfsStopId": "kuching:8436",
+          "posterName": "KOMPLEKS BELIA & SUKAN",
+          "fareSen": 100
+        },
+        {
+          "gtfsStopId": "kuching:6724",
+          "posterName": "MJC BATU KAWA",
+          "fareSen": 150
+        },
+        {
+          "gtfsStopId": "kuching:6931",
+          "posterName": "SJK CHUNG HUA BATU KAWA",
+          "fareSen": 310
+        }
+      ]
+    },
+    {
+      "patternId": "kuching:212_1_WE_13",
+      "direction": "inbound",
+      "format": "terminal",
+      "sourceUrl": "https://www.lpkpsarawak.gov.my/wp-content/uploads/2025/09/Q07_merged-1.pdf",
+      "sourceDate": "2025-09-09",
+      "fromStop": {
+        "gtfsStopId": "kuching:6931",
+        "posterName": "SJK CHUNG HUA BATU KAWA"
+      },
+      "destinations": [
+        {
+          "gtfsStopId": "kuching:6581",
+          "posterName": "SUNNY HILLS",
+          "fareSen": 170
+        },
+        {
+          "gtfsStopId": "kuching:6582",
+          "posterName": "OPPOSITE TIMBERLAND MEDICAL CENTRE",
+          "fareSen": 170
+        },
+        {
+          "gtfsStopId": "kuching:6585",
+          "posterName": "OPPOSITE ROCK ROAD SEAFOOD",
+          "fareSen": 190
+        },
+        {
+          "gtfsStopId": "kuching:6689",
+          "posterName": "SARAWAK GENERAL HOSPITAL",
+          "fareSen": 200
+        },
+        {
+          "gtfsStopId": "kuching:6521",
+          "posterName": "STESEN BAS SAUJANA",
+          "fareSen": 220
+        }
+      ]
+    }
+  ]
+}

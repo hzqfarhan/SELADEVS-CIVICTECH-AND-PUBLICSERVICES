@@ -177,11 +177,7 @@ function CityBlocks({
         scale: [projection.width - 4, 0.05, 0.56],
         color: "#609890",
       });
-    for (
-      let i = 0;
-      i < 500 && buildings.length < (isCampus ? 45 : 80);
-      i++
-    ) {
+    for (let i = 0; i < 500 && buildings.length < (isCampus ? 45 : 80); i++) {
       const x = (random() - 0.5) * (projection.width - 9),
         z = (random() - 0.5) * (projection.depth - 9);
       const w = 1.4 + random() * 2.7,

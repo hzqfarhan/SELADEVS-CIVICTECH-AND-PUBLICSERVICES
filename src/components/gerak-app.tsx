@@ -4,6 +4,7 @@ import { LocationSearch } from "./location-search";
 import { AppearancePicker } from "./appearance-picker";
 import { journeyInputIssue } from "@/lib/stop-search";
 import { VehiclePicker } from "./vehicle-picker";
+import { JourneyBuses } from "./journey-buses";
 import {
   BudgetPanel,
   JourneyFare,
@@ -76,6 +77,7 @@ import {
   stops,
   etaForVehicle,
   planJourney,
+  reachableStops,
   distance,
 } from "@/lib/transit";
 import { useNetwork } from "@/lib/use-network";
@@ -295,6 +297,44 @@ function GerakAppContent({
         : stops.filter((s) => s.region === region),
     [region, usingOfficial, officialNetwork],
   );
+  // Each picker offers only the endpoints planJourney can actually pair up, so
+  // an unreachable place never appears as a suggestion.
+  const reachableDestinations = useMemo(
+    () =>
+      origin
+        ? reachableStops(origin, regionRoutes, regionStops, accessible, true)
+        : null,
+    [origin, accessible, regionRoutes, regionStops],
+  );
+  const reachableOrigins = useMemo(
+    () =>
+      destination
+        ? reachableStops(
+            destination,
+            regionRoutes,
+            regionStops,
+            accessible,
+            false,
+          )
+        : null,
+    [destination, accessible, regionRoutes, regionStops],
+  );
+  const destinationChoices = useMemo(
+    () =>
+      reachableDestinations
+        ? regionStops.filter((s) => reachableDestinations.has(s.id))
+        : regionStops,
+    [regionStops, reachableDestinations],
+  );
+  const originChoices = useMemo(
+    () =>
+      reachableOrigins
+        ? regionStops.filter((s) => reachableOrigins.has(s.id))
+        : regionStops,
+    [regionStops, reachableOrigins],
+  );
+  const stopName = (id: string) =>
+    regionStops.find((s) => s.id === id)?.name ?? id;
   const displayedRoutes = useMemo(
     () =>
       (filter ? regionRoutes.filter((r) => r.id === filter) : regionRoutes).map(
@@ -1038,11 +1078,32 @@ function GerakAppContent({
                   <LocationSearch
                     label={tr("From", "Dari")}
                     stops={regionStops}
+                    candidates={originChoices}
                     value={origin}
                     locale={locale}
+                    emptyMessage={
+                      originChoices.length
+                        ? undefined
+                        : tr(
+                            `No route reaches ${stopName(destination)} from anywhere here.`,
+                            `Tiada laluan ke ${stopName(destination)} dari sini.`,
+                          )
+                    }
                     onChange={(id) => {
                       setOrigin(id);
                       setPlanned(false);
+                      if (
+                        id &&
+                        destination &&
+                        !reachableStops(
+                          id,
+                          regionRoutes,
+                          regionStops,
+                          accessible,
+                          true,
+                        ).has(destination)
+                      )
+                        setDestination("");
                     }}
                   />
                   <button
@@ -1053,8 +1114,19 @@ function GerakAppContent({
                     )}
                     onClick={() => {
                       setOrigin(destination);
-                      setDestination(origin);
                       setPlanned(false);
+                      // Many corridors are one-way: keep the new origin, but never
+                      // carry over a destination it cannot actually reach.
+                      const onward = destination
+                        ? reachableStops(
+                            destination,
+                            regionRoutes,
+                            regionStops,
+                            accessible,
+                            true,
+                          )
+                        : null;
+                      setDestination(onward?.has(origin) ? origin : "");
                     }}
                   >
                     <ArrowDownUp size={15} />
@@ -1062,11 +1134,32 @@ function GerakAppContent({
                   <LocationSearch
                     label={tr("To", "Ke")}
                     stops={regionStops}
+                    candidates={destinationChoices}
                     value={destination}
                     locale={locale}
+                    emptyMessage={
+                      destinationChoices.length
+                        ? undefined
+                        : tr(
+                            `Nothing is reachable from ${stopName(origin)}. Try another origin.`,
+                            `Tiada destinasi dari ${stopName(origin)}. Cuba tempat lain.`,
+                          )
+                    }
                     onChange={(id) => {
                       setDestination(id);
                       setPlanned(false);
+                      if (
+                        id &&
+                        origin &&
+                        !reachableStops(
+                          id,
+                          regionRoutes,
+                          regionStops,
+                          accessible,
+                          false,
+                        ).has(origin)
+                      )
+                        setOrigin("");
                     }}
                   />
                   {journeyInputIssue(regionStops, origin, destination) && (
@@ -1125,47 +1218,63 @@ function GerakAppContent({
                     (journey.length ? (
                       sortedJourneys.map((j, i) => (
                         <div key={i} className="fare-journey-card">
-                          <button
-                            className="journey-result"
-                            key={i}
-                            onClick={() => {
-                              setFilter(j.routes[0].id);
-                              setSelectedId(null);
-                              setSelectedStop(null);
-                              const departure = regionStops.find(
-                                (stop) => stop.id === origin,
-                              );
-                              if (departure) showLocation(departure.coordinate);
-                              if (
-                                window.matchMedia("(max-width: 960px)").matches
-                              )
-                                showMap();
-                            }}
-                          >
-                            <span>
-                              <strong>
-                                {j.minutes
-                                  ? `${j.minutes} ${tr("min ride estimate", "min anggaran perjalanan")}`
-                                  : tr("Route connection", "Sambungan laluan")}
-                              </strong>
-                              <small>
-                                {j.transfers
-                                  ? tr("1 transfer", "1 pertukaran")
-                                  : tr("Direct journey", "Perjalanan terus")}
-                              </small>
-                            </span>
-                            <span className="journey-badges">
-                              {j.routes.map((r) => (
-                                <b
-                                  className="route-badge"
-                                  style={{ color: r.color }}
-                                  key={r.id}
-                                >
-                                  {r.id}
-                                </b>
-                              ))}
-                            </span>
-                          </button>
+                          <details className="journey-options">
+                            <summary className="journey-result">
+                              <span>
+                                <strong>
+                                  {j.minutes
+                                    ? `${j.minutes} ${tr("min ride estimate", "min anggaran perjalanan")}`
+                                    : tr(
+                                        "Route connection",
+                                        "Sambungan laluan",
+                                      )}
+                                </strong>
+                                <small>
+                                  {j.transfers
+                                    ? tr("1 transfer", "1 pertukaran")
+                                    : tr("Direct journey", "Perjalanan terus")}
+                                </small>
+                              </span>
+                              <span className="journey-expand-label">
+                                {tr("View buses", "Lihat bas")}{" "}
+                                <ChevronDown size={14} />
+                              </span>
+                              <span className="journey-badges">
+                                {j.routes.map((r) => (
+                                  <b
+                                    className="route-badge"
+                                    style={{ color: r.color }}
+                                    key={r.id}
+                                  >
+                                    {r.id}
+                                  </b>
+                                ))}
+                              </span>
+                            </summary>
+                            <JourneyBuses
+                              routes={j.routes}
+                              vehicles={snapshot.vehicles}
+                              locale={locale}
+                              selectedId={selectedId}
+                              onSelect={(id, routeId) => {
+                                setFilter(routeId);
+                                selectVehicle(id);
+                              }}
+                              onRoute={(routeId) => {
+                                setFilter(routeId);
+                                setSelectedId(null);
+                                setDetailVehicleId(null);
+                                setFollow(false);
+                                setSelectedStop(null);
+                                setFocusLocation(null);
+                                if (
+                                  window.matchMedia("(max-width: 960px)")
+                                    .matches
+                                )
+                                  showMap();
+                              }}
+                            />
+                          </details>
                           <JourneyFare
                             journey={j}
                             from={origin}
@@ -2206,6 +2315,16 @@ function GerakAppContent({
               setMode(next);
             }}
             locale={locale}
+            journeyFrom={
+              planning
+                ? regionStops.find((stop) => stop.id === origin)
+                : undefined
+            }
+            journeyTo={
+              planning
+                ? regionStops.find((stop) => stop.id === destination)
+                : undefined
+            }
             focusLocation={focusLocation}
             onTrafficReport={(coordinate, context) => {
               setTrafficReportContext(context);

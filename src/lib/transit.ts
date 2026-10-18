@@ -470,6 +470,83 @@ export interface Journey {
   transfers: number;
   via: string[];
 }
+/** Hops a pattern must travel to carry `from` -> `to`, or null if it cannot. */
+function hopCount(
+  route: TransitRoute,
+  patternStops: string[],
+  from: string,
+  to: string,
+) {
+  const start = patternStops.indexOf(from),
+    end = patternStops.indexOf(to);
+  if (start < 0 || end < 0 || start === end) return null;
+  if (route.source === "official" && end <= start) return null;
+  return (end - start + patternStops.length) % patternStops.length;
+}
+type PatternLegs = { route: TransitRoute; stops: string[] };
+const asPatterns = (networkRoutes: TransitRoute[]): PatternLegs[] =>
+  networkRoutes.flatMap((r) =>
+    r.patterns?.length
+      ? r.patterns.map((p) => ({
+          route: r,
+          stops: p.stops.map((s) => s.stopId),
+        }))
+      : [{ route: r, stops: r.stops }],
+  );
+/**
+ * Stops planJourney can actually pair with `anchor`: direct or via one
+ * transfer. With `forward` off it answers the mirror question - which stops
+ * can reach the anchor - so both journey pickers only offer real endpoints.
+ */
+export function reachableStops(
+  anchor: string,
+  networkRoutes = routes,
+  networkStops = stops,
+  accessible = false,
+  forward = true,
+): Set<string> {
+  const stopById = new Map(networkStops.map((s) => [s.id, s])),
+    anchorStop = stopById.get(anchor);
+  if (!anchorStop || (accessible && !anchorStop.accessible)) return new Set();
+  const patterns = asPatterns(
+    networkRoutes.filter((r) => r.region === anchorStop.region),
+  );
+  const byStop = new Map<string, PatternLegs[]>();
+  for (const p of patterns)
+    for (const s of new Set(p.stops))
+      byStop.set(s, [...(byStop.get(s) ?? []), p]);
+  const carries = (p: PatternLegs, a: string, b: string) =>
+    hopCount(p.route, p.stops, forward ? a : b, forward ? b : a) !== null;
+  const usable = (id: string) =>
+    !accessible || stopById.get(id)?.accessible === true;
+  const reached = new Set<string>();
+  const anchored = patterns.filter((p) => p.stops.includes(anchor));
+  for (const first of anchored) {
+    for (const stop of first.stops)
+      if (stop !== anchor && carries(first, anchor, stop) && usable(stop))
+        reached.add(stop);
+    for (const transfer of first.stops) {
+      if (
+        transfer === anchor ||
+        !carries(first, anchor, transfer) ||
+        !usable(transfer)
+      )
+        continue;
+      for (const second of byStop.get(transfer) ?? []) {
+        if (second.route.id === first.route.id) continue;
+        for (const stop of second.stops)
+          if (
+            stop !== anchor &&
+            stop !== transfer &&
+            carries(second, transfer, stop) &&
+            usable(stop)
+          )
+            reached.add(stop);
+      }
+    }
+  }
+  return reached;
+}
 export function planJourney(
   from: string,
   to: string,
@@ -496,11 +573,8 @@ export function planJourney(
       ),
     results: Journey[] = [];
   const leg = (route: TransitRoute, a: string, b: string) => {
-    const start = route.stops.indexOf(a),
-      end = route.stops.indexOf(b);
-    if (start < 0 || end < 0 || start === end) return null;
-    if (route.source === "official" && end <= start) return null;
-    const count = (end - start + route.stops.length) % route.stops.length;
+    const count = hopCount(route, route.stops, a, b);
+    if (count === null) return null;
     return route.duration > 0
       ? Math.ceil(
           (route.duration * count) / Math.max(1, route.stops.length - 1),

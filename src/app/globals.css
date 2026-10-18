@@ -1504,7 +1504,7 @@
   left: 0;
   right: 0;
   z-index: 15;
-  max-height: 260px;
+  max-height: min(340px, 40vh);
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--light-line, #475569);
@@ -5194,4 +5194,71 @@
 }
 :root[data-theme="light"] .community-intro .collection-icon {
   color: #7949ad;
+}
+
+/* Journey results expand into route-specific vehicle choices. */
+.journey-options > .journey-result {
+  margin: 0;
+  padding: 14px 12px;
+  cursor: pointer;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+}
+.journey-options > summary::-webkit-details-marker {
+  display: none;
+}
+.journey-options > summary:focus-visible,
+.journey-bus-route button:focus-visible {
+  outline: 2px solid #74a7ff;
+  outline-offset: -2px;
+}
+.journey-expand-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.journey-options[open] .journey-expand-label svg {
+  transform: rotate(180deg);
+}
+.journey-options .journey-badges {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.journey-buses {
+  padding: 0 12px 14px;
+}
+.journey-buses > section {
+  margin-top: 14px;
+  min-width: 0;
+}
+.journey-bus-route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.journey-bus-route > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.journey-bus-route strong {
+  font-size: 13px;
+}
+.journey-bus-route span,
+.journey-bus-route small {
+  font-size: 11px;
+  color: var(--light-muted, #949dad);
+}
+.journey-bus-route button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 12px;
+  color: var(--light-text, #d5e4fa);
 }
