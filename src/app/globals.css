@@ -1635,6 +1635,36 @@
   border-radius: 10px;
   margin-bottom: 12px;
 }
+.report-card-manageable {
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.report-card-manageable:hover,
+.report-card-manageable:focus-visible {
+  border-color: var(--light-accent, #6f9ff1);
+  box-shadow: 0 10px 24px #00000024;
+  transform: translateY(-1px);
+  outline: none;
+}
+.report-detail-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 14px;
+  color: var(--light-muted, #8e99aa);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+.report-detail-coordinate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
 .report-card-top {
   display: flex;
   align-items: center;
@@ -1699,6 +1729,15 @@
   text-align: left;
 }
 .report-card-bottom > span {
+  white-space: nowrap;
+}
+.report-card-bottom .report-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .report-image {
@@ -1873,6 +1912,7 @@
 }
 .report-action {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
@@ -1881,13 +1921,49 @@
   font-size: 10px;
   color: var(--light-muted, #97a2b5);
 }
+.report-action button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border: 1px solid var(--light-line, #3a465a);
+  border-radius: 6px;
+  color: var(--light-ink, #bbc6d9);
+  font-size: 10px;
+}
+.report-action .report-delete-button {
+  color: #f3a8a8;
+  border-color: #ef6b6b55;
+}
 .report-action select {
+  flex: 1;
+  min-width: 125px;
   font-size: 11px;
   background: var(--light-surface, #242a34);
   color: var(--light-ink, #bbc6d9);
   border: 1px solid var(--light-line, #3a465a);
   border-radius: 6px;
   padding: 6px;
+}
+.report-manage-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 20px;
+}
+.report-manage-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 42px;
+  flex: 1;
+}
+.report-manage-actions .report-delete-button {
+  border: 1px solid #ef6b6b66;
+  border-radius: 8px;
+  color: #ffc2c2;
+  background: #ef6b6b14;
 }
 .chart-row {
   display: flex;
@@ -2044,6 +2120,13 @@
   height: 43px;
   white-space: nowrap;
   font-size: 10px;
+}
+.location-help {
+  display: block;
+  margin-top: 7px;
+  color: var(--light-muted, #8792a5);
+  font-size: 10px;
+  line-height: 1.45;
 }
 .picked-location {
   display: flex;

@@ -32,6 +32,7 @@ export interface TransportMapProps {
   routes: TransitRoute[];
   stops: Stop[];
   reports: CivicReport[];
+  onSelectReport?: (report: CivicReport) => void;
   heatmap?: boolean;
   picking?: boolean;
   onPick?: (coordinate: Coordinate) => void;

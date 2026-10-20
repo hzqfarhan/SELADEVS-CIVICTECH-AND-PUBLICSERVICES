@@ -34,6 +34,12 @@ export function useNetwork(region: Region, mode: "demo" | "live") {
     },
     [acceptReports],
   );
+  const addReport = useCallback((report: CivicReport) => {
+    setReports((previous) => [
+      report,
+      ...previous.filter((item) => item.id !== report.id),
+    ]);
+  }, []);
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
     update();
@@ -132,5 +138,12 @@ export function useNetwork(region: Region, mode: "demo" | "live") {
       clearInterval(reportsInterval);
     };
   }, [region, mode, refreshReports]);
-  return { snapshot, reports, online, connected, refreshReports };
+  return {
+    snapshot,
+    reports,
+    online,
+    connected,
+    refreshReports,
+    addReport,
+  };
 }

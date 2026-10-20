@@ -284,7 +284,23 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
           .map((report) => {
             const [x, y] = projection.project(report.coordinate);
             return (
-              <g key={report.id} transform={`translate(${x} ${y})`}>
+              <g
+                key={report.id}
+                transform={`translate(${x} ${y})`}
+                role="button"
+                tabIndex={0}
+                aria-label={`${report.title} · ${report.status}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  props.onSelectReport?.(report);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    props.onSelectReport?.(report);
+                  }
+                }}
+              >
                 <circle r="1" fill="#f5b65a" />
                 <text textAnchor="middle" y=".55" fontSize="1.7" fill="#14161a">
                   !
@@ -1406,12 +1422,16 @@ function FlatMap(props: TransportMapProps) {
       props.reports
         .filter((report) => report.status !== "resolved")
         .forEach((report) => {
-          const element = document.createElement("div");
+          const element = document.createElement("button");
+          element.type = "button";
           element.className = `gerak-report-marker ${report.status === "in-progress" ? "in-progress" : ""}`;
           element.textContent = "!";
           element.title = `${report.title} · ${report.status}`;
-          element.setAttribute("role", "img");
           element.setAttribute("aria-label", element.title);
+          element.addEventListener("click", (event) => {
+            event.stopPropagation();
+            props.onSelectReport?.(report);
+          });
           staticMarkers.current.push(
             new Marker({ element, anchor: "bottom" })
               .setLngLat(report.coordinate)
@@ -1422,7 +1442,7 @@ function FlatMap(props: TransportMapProps) {
     return () => {
       cancelled = true;
     };
-  }, [ready, unavailable, props.stops, props.reports]);
+  }, [ready, unavailable, props.stops, props.reports, props.onSelectReport]);
 
   useEffect(() => {
     const instance = map.current;

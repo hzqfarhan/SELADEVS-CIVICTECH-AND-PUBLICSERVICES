@@ -52,7 +52,16 @@ export const statusSchema = z
     status: z.enum(["submitted", "acknowledged", "in-progress", "resolved"]),
   })
   .strict();
+export const reportEditSchema = reportSchema
+  .pick({ category: true, title: true, description: true, location: true })
+  .partial()
+  .strict()
+  .refine(
+    (value) => Object.keys(value).length > 0,
+    "Provide a field to update.",
+  );
 export type ReportInput = z.infer<typeof reportSchema>;
+export type ReportEditInput = z.infer<typeof reportEditSchema>;
 const filePath = () =>
   path.join(
     process.env.GERAK_DATA_DIR || path.join(process.cwd(), ".runtime"),
@@ -128,13 +137,59 @@ export async function createReport(input: ReportInput): Promise<CivicReport> {
   return report;
 }
 const transitions: Record<ReportStatus, ReportStatus[]> = {
-  submitted: ["acknowledged"],
+  submitted: ["acknowledged", "resolved"],
   acknowledged: ["in-progress", "resolved"],
   "in-progress": ["resolved", "acknowledged"],
   resolved: ["acknowledged"],
 };
 export function canTransition(from: ReportStatus, to: ReportStatus) {
   return from === to || transitions[from].includes(to);
+}
+export async function editReport(
+  id: string,
+  input: ReportEditInput,
+): Promise<CivicReport> {
+  const update = (report: CivicReport | undefined): CivicReport => {
+    if (!report) throw new HttpError(404, "Report not found.");
+    return { ...report, ...input, updatedAt: new Date().toISOString() };
+  };
+  const db = database();
+  if (db) {
+    return (await db.begin(async (tx) => {
+      const rows =
+        await tx`SELECT payload FROM civic_reports WHERE id = ${id} FOR UPDATE`;
+      const report = update(rows[0]?.payload as CivicReport | undefined);
+      await tx`UPDATE civic_reports SET category = ${report.category}, updated_at = ${report.updatedAt}, payload = ${tx.json(report as unknown as postgres.JSONValue)} WHERE id = ${id}`;
+      return report;
+    })) as unknown as CivicReport;
+  }
+  return serial(async () => {
+    const reports = await readFileReports();
+    const report = update(reports.find((item) => item.id === id));
+    await saveFileReports(
+      reports.map((item) => (item.id === id ? report : item)),
+    );
+    return report;
+  });
+}
+export async function deleteReport(id: string): Promise<void> {
+  const db = database();
+  if (db) {
+    await db.begin(async (tx) => {
+      const rows =
+        await tx`SELECT id FROM civic_reports WHERE id = ${id} FOR UPDATE`;
+      if (!rows[0]) throw new HttpError(404, "Report not found.");
+      await tx`DELETE FROM report_events WHERE report_id = ${id}`;
+      await tx`DELETE FROM civic_reports WHERE id = ${id}`;
+    });
+    return;
+  }
+  await serial(async () => {
+    const reports = await readFileReports();
+    if (!reports.some((item) => item.id === id))
+      throw new HttpError(404, "Report not found.");
+    await saveFileReports(reports.filter((item) => item.id !== id));
+  });
 }
 export async function updateReport(
   id: string,

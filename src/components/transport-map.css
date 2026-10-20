@@ -209,6 +209,7 @@
   color: var(--light-ink, #dde8fc);
 }
 .gerak-report-marker {
+  padding: 0;
   font: 800 12px/23px var(--font-body, Arial, sans-serif);
   width: 24px;
   height: 24px;
@@ -219,7 +220,13 @@
   border-radius: 8px 8px 8px 0;
   transform: rotate(-10deg);
   box-shadow: 0 4px 12px #0007;
-  cursor: help;
+  cursor: pointer;
+}
+.gerak-report-marker:hover,
+.gerak-report-marker:focus-visible {
+  box-shadow: 0 6px 18px #0009;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 .gerak-report-marker.in-progress {
   background: var(--light-tint, #265562);

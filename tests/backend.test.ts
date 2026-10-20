@@ -8,12 +8,20 @@ import { normalizeFeed } from "../src/lib/server/vehicles";
 import { parseStaticGtfs } from "../src/lib/server/gtfs-static";
 import { createSession, verifySession } from "../src/lib/server/auth";
 import { allowRate, requireSameOrigin } from "../src/lib/server/http";
-import { reportSchema, canTransition } from "../src/lib/server/reports";
+import {
+  reportEditSchema,
+  reportSchema,
+  canTransition,
+} from "../src/lib/server/reports";
 import {
   GET as listReports,
   POST as postReport,
 } from "../src/app/api/reports/route";
-import { PATCH as patchReport } from "../src/app/api/reports/[id]/route";
+import {
+  DELETE as deleteReport,
+  PATCH as patchReport,
+  PUT as putReport,
+} from "../src/app/api/reports/[id]/route";
 import { POST as login } from "../src/app/api/session/route";
 import {
   GET as sessionInfo,
@@ -253,8 +261,13 @@ test("report schema rejects unsafe images, out-of-region locations and invalid l
     reportSchema.safeParse({ ...report, status: "resolved" }).success,
     false,
   );
-  assert.equal(canTransition("submitted", "resolved"), false);
+  assert.equal(canTransition("submitted", "resolved"), true);
   assert.equal(canTransition("submitted", "acknowledged"), true);
+  assert.equal(
+    reportEditSchema.safeParse({ title: "Updated report title" }).success,
+    true,
+  );
+  assert.equal(reportEditSchema.safeParse({}).success, false);
 });
 
 test("API workflow persists a civic report and requires a signed operator session to change status", async () => {
@@ -344,6 +357,37 @@ test("API workflow persists a civic report and requires a signed operator sessio
     assert.equal(
       saved.find((r: { id: string }) => r.id === report.id).status,
       "acknowledged",
+    );
+    const edited = await putReport(
+      new Request(`${origin}/api/reports/${report.id}`, {
+        method: "PUT",
+        headers: { origin, "content-type": "application/json", cookie },
+        body: JSON.stringify({
+          title: "Ramp obstruction confirmed",
+          location: "JB Sentral entrance",
+        }),
+      }),
+      { params: Promise.resolve({ id: report.id }) },
+    );
+    assert.equal(edited.status, 200);
+    assert.equal(
+      (await edited.json()).report.title,
+      "Ramp obstruction confirmed",
+    );
+    const deleted = await deleteReport(
+      new Request(`${origin}/api/reports/${report.id}`, {
+        method: "DELETE",
+        headers: { origin, cookie },
+      }),
+      { params: Promise.resolve({ id: report.id }) },
+    );
+    assert.equal(deleted.status, 204);
+    const afterDelete = await listReports(new Request(`${origin}/api/reports`));
+    assert.equal(
+      (await afterDelete.json()).reports.some(
+        (item: { id: string }) => item.id === report.id,
+      ),
+      false,
     );
     const cleared = await logout(
       new Request(`${origin}/api/session`, {

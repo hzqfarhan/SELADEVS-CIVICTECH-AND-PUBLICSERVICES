@@ -64,6 +64,8 @@ import {
   Construction,
   PanelLeftClose,
   PanelLeftOpen,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import type {
   CivicReport,
@@ -189,6 +191,11 @@ function GerakAppContent({
     [favourites, setFavourites] = useState<string[]>([]),
     [toast, setToast] = useState(""),
     [showReport, setShowReport] = useState(false),
+    [editingReport, setEditingReport] = useState<CivicReport | null>(null),
+    [managingReport, setManagingReport] = useState<CivicReport | null>(null),
+    [viewingReport, setViewingReport] = useState<CivicReport | null>(null),
+    [pendingManageReport, setPendingManageReport] =
+      useState<CivicReport | null>(null),
     [picking, setPicking] = useState(false),
     [picked, setPicked] = useState<Coordinate | null>(null);
   const [userLocation, setUserLocation] = useState<Coordinate | null>(null),
@@ -224,10 +231,8 @@ function GerakAppContent({
     [dispatches, setDispatches] = useState<
       { id: string; vehicle: string; time: string }[]
     >([]);
-  const { snapshot, reports, online, connected, refreshReports } = useNetwork(
-    region,
-    feed,
-  );
+  const { snapshot, reports, online, connected, refreshReports, addReport } =
+    useNetwork(region, feed);
   const tr = (en: string, ms: string) => (locale === "en" ? en : ms);
   const visibleReports = reports.filter(
     (report) =>
@@ -735,8 +740,6 @@ function GerakAppContent({
       setPlanned(false);
     }
   }, [usingOfficial, regionRoutes]);
-  const reportStatus = (status: ReportStatus) =>
-    statusNames[status][locale === "en" ? 0 : 1];
   const authenticate = async (demo: boolean) => {
     setAuthBusy(true);
     setAuthError("");
@@ -751,6 +754,10 @@ function GerakAppContent({
       setAuthenticated(true);
       setShowLogin(false);
       setPassword("");
+      if (pendingManageReport) {
+        setManagingReport(pendingManageReport);
+        setPendingManageReport(null);
+      }
       notify(tr("Operator session ready", "Sesi operator sedia"));
     } catch (e) {
       setAuthError(e instanceof Error ? e.message : "Sign-in failed");
@@ -770,6 +777,7 @@ function GerakAppContent({
         throw Error(e.error ?? "Unable to update");
       }
       await refreshReports(true);
+      setManagingReport(null);
       notify(
         tr(
           "Report updated. The community can see your progress.",
@@ -778,6 +786,33 @@ function GerakAppContent({
       );
     } catch (e) {
       notify(e instanceof Error ? e.message : "Unable to update");
+    }
+  };
+  const deleteCommunityReport = async (report: CivicReport) => {
+    if (
+      !window.confirm(
+        tr(
+          `Delete report ${report.id}? This cannot be undone.`,
+          `Padam laporan ${report.id}? Tindakan ini tidak boleh dibatalkan.`,
+        ),
+      )
+    )
+      return;
+    try {
+      const response = await fetch(`/api/reports/${report.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw Error(data?.error ?? "Unable to delete report");
+      }
+      await refreshReports(true);
+      setManagingReport(null);
+      notify(tr("Report deleted.", "Laporan dipadam."));
+    } catch (error) {
+      notify(
+        error instanceof Error ? error.message : "Unable to delete report",
+      );
     }
   };
   return (
@@ -1811,16 +1846,6 @@ function GerakAppContent({
             )}
             {view === "community" && (
               <>
-                <ReportDemo
-                  locale={locale}
-                  scenario={reportDemoScenario}
-                  stage={reportDemoStage}
-                  onScenario={(value) => {
-                    setReportDemoScenario(value);
-                    setReportDemoStage(0);
-                  }}
-                  onStage={setReportDemoStage}
-                />
                 <div className="collection-intro community-intro">
                   <span className="collection-icon">
                     <MessageSquare size={22} />
@@ -1834,8 +1859,8 @@ function GerakAppContent({
                     </strong>
                     <p>
                       {tr(
-                        "Damaged stops, unsafe paths or access barriers? Pin the issue and track updates here.",
-                        "Hentian rosak, laluan tidak selamat atau halangan akses? Tandakan isu dan ikuti kemas kini di sini.",
+                        "Damaged stops, unsafe paths or access barriers? Send a public report to the operator inbox and track its progress here.",
+                        "Hentian rosak, laluan tidak selamat atau halangan akses? Hantar laporan awam ke peti masuk operator dan ikuti perkembangannya di sini.",
                       )}
                     </p>
                   </div>
@@ -1943,8 +1968,7 @@ function GerakAppContent({
                         setSelectedId(null);
                         setSelectedStop(null);
                         showLocation(report.coordinate);
-                        if (window.matchMedia("(max-width: 960px)").matches)
-                          showMap();
+                        showMap();
                         notify(
                           `${report.location} · ${report.coordinate.map((c) => c.toFixed(5)).join(", ")}`,
                         );
@@ -2194,38 +2218,18 @@ function GerakAppContent({
                     )}
                     {visibleReports.map((report) => (
                       <div key={report.id}>
-                        <ReportCard report={report} locale={locale} />
-                        {authenticated && (
-                          <div className="report-action">
-                            <span>{tr("Move to", "Tukar kepada")}</span>
-                            <select
-                              aria-label={`Update ${report.title}`}
-                              value={report.status}
-                              onChange={(e) =>
-                                void updateStatus(
-                                  report,
-                                  e.target.value as ReportStatus,
-                                )
-                              }
-                            >
-                              <option value={report.status}>
-                                {reportStatus(report.status)}
-                              </option>
-                              {(report.status === "submitted"
-                                ? ["acknowledged"]
-                                : report.status === "acknowledged"
-                                  ? ["in-progress", "resolved"]
-                                  : report.status === "in-progress"
-                                    ? ["resolved"]
-                                    : ["acknowledged"]
-                              ).map((s) => (
-                                <option key={s} value={s}>
-                                  {reportStatus(s as ReportStatus)}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
+                        <ReportCard
+                          report={report}
+                          locale={locale}
+                          onOpen={() => {
+                            if (authenticated) {
+                              setManagingReport(report);
+                              return;
+                            }
+                            setPendingManageReport(report);
+                            setShowLogin(true);
+                          }}
+                        />
                       </div>
                     ))}
                   </>
@@ -2396,6 +2400,12 @@ function GerakAppContent({
             routes={displayedRoutes}
             stops={mapStops}
             reports={reports}
+            onSelectReport={(report) => {
+              setSelectedId(null);
+              setSelectedStop(null);
+              showLocation(report.coordinate);
+              setViewingReport(report);
+            }}
             heatmap={heatmap}
             picking={picking}
             onPick={(coordinate) => {
@@ -2935,14 +2945,15 @@ function GerakAppContent({
             if (window.matchMedia("(max-width: 960px)").matches) showMap();
             setMode("2d");
           }}
-          onSubmit={() => {
+          onSubmit={(report) => {
+            addReport(report);
             setShowReport(false);
             setTrafficReportContext("");
             void refreshReports(true);
             notify(
               tr(
-                "Thank you. Your report is now in the community and operator inbox.",
-                "Terima kasih. Laporan anda kini dalam peti masuk komuniti dan operator.",
+                `Report ${report.id} submitted. It is now visible to the community and operator.`,
+                `Laporan ${report.id} dihantar. Laporan kini boleh dilihat oleh komuniti dan operator.`,
               ),
             );
           }}
@@ -2951,7 +2962,10 @@ function GerakAppContent({
       {showLogin && (
         <Dialog
           title={tr("Welcome to operations.", "Selamat datang ke operasi.")}
-          onClose={() => setShowLogin(false)}
+          onClose={() => {
+            setShowLogin(false);
+            setPendingManageReport(null);
+          }}
         >
           <p>
             {tr(
@@ -3011,6 +3025,40 @@ function GerakAppContent({
             </>
           )}
         </Dialog>
+      )}
+      {viewingReport && (
+        <ReportDetailDialog
+          report={viewingReport}
+          locale={locale}
+          onClose={() => setViewingReport(null)}
+        />
+      )}
+      {editingReport && (
+        <EditReportDialog
+          report={editingReport}
+          locale={locale}
+          onClose={() => setEditingReport(null)}
+          onSaved={async () => {
+            setEditingReport(null);
+            await refreshReports(true);
+            notify(
+              tr("Report details updated.", "Butiran laporan dikemas kini."),
+            );
+          }}
+        />
+      )}
+      {managingReport && (
+        <ManageReportDialog
+          report={managingReport}
+          locale={locale}
+          onClose={() => setManagingReport(null)}
+          onStatus={(status) => void updateStatus(managingReport, status)}
+          onEdit={() => {
+            setManagingReport(null);
+            setEditingReport(managingReport);
+          }}
+          onDelete={() => void deleteCommunityReport(managingReport)}
+        />
       )}
       {showInfo && (
         <Dialog
@@ -3152,15 +3200,36 @@ function ReportCard({
   report,
   locale,
   onSelect,
+  onOpen,
 }: {
   report: CivicReport;
   locale: Locale;
   onSelect?: () => void;
+  onOpen?: () => void;
 }) {
   const category = categories.find((c) => c.id === report.category),
     Icon = category?.icon ?? MapPin;
+  const cardAction = onOpen ?? onSelect;
   return (
-    <article className="report-card">
+    <article
+      className={`report-card ${cardAction ? "report-card-manageable" : ""}`}
+      role={cardAction ? "button" : undefined}
+      tabIndex={cardAction ? 0 : undefined}
+      aria-label={
+        onOpen
+          ? `Manage report ${report.id}: ${report.title}`
+          : onSelect
+            ? `Show ${report.title} on the map at ${report.location}`
+            : undefined
+      }
+      onClick={cardAction}
+      onKeyDown={(event) => {
+        if (cardAction && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          cardAction();
+        }
+      }}
+    >
       <div className="report-card-top">
         <span className="report-category">
           <Icon size={16} />
@@ -3176,10 +3245,22 @@ function ReportCard({
         <img className="report-image" src={report.image} alt={report.title} />
       )}
       <div className="report-card-bottom">
-        <button onClick={onSelect} disabled={!onSelect}>
-          <MapPin size={12} />
-          {report.location}
-        </button>
+        {onSelect ? (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              onSelect();
+            }}
+          >
+            <MapPin size={12} />
+            {report.location}
+          </button>
+        ) : (
+          <span className="report-location">
+            <MapPin size={12} />
+            {report.location}
+          </span>
+        )}
         <span>
           {new Date(report.createdAt).toLocaleDateString(
             locale === "ms" ? "ms-MY" : "en-MY",
@@ -3189,6 +3270,219 @@ function ReportCard({
         </span>
       </div>
     </article>
+  );
+}
+function ReportDetailDialog({
+  report,
+  locale,
+  onClose,
+}: {
+  report: CivicReport;
+  locale: Locale;
+  onClose: () => void;
+}) {
+  const tr = (en: string, ms: string) => (locale === "en" ? en : ms);
+  return (
+    <Dialog title={report.title} onClose={onClose}>
+      <div className="report-detail-meta">
+        <span className={`report-status ${report.status}`}>
+          {statusNames[report.status][locale === "en" ? 0 : 1]}
+        </span>
+        <span>{report.id}</span>
+      </div>
+      <ReportCard report={report} locale={locale} />
+      <p className="fineprint report-detail-coordinate">
+        <MapPin size={13} />
+        {tr("Reported location", "Lokasi dilaporkan")}:{" "}
+        {report.coordinate[1].toFixed(5)}, {report.coordinate[0].toFixed(5)}
+      </p>
+    </Dialog>
+  );
+}
+function ManageReportDialog({
+  report,
+  locale,
+  onClose,
+  onStatus,
+  onEdit,
+  onDelete,
+}: {
+  report: CivicReport;
+  locale: Locale;
+  onClose: () => void;
+  onStatus: (status: ReportStatus) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const tr = (en: string, ms: string) => (locale === "en" ? en : ms);
+  const nextStatuses: ReportStatus[] =
+    report.status === "submitted"
+      ? ["acknowledged", "resolved"]
+      : report.status === "acknowledged"
+        ? ["in-progress", "resolved"]
+        : report.status === "in-progress"
+          ? ["resolved", "acknowledged"]
+          : ["acknowledged"];
+  return (
+    <Dialog
+      title={tr(`Manage ${report.id}`, `Urus ${report.id}`)}
+      onClose={onClose}
+    >
+      <p>
+        <strong>{report.title}</strong>
+        <br />
+        {report.location}
+      </p>
+      <label className="form-label">
+        {tr("Change status", "Tukar status")}
+        <select
+          value={report.status}
+          onChange={(event) => onStatus(event.target.value as ReportStatus)}
+        >
+          <option value={report.status}>
+            {statusNames[report.status][locale === "en" ? 0 : 1]}
+          </option>
+          {nextStatuses.map((status) => (
+            <option key={status} value={status}>
+              {statusNames[status][locale === "en" ? 0 : 1]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="report-manage-actions">
+        <button type="button" className="secondary-button" onClick={onEdit}>
+          <Pencil size={15} />
+          {tr("Edit details", "Sunting butiran")}
+        </button>
+        <button
+          type="button"
+          className="report-delete-button"
+          onClick={onDelete}
+        >
+          <Trash2 size={15} />
+          {tr("Delete report", "Padam laporan")}
+        </button>
+      </div>
+    </Dialog>
+  );
+}
+function EditReportDialog({
+  report,
+  locale,
+  onClose,
+  onSaved,
+}: {
+  report: CivicReport;
+  locale: Locale;
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const tr = (en: string, ms: string) => (locale === "en" ? en : ms);
+  const [category, setCategory] = useState(report.category);
+  const [title, setTitle] = useState(report.title);
+  const [description, setDescription] = useState(report.description);
+  const [location, setLocation] = useState(report.location);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/reports/${report.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, title, description, location }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw Error(data?.error ?? "Unable to update report");
+      await onSaved();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Unable to update report",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Dialog
+      title={tr(`Edit ${report.id}`, `Sunting ${report.id}`)}
+      onClose={onClose}
+    >
+      <p>
+        {tr(
+          "Correct the public report details. Its map position and history are preserved.",
+          "Betulkan butiran laporan awam. Kedudukan peta dan sejarahnya dikekalkan.",
+        )}
+      </p>
+      <form onSubmit={submit}>
+        <label className="form-label">
+          {tr("Category", "Kategori")}
+          <select
+            value={category}
+            onChange={(event) =>
+              setCategory(event.target.value as ReportCategory)
+            }
+          >
+            {categories.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item[locale === "en" ? "en" : "ms"]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="form-label">
+          {tr("Issue title", "Tajuk isu")}
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            minLength={5}
+            maxLength={120}
+            required
+          />
+        </label>
+        <label className="form-label">
+          {tr("Description", "Penerangan")}
+          <textarea
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            minLength={10}
+            maxLength={2000}
+            rows={4}
+            required
+          />
+        </label>
+        <label className="form-label">
+          {tr("Location name", "Nama lokasi")}
+          <input
+            value={location}
+            onChange={(event) => setLocation(event.target.value)}
+            minLength={2}
+            maxLength={200}
+            required
+          />
+        </label>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="form-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>
+            {tr("Cancel", "Batal")}
+          </button>
+          <button type="submit" className="primary-button" disabled={busy}>
+            {busy ? (
+              <Loader2 size={16} className="spin" />
+            ) : (
+              <Check size={16} />
+            )}
+            {tr("Save changes", "Simpan perubahan")}
+          </button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 function ReportDialog({
@@ -3210,7 +3504,7 @@ function ReportDialog({
   online: boolean;
   onClose: () => void;
   onPick: () => void;
-  onSubmit: () => void;
+  onSubmit: (report: CivicReport) => void;
 }) {
   const tr = (en: string, ms: string) => (locale === "en" ? en : ms);
   const availableStops = networkStops;
@@ -3230,7 +3524,12 @@ function ReportDialog({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [draftSaved, setDraftSaved] = useState(false);
-  const stop = availableStops.find((s) => s.id === locationId)!;
+  const stop = availableStops.find((s) => s.id === locationId);
+  useEffect(() => {
+    if (!picked && !stop && availableStops[0]) {
+      setLocationId(availableStops[0].id);
+    }
+  }, [availableStops, picked, stop]);
   useEffect(() => {
     if (trafficContext) return;
     try {
@@ -3301,6 +3600,10 @@ function ReportDialog({
       setError(tr("Choose a location on the map.", "Pilih lokasi pada peta."));
       return;
     }
+    const coordinate = picked ?? stop!.coordinate;
+    const location = picked
+      ? `${tr("Map location", "Lokasi peta")} · ${picked[1].toFixed(5)}, ${picked[0].toFixed(5)}`
+      : stop!.name;
     if (!online) {
       saveDraft();
       return;
@@ -3315,22 +3618,24 @@ function ReportDialog({
           category,
           title,
           description,
-          coordinate: picked ?? stop.coordinate,
-          location: picked
-            ? `${tr("Map location", "Lokasi peta")} · ${picked[1].toFixed(5)}, ${picked[0].toFixed(5)}`
-            : stop.name,
+          coordinate,
+          location,
           image,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       if (!res.ok)
         throw Error(
-          typeof data.error === "string"
+          data && typeof data.error === "string"
             ? data.error
-            : "Please check your report and try again.",
+            : tr(
+                "The report service is unavailable. Please save a draft and try again.",
+                "Perkhidmatan laporan tidak tersedia. Sila simpan draf dan cuba lagi.",
+              ),
         );
+      if (!data?.report) throw Error("The report response was incomplete.");
       localStorage.removeItem("gerak:report-draft");
-      onSubmit();
+      onSubmit(data.report as CivicReport);
     } catch (e) {
       setError(
         e instanceof Error
@@ -3410,16 +3715,37 @@ function ReportDialog({
                 {picked[1].toFixed(5)}, {picked[0].toFixed(5)}
               </span>
             ) : (
-              <select
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-              >
-                {availableStops.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <>
+                <select
+                  value={locationId}
+                  onChange={(e) => setLocationId(e.target.value)}
+                  disabled={availableStops.length === 0}
+                  required
+                >
+                  {availableStops.length === 0 ? (
+                    <option value="">
+                      {tr(
+                        "Pick a location on the map",
+                        "Pilih lokasi pada peta",
+                      )}
+                    </option>
+                  ) : (
+                    availableStops.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {!stop && (
+                  <small className="location-help">
+                    {tr(
+                      "No stop list is available for this area yet. Choose a point on the map.",
+                      "Senarai hentian belum tersedia untuk kawasan ini. Pilih titik pada peta.",
+                    )}
+                  </small>
+                )}
+              </>
             )}
           </label>
           <button
