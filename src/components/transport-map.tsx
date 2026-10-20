@@ -5,6 +5,7 @@ import { LocateFixed, Maximize2 } from "lucide-react";
 import type { CurrentWeather } from "@/lib/weather";
 import { MapWeather } from "./map-weather";
 import { SatelliteControl } from "./satellite-control";
+import { ScenarioMarkers } from "./scenario-markers";
 import TrafficLayers from "./traffic-layers";
 import { updateFleetClusters } from "./fleet-clusters";
 import MalaysiaBoundaries, {
@@ -140,6 +141,29 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
           height={projection.depth}
           fill="url(#gerak-schematic-grid)"
         />
+        {props.scenario &&
+          [props.scenario.closed, ...props.scenario.alternatives].map(
+            (stop, index) => {
+              const [x, y] = projection.project(stop.coordinate);
+              return (
+                <g
+                  key={`scenario-${stop.id}`}
+                  transform={`translate(${x} ${y})`}
+                >
+                  <title>{`${props.locale === "ms" ? "Senario hipotesis" : "Hypothetical scenario"}: ${stop.name}`}</title>
+                  <circle
+                    r="4"
+                    fill={index === 0 ? "#ffc56b" : "#9ce8d5"}
+                    stroke="#142b45"
+                    strokeWidth=".5"
+                  />
+                  <text textAnchor="middle" y="1" fontSize="3" fill="#142b45">
+                    {index === 0 ? "×" : index}
+                  </text>
+                </g>
+              );
+            },
+          )}
         {props.routes.map((route) => (
           <g key={route.id}>
             <polyline
@@ -371,6 +395,26 @@ export function SchematicMap(props: TransportMapProps & { reason?: string }) {
           />
         )}
       </svg>
+      {props.scenario && (
+        <div className="gerak-scenario-legend" role="status">
+          <strong>
+            {props.locale === "ms"
+              ? "SENARIO HIPOTESIS"
+              : "HYPOTHETICAL SCENARIO"}
+          </strong>
+          <span>× {props.scenario.closed.name}</span>
+          {props.scenario.alternatives.map((stop, index) => (
+            <span key={stop.id}>
+              {index + 1} · {stop.name}
+            </span>
+          ))}
+          <span>
+            {props.locale === "ms"
+              ? "Bukan amaran perkhidmatan sebenar"
+              : "Not a real service alert"}
+          </span>
+        </div>
+      )}
       <div className="gerak-map-caption">
         {props.reason ?? "Offline route schematic"} · geographic routes,
         simplified base
@@ -1770,6 +1814,13 @@ function FlatMap(props: TransportMapProps) {
       className={`gerak-flat-map ${props.mode === "3d" ? "is-geographic-3d" : ""} ${props.picking ? "is-picking" : ""}`}
     >
       <div ref={container} className="gerak-map-canvas" data-testid="map-2d" />
+      {ready && map.current && (
+        <ScenarioMarkers
+          map={map.current}
+          scenario={props.scenario}
+          locale={props.locale}
+        />
+      )}
       {ready && map.current && (
         <TrafficLayers
           map={map.current}

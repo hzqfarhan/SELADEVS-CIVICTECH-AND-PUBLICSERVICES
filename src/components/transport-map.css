@@ -965,3 +965,38 @@
   outline: 3px solid #fff;
   outline-offset: 3px;
 }
+.gerak-scenario-marker {
+  max-width: 240px;
+  padding: 9px 12px;
+  border: 2px solid #142b45;
+  border-radius: 10px;
+  font: 700 12px/1.4 sans-serif;
+  color: #142b45;
+  box-shadow: 0 4px 18px #0005;
+  pointer-events: none;
+}
+.gerak-scenario-marker.closed {
+  background: #ffc56b;
+}
+.gerak-scenario-marker.alternative {
+  background: #9ce8d5;
+}
+.gerak-scenario-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 72px;
+  z-index: 6;
+  display: grid;
+  gap: 5px;
+  max-width: min(330px, calc(100% - 24px));
+  padding: 12px;
+  border: 1px solid #ffc56b;
+  border-radius: 12px;
+  background: #142b45ed;
+  color: #edf5ff;
+  font-size: 11px;
+  pointer-events: none;
+}
+.gerak-scenario-legend strong {
+  color: #ffc56b;
+}

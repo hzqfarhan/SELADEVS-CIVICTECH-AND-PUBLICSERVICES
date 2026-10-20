@@ -14,6 +14,9 @@ import {
 import { ft } from "@/lib/fare-copy";
 import { sortJourneysByFare } from "@/lib/fares";
 import { RideStatus } from "./ride-status";
+import { ReportDemo } from "./report-demo";
+import { WhatIf } from "./what-if";
+import type { TransportMapProps } from "./map-types";
 import { SERVICES, serviceFor } from "@/lib/feeds";
 import { uniqueRouteColors, routeColor } from "@/lib/route-colors";
 import { useState, useEffect, useMemo, useRef, useId } from "react";
@@ -165,6 +168,10 @@ function GerakAppContent({
   const pathname = usePathname();
   const farePreferences = useFarePreferences();
   const [trafficReportContext, setTrafficReportContext] = useState("");
+  const [reportDemoScenario, setReportDemoScenario] = useState(0);
+  const [mapScenario, setMapScenario] =
+    useState<TransportMapProps["scenario"]>(null);
+  const [reportDemoStage, setReportDemoStage] = useState(0);
   const [reportFilter, setReportFilter] = useState<"all" | "open" | "resolved">(
     "all",
   );
@@ -1214,6 +1221,18 @@ function GerakAppContent({
                     onChange={farePreferences.saveProfile}
                     locale={locale}
                   />
+                  <WhatIf
+                    key={`${region}:${origin}:${destination}`}
+                    from={origin}
+                    to={destination}
+                    routes={regionRoutes}
+                    stops={regionStops}
+                    accessible={accessible}
+                    locale={locale}
+                    profile={farePreferences.profile}
+                    onLocate={showLocation}
+                    onScenario={setMapScenario}
+                  />
                   {planned &&
                     (journey.length ? (
                       sortedJourneys.map((j, i) => (
@@ -1792,6 +1811,16 @@ function GerakAppContent({
             )}
             {view === "community" && (
               <>
+                <ReportDemo
+                  locale={locale}
+                  scenario={reportDemoScenario}
+                  stage={reportDemoStage}
+                  onScenario={(value) => {
+                    setReportDemoScenario(value);
+                    setReportDemoStage(0);
+                  }}
+                  onStage={setReportDemoStage}
+                />
                 <div className="collection-intro community-intro">
                   <span className="collection-icon">
                     <MessageSquare size={22} />
@@ -2131,6 +2160,16 @@ function GerakAppContent({
                 )}
                 {opsTab === "reports" && (
                   <>
+                    <ReportDemo
+                      locale={locale}
+                      scenario={reportDemoScenario}
+                      stage={reportDemoStage}
+                      onScenario={(value) => {
+                        setReportDemoScenario(value);
+                        setReportDemoStage(0);
+                      }}
+                      onStage={setReportDemoStage}
+                    />
                     <div className="section-title">
                       <h2>{tr("Community inbox", "Peti masuk komuniti")}</h2>
                       <span>{reports.length}</span>
@@ -2326,6 +2365,7 @@ function GerakAppContent({
                 : undefined
             }
             focusLocation={focusLocation}
+            scenario={planning ? mapScenario : null}
             onTrafficReport={(coordinate, context) => {
               setTrafficReportContext(context);
               setPicked(coordinate);

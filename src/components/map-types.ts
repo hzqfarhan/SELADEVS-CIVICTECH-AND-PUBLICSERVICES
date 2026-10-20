@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types";
 
 export interface TransportMapProps {
+  scenario?: { closed: Stop; alternatives: Stop[] } | null;
   locale?: "en" | "ms";
   journeyFrom?: Stop;
   journeyTo?: Stop;

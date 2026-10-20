@@ -553,8 +553,10 @@ export function planJourney(
   accessible = false,
   networkRoutes = routes,
   networkStops = stops,
+  unavailableStops: ReadonlySet<string> = new Set(),
 ): Journey[] {
-  if (from === to) return [];
+  if (from === to || unavailableStops.has(from) || unavailableStops.has(to))
+    return [];
   const origin = networkStops.find((s) => s.id === from),
     destination = networkStops.find((s) => s.id === to);
   if (!origin || !destination || origin.region !== destination.region)
@@ -593,6 +595,7 @@ export function planJourney(
     )) {
       const transfer = first.stops.find(
         (s) =>
+          !unavailableStops.has(s) &&
           s !== from &&
           s !== to &&
           leg(first, from, s) !== null &&
