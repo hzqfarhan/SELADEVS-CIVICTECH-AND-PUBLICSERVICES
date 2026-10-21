@@ -15,6 +15,7 @@ import { ft } from "@/lib/fare-copy";
 import { sortJourneysByFare } from "@/lib/fares";
 import { RideStatus } from "./ride-status";
 import { ReportDemo } from "./report-demo";
+import { ReportWalkthrough } from "./report-walkthrough";
 import { WhatIf } from "./what-if";
 import type { TransportMapProps } from "./map-types";
 import { SERVICES, serviceFor } from "@/lib/feeds";
@@ -174,6 +175,7 @@ function GerakAppContent({
   const [mapScenario, setMapScenario] =
     useState<TransportMapProps["scenario"]>(null);
   const [reportDemoStage, setReportDemoStage] = useState(0);
+  const [reportWalkthroughOpen, setReportWalkthroughOpen] = useState(false);
   const [reportFilter, setReportFilter] = useState<"all" | "open" | "resolved">(
     "all",
   );
@@ -468,6 +470,12 @@ function GerakAppContent({
         setOperatorShowcase(d.showcase === true);
       })
       .catch(() => {});
+    if (
+      window.location.pathname === "/operator" &&
+      new URLSearchParams(window.location.search).get("walkthrough") ===
+        "report"
+    )
+      setReportWalkthroughOpen(true);
     const prompt = (event: Event) => {
       event.preventDefault();
       setInstallEvent(event as InstallEvent);
@@ -2034,6 +2042,15 @@ function GerakAppContent({
                     </button>
                   )}
                 </div>
+                <button
+                  type="button"
+                  className="primary-button wide"
+                  style={{ marginBottom: 16 }}
+                  onClick={() => setReportWalkthroughOpen(true)}
+                >
+                  <Camera size={17} />
+                  {tr("Open recording demo", "Buka demo rakaman")}
+                </button>
                 <div className="operator-stats">
                   <div>
                     <span>
@@ -2971,6 +2988,12 @@ function GerakAppContent({
               ),
             );
           }}
+        />
+      )}
+      {reportWalkthroughOpen && (
+        <ReportWalkthrough
+          locale={locale}
+          onClose={() => setReportWalkthroughOpen(false)}
         />
       )}
       {showLogin && (

@@ -173,7 +173,7 @@ test("showcase report workflow persists operator changes while retaining origin,
           (await update({ status: "acknowledged", actor: "operator" })).status,
           400,
         );
-        assert.equal((await update({ status: "resolved" })).status, 409);
+        assert.equal((await update({ status: "in-progress" })).status, 409);
 
         const acknowledged = await update({ status: "acknowledged" });
         assert.equal(acknowledged.status, 200);

@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   output: "standalone",
+  outputFileTracingExcludes: {
+    "/*": ["./.runtime/**/*", "./media/**/*", "./.git/**/*"],
+  },
   poweredByHeader: false,
   devIndicators: false,
   async headers() {
