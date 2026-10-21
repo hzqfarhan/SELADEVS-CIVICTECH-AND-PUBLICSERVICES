@@ -2,7 +2,7 @@
 
 **Malaysian mobility, with a voice for every neighbourhood.**
    
-GERAK combines official BAS.MY, KTMB and Prasarana transport feeds, geographic 2D/3D maps with DOSM state/district boundaries and animated vehicles, route discovery and a shared passenger/operator civic-report workflow. It is a working CODEFEST MVP with documented production boundaries—not a claim of an audited transport service.
+GERAK combines official BAS.MY, KTMB and Prasarana transport feeds, geographiaaac 2D/3D maps with DOSM state/district boundaries and animated vehicles, route discovery and a shared passenger/operator civic-report workflow. It is a working CODEFEST MVP with documented production boundaries—not a claim of an audited transport service.
 
 ## Nationwide coverage
 
