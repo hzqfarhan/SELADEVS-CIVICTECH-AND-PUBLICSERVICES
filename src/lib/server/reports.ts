@@ -1,4 +1,5 @@
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
@@ -62,11 +63,15 @@ export const reportEditSchema = reportSchema
   );
 export type ReportInput = z.infer<typeof reportSchema>;
 export type ReportEditInput = z.infer<typeof reportEditSchema>;
-const filePath = () =>
-  path.join(
-    process.env.GERAK_DATA_DIR || path.join(process.cwd(), ".runtime"),
-    "reports.json",
-  );
+function reportDataDirectory() {
+  if (process.env.GERAK_DATA_DIR) return process.env.GERAK_DATA_DIR;
+  // Vercel's deployment bundle is read-only. /tmp is writable, but it is only a
+  // best-effort fallback for previews: instances do not share it and may discard
+  // it at any time. Configure DATABASE_URL for durable production reports.
+  if (process.env.VERCEL) return path.join(os.tmpdir(), "gerak");
+  return path.join(process.cwd(), ".runtime");
+}
+const filePath = () => path.join(reportDataDirectory(), "reports.json");
 let transaction: Promise<unknown> = Promise.resolve();
 let sql: ReturnType<typeof postgres> | undefined;
 function database() {
@@ -223,5 +228,8 @@ export async function updateReport(
   });
 }
 export function reportStorage() {
-  return process.env.DATABASE_URL ? "postgresql" : "local-json";
+  if (process.env.DATABASE_URL) return "postgresql";
+  return process.env.VERCEL && !process.env.GERAK_DATA_DIR
+    ? "ephemeral-json"
+    : "local-json";
 }

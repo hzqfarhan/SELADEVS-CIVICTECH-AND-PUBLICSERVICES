@@ -12,6 +12,10 @@ import {
   reportEditSchema,
   reportSchema,
   canTransition,
+  createReport,
+  deleteReport as deleteStoredReport,
+  listReports as listStoredReports,
+  reportStorage,
 } from "../src/lib/server/reports";
 import {
   GET as listReports,
@@ -401,6 +405,40 @@ test("API workflow persists a civic report and requires a signed operator sessio
     if (previousDatabase) process.env.DATABASE_URL = previousDatabase;
     else delete process.env.DATABASE_URL;
     delete process.env.GERAK_DATA_DIR;
+  }
+});
+
+test("report storage uses writable temporary storage on Vercel", async () => {
+  const previousDatabase = process.env.DATABASE_URL;
+  const previousDataDirectory = process.env.GERAK_DATA_DIR;
+  const previousVercel = process.env.VERCEL;
+  delete process.env.DATABASE_URL;
+  delete process.env.GERAK_DATA_DIR;
+  process.env.VERCEL = "1";
+  let reportId: string | undefined;
+  try {
+    const input = {
+      category: "infrastructure" as const,
+      title: "Shelter light is broken",
+      description: "The light inside the bus shelter no longer turns on.",
+      coordinate: [103.763, 1.462] as [number, number],
+      location: "JB Sentral",
+    };
+    const report = await createReport(input);
+    reportId = report.id;
+    assert.ok(
+      (await listStoredReports()).some((item) => item.id === report.id),
+    );
+    assert.equal(reportStorage(), "ephemeral-json");
+  } finally {
+    if (reportId) await deleteStoredReport(reportId);
+    if (previousDatabase) process.env.DATABASE_URL = previousDatabase;
+    else delete process.env.DATABASE_URL;
+    if (previousDataDirectory)
+      process.env.GERAK_DATA_DIR = previousDataDirectory;
+    else delete process.env.GERAK_DATA_DIR;
+    if (previousVercel) process.env.VERCEL = previousVercel;
+    else delete process.env.VERCEL;
   }
 });
 
