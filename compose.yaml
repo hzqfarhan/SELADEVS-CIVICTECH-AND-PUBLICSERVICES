@@ -8,6 +8,7 @@ services:
       DATABASE_URL: postgres://gerak:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/gerak
       AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET}
       OPERATOR_PASSWORD: ${OPERATOR_PASSWORD:?set OPERATOR_PASSWORD}
+      OPERATOR_SHOWCASE_MODE: ${OPERATOR_SHOWCASE_MODE:-true}
       ALLOW_DEMO_OPERATOR: "false"
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
     volumes: ["runtime:/app/.runtime"]

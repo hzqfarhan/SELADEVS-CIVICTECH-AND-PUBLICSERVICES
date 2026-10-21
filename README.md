@@ -8,6 +8,8 @@ The follow camera now uses zoom 17.5 in 3D; the map supports zoom 3–22. Bus mo
 
 ## Run locally
 
+The hackathon showcase opens the operator workspace directly as **GERAK Demo Operator**, including report status updates. This mode is enabled by default for the demonstration and does not require `AUTH_SECRET` or a password. Anyone with access to the site can use its operator actions in this mode. Set both `OPERATOR_SHOWCASE_MODE=false` and `ALLOW_DEMO_OPERATOR=false`, then configure `AUTH_SECRET` and `OPERATOR_PASSWORD` to restore password-protected access.
+
 Requires Node.js **22+** and npm. Next.js **16.3.7**, React **19.3.0**, TypeScript, App Router.
 
 ```sh

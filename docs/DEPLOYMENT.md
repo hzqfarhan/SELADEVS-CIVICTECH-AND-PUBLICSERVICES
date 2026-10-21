@@ -28,10 +28,13 @@ The minimum safe topology is one application process with durable storage. Do no
 
 ## Configuration responsibilities
 
+For the temporary hackathon showcase, `OPERATOR_SHOWCASE_MODE` defaults to `true`: the operator dashboard and report updates use a shared **GERAK Demo Operator** without login or signing secrets. Set both `OPERATOR_SHOWCASE_MODE=false` and `ALLOW_DEMO_OPERATOR=false` before restoring restricted operator access; then configure `AUTH_SECRET` (at least 32 random characters) and `OPERATOR_PASSWORD`. The origin, validation and report-status transition checks remain enabled in both modes.
+
 `.env.example` is the complete implementation reference. Security/storage values currently used by server modules include:
 
 | Variable | Deployment intent |
 | --- | --- |
+| `OPERATOR_SHOWCASE_MODE` | Temporary public demo operator, enabled by default; set `false` for password-protected access |
 | `APP_ORIGIN` | Exact public origin for mutation checks |
 | `AUTH_SECRET` | Random secret of at least 32 characters; keep in a secret store |
 | `OPERATOR_PASSWORD` | Operator credential for the bounded pilot |

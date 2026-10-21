@@ -9,8 +9,13 @@ export type OperatorSession = {
   mode: "demo" | "authenticated";
   exp: number;
 };
+/** Temporary hackathon showcase: a shared operator, without a sign-in step. */
+export function operatorShowcaseEnabled() {
+  return process.env.OPERATOR_SHOWCASE_MODE !== "false";
+}
 export function demoAvailable() {
   return (
+    operatorShowcaseEnabled() ||
     process.env.ALLOW_DEMO_OPERATOR === "true" ||
     (process.env.NODE_ENV !== "production" &&
       process.env.ALLOW_DEMO_OPERATOR !== "false")
@@ -65,6 +70,12 @@ export function verifySession(
   }
 }
 export function getSession(request: Request) {
+  if (operatorShowcaseEnabled())
+    return {
+      role: "operator",
+      mode: "demo",
+      exp: Math.floor(Date.now() / 1000) + lifetime,
+    } satisfies OperatorSession;
   const token = request.headers
     .get("cookie")
     ?.split(";")

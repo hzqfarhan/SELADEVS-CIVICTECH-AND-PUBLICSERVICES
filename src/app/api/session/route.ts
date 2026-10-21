@@ -3,6 +3,7 @@ import {
   createSession,
   demoAvailable,
   getSession,
+  operatorShowcaseEnabled,
   passwordMatches,
   sessionCookie,
 } from "@/lib/server/auth";
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
       authenticated: !!session,
       demoAvailable: demoAvailable(),
       mode: session?.mode || null,
+      showcase: operatorShowcaseEnabled(),
     },
     { headers: { "Cache-Control": "no-store" } },
   );
@@ -37,6 +39,16 @@ export async function POST(request: Request) {
       })
       .strict()
       .parse(await readJson(request, 2_048));
+    if (operatorShowcaseEnabled())
+      return Response.json(
+        {
+          authenticated: true,
+          demoAvailable: true,
+          mode: "demo",
+          showcase: true,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
     const demo = input.demo === true && demoAvailable();
     if (!demo && (!input.password || !passwordMatches(input.password)))
       throw new HttpError(
@@ -61,7 +73,10 @@ export async function DELETE(request: Request) {
   try {
     requireSameOrigin(request);
     return Response.json(
-      { authenticated: false },
+      {
+        authenticated: operatorShowcaseEnabled(),
+        showcase: operatorShowcaseEnabled(),
+      },
       { headers: { "Set-Cookie": sessionCookie("", request, true) } },
     );
   } catch (error) {

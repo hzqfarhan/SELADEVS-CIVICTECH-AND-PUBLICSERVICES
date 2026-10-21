@@ -220,6 +220,7 @@ function GerakAppContent({
     key: number;
   } | null>(null);
   const [authenticated, setAuthenticated] = useState(false),
+    [operatorShowcase, setOperatorShowcase] = useState(false),
     [demoAvailable, setDemoAvailable] = useState(false),
     [showLogin, setShowLogin] = useState(false),
     [password, setPassword] = useState(""),
@@ -464,6 +465,7 @@ function GerakAppContent({
       .then((d) => {
         setAuthenticated(d.authenticated);
         setDemoAvailable(d.demoAvailable);
+        setOperatorShowcase(d.showcase === true);
       })
       .catch(() => {});
     const prompt = (event: Event) => {
@@ -752,6 +754,7 @@ function GerakAppContent({
       const data = await response.json();
       if (!response.ok) throw Error(data.error ?? "Sign-in failed");
       setAuthenticated(true);
+      setOperatorShowcase(data.showcase === true);
       setShowLogin(false);
       setPassword("");
       if (pendingManageReport) {
@@ -1986,39 +1989,50 @@ function GerakAppContent({
                   <ShieldCheck size={19} />
                   <span>
                     <strong>
-                      {authenticated
-                        ? tr("Operator connected", "Operator bersambung")
-                        : tr("Public overview", "Gambaran awam")}
+                      {operatorShowcase
+                        ? tr("GERAK Demo Operator", "Operator Demo GERAK")
+                        : authenticated
+                          ? tr("Operator connected", "Operator bersambung")
+                          : tr("Public overview", "Gambaran awam")}
                     </strong>
                     <small>
-                      {authenticated
+                      {operatorShowcase
                         ? tr(
-                            "Incident management enabled",
-                            "Pengurusan insiden diaktifkan",
+                            "Showcase mode · report management enabled",
+                            "Mod pameran · pengurusan laporan diaktifkan",
                           )
-                        : tr(
-                            "Sign in to manage reports",
-                            "Log masuk untuk urus laporan",
-                          )}
+                        : authenticated
+                          ? tr(
+                              "Incident management enabled",
+                              "Pengurusan insiden diaktifkan",
+                            )
+                          : tr(
+                              "Sign in to manage reports",
+                              "Log masuk untuk urus laporan",
+                            )}
                     </small>
                   </span>
-                  <button
-                    className="icon-button"
-                    aria-label={authenticated ? "Sign out" : "Operator sign in"}
-                    onClick={() => {
-                      if (authenticated) {
-                        void fetch("/api/session", { method: "DELETE" }).then(
-                          () => setAuthenticated(false),
-                        );
-                      } else setShowLogin(true);
-                    }}
-                  >
-                    {authenticated ? (
-                      <LogOut size={17} />
-                    ) : (
-                      <LockKeyhole size={17} />
-                    )}
-                  </button>
+                  {!operatorShowcase && (
+                    <button
+                      className="icon-button"
+                      aria-label={
+                        authenticated ? "Sign out" : "Operator sign in"
+                      }
+                      onClick={() => {
+                        if (authenticated) {
+                          void fetch("/api/session", { method: "DELETE" }).then(
+                            () => setAuthenticated(false),
+                          );
+                        } else setShowLogin(true);
+                      }}
+                    >
+                      {authenticated ? (
+                        <LogOut size={17} />
+                      ) : (
+                        <LockKeyhole size={17} />
+                      )}
+                    </button>
+                  )}
                 </div>
                 <div className="operator-stats">
                   <div>

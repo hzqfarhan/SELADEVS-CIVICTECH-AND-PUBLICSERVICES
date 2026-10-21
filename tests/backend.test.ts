@@ -35,6 +35,8 @@ import { GET as eventStream } from "../src/app/api/events/route";
 import { readResponseBytes } from "../src/lib/server/upstream";
 
 const origin = "http://localhost:3000";
+// These cases exercise the optional password/session mode rather than the showcase.
+process.env.OPERATOR_SHOWCASE_MODE = "false";
 let testDataDirectory: string;
 after(async () => {
   if (
