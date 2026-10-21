@@ -1,0 +1,15 @@
+﻿final_start_seconds,final_end_seconds,type,clip_or_action,original_promo_in_seconds,original_promo_out_seconds
+0,6,Promo,01-intro-silent.mp4,0,6
+6,18,Team demo,Problem and network overview,,
+18,30,Promo,02-bus-silent.mp4,6,18
+30,58,Team demo,"Select bus, follow 3D, switch 2D, GPS freshness",,
+58,66,Promo,03-journey-silent.mp4,18,26
+66,84,Team demo,Plan a connection and show estimated fare,,
+84,90,Promo,04-budget-silent.mp4,26,32
+90,102,Team demo,Adjust recurring journey budget,,
+102,112,Promo,05-community-silent.mp4,32,42
+112,134,Team demo,Clearly scripted reporting timeline,,
+134,142,Promo,06-what-if-silent.mp4,42,50
+142,160,Team demo,Hypothetical closure and alternatives,,
+160,170,Team demo,"BM interaction, sources, next pilot",,
+170,180,Promo,07-outro-silent.mp4,50,60

@@ -1,0 +1,47 @@
+1
+00:00:00,400 --> 00:00:14,700
+Bas menghubungkan kita dengan pendidikan, pekerjaan dan penjagaan kesihatan.
+
+2
+00:00:15,400 --> 00:00:29,700
+GERAK menggabungkan maklumat pengangkutan, perancangan perjalanan dan suara komuniti.
+
+3
+00:00:30,400 --> 00:00:44,700
+Ikuti bas dalam paparan 3D atau 2D dan semak masa pemerhatian kedudukannya.
+
+4
+00:00:45,400 --> 00:00:59,700
+GERAK membezakan pemerhatian, anggaran dan simulasi. Data yang tiada tidak direka.
+
+5
+00:01:00,400 --> 00:01:14,700
+Terokai sambungan laluan. Tarikh perkhidmatan dan waktu berlepas belum disemak.
+
+6
+00:01:15,400 --> 00:01:29,700
+Semak anggaran tambang dan bajet bulanan. Harga yang tidak diketahui ditandakan.
+
+7
+00:01:30,400 --> 00:01:44,700
+Laporkan halangan akses atau hentian rosak, serta ikuti status laporan.
+
+8
+00:01:45,400 --> 00:01:59,700
+Contoh demonstrasi menunjukkan penghantaran dan penerimaan laporan, bukan pembaikan sebenar.
+
+9
+00:02:00,400 --> 00:02:14,700
+Uji penutupan hentian secara hipotesis tanpa mengubah maklumat perkhidmatan sebenar.
+
+10
+00:02:15,400 --> 00:02:29,700
+Terokai hentian alternatif. Jarak garis lurus bukan panduan berjalan yang disahkan.
+
+11
+00:02:30,400 --> 00:02:44,700
+Prototaip ini lulus 90 ujian automatik. Seterusnya, uji kegunaannya bersama penumpang.
+
+12
+00:02:45,400 --> 00:02:59,700
+GERAK menghubungkan pergerakan bas dengan keperluan komuniti. Perjalanan anda. Suara anda.
